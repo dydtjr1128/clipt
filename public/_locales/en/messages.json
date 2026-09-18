@@ -1,0 +1,18 @@
+{
+  "appName": {
+    "message": "Clipt - Screenshot & Screen Recorder",
+    "description": "Extension name"
+  },
+  "appShortName": {
+    "message": "Clipt",
+    "description": "Short name shown in UI"
+  },
+  "appDesc": {
+    "message": "Clip anything on the web. Capture or record exactly the part you need.",
+    "description": "Extension description"
+  },
+  "placeholderComingSoon": {
+    "message": "This screen is coming soon.",
+    "description": "Temporary text for pages not implemented yet"
+  }
+}

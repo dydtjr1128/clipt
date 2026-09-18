@@ -41,8 +41,47 @@
 
 - Clipt는 웹페이지를 원하는 범위만큼 캡처하거나 녹화하는 Chrome 확장 프로그램이다. Manifest V3를 기준으로 한다.
 - 기능 범위와 사용 흐름, 요소 선택 방식은 [README.md](README.md)를 기준으로 한다. 동작이 바뀌면 README도 함께 갱신한다.
-- 설치·실행·검사 명령과 디렉터리 구조는 기술 스택 확정 후 이 섹션에 추가한다.
-- 확장 프로그램 로컬 확인은 `chrome://extensions`에서 개발자 모드를 켜고 빌드 결과 폴더를 `압축해제된 확장 프로그램을 로드합니다`로 불러온다.
+- 확장 프로그램 로컬 확인은 `chrome://extensions`에서 개발자 모드를 켜고 빌드 결과 폴더(`.output/chrome-mv3`)를 `압축해제된 확장 프로그램을 로드합니다`로 불러온다.
 - 오버레이(호버 박스, 라벨, 선택 패널)는 캡처·녹화 결과에 포함되지 않아야 한다. 관련 변경은 실제 캡처 결과로 확인한다.
 - 캡처·녹화 결과물(이미지·영상)과 테스트 산출물은 커밋하지 않는다.
 - 구조·파이프라인·설정 스키마는 [docs/architecture.md](docs/architecture.md), 화면·상호작용·문구는 [docs/ux-design.md](docs/ux-design.md)를 기준으로 한다. 두 문서와 다른 구현을 할 때는 문서를 먼저 고친다.
+
+### 기술 스택
+
+- WXT(Vite 기반) + TypeScript strict + Preact·`@preact/signals`, 스타일은 순수 CSS와 `src/styles/tokens.css` 디자인 토큰
+- 확장 API는 `chrome` 전역 대신 `wxt/browser`의 `browser`를 사용한다.
+- 사용자에게 보이는 문자열은 `src/shared/i18n.ts`의 `t()`와 `public/_locales/{ko,en}/messages.json`으로만 다룬다. JSX 문자열 리터럴은 lint 오류다.
+
+### 명령
+
+| 명령 | 용도 |
+| --- | --- |
+| `npm install` | 의존성 설치, `postinstall`에서 `wxt prepare`로 `.wxt/` 타입 생성 |
+| `npm run dev` | 개발 모드(HMR). WXT가 확장을 로드한 브라우저를 띄운다 |
+| `npm run build` | `.output/chrome-mv3`에 프로덕션 빌드 |
+| `npm run zip` | 스토어 업로드용 zip 생성 |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint |
+| `npm run format` / `npm run format:check` | Prettier 적용 / 검사 (md·yml 제외) |
+| `npm test` | Vitest 단위 테스트(`tests/unit`) |
+| `npm run test:e2e` | 빌드 후 Playwright로 확장을 로드해 E2E(`tests/e2e`). 최초 1회 `node node_modules/@playwright/test/cli.js install chromium` 필요 |
+
+- 변경 후 최소 `typecheck`, `lint`, `test`를 통과시킨다. 확장 동작이 바뀌면 `test:e2e`도 실행한다.
+- npm 스크립트는 CLI를 `node node_modules/...`로 직접 호출한다. 프로젝트 경로의 `&` 때문에 Windows npm `.cmd` shim이 실패하기 때문이며, `npx <cli>`도 같은 이유로 이 경로에서 실패할 수 있다.
+
+### 디렉터리
+
+```text
+src/
+├── entrypoints/   # WXT 진입점: background.ts, content.ts(runtime 주입), popup/, options/, result/, permission/, offscreen/
+├── core/          # 브라우저 API 의존 없는 순수 로직 (단위 테스트 대상)
+├── background/    # 서비스 워커 모듈
+├── content/       # 콘텐츠 스크립트 모듈 (오버레이, 선택 UI)
+├── offscreen/     # 오프스크린 문서 모듈 (캔버스, 녹화, 클립보드)
+├── shared/        # 컨텍스트 공용 (메시지, IndexedDB, i18n)
+├── components/    # Preact 공용 UI
+└── styles/        # 디자인 토큰, 페이지 공통 스타일
+public/_locales/   # ko(기본)·en 메시지
+tests/unit/        # Vitest (fake browser·fake IndexedDB)
+tests/e2e/         # Playwright 확장 로드 테스트
+```

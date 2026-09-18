@@ -1,0 +1,18 @@
+{
+  "appName": {
+    "message": "Clipt - 스크린샷 & 화면 녹화",
+    "description": "확장 프로그램 이름"
+  },
+  "appShortName": {
+    "message": "Clipt",
+    "description": "화면에 표시하는 짧은 이름"
+  },
+  "appDesc": {
+    "message": "웹페이지를 원하는 범위만큼 캡처하거나 녹화해요.",
+    "description": "확장 프로그램 설명"
+  },
+  "placeholderComingSoon": {
+    "message": "준비 중인 화면이에요.",
+    "description": "아직 구현되지 않은 페이지의 임시 문구"
+  }
+}

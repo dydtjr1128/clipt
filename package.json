@@ -1,0 +1,39 @@
+{
+  "name": "clipt",
+  "description": "Clip anything on the web. Chrome extension for screenshot & screen recording",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node node_modules/wxt/bin/wxt.mjs",
+    "build": "node node_modules/wxt/bin/wxt.mjs build",
+    "zip": "node node_modules/wxt/bin/wxt.mjs zip",
+    "postinstall": "node node_modules/wxt/bin/wxt.mjs prepare",
+    "typecheck": "node node_modules/typescript/bin/tsc --noEmit",
+    "lint": "node node_modules/eslint/bin/eslint.js .",
+    "format": "node node_modules/prettier/bin/prettier.cjs --write .",
+    "format:check": "node node_modules/prettier/bin/prettier.cjs --check .",
+    "test": "node node_modules/vitest/vitest.mjs run",
+    "test:watch": "node node_modules/vitest/vitest.mjs",
+    "test:e2e": "node node_modules/wxt/bin/wxt.mjs build && node node_modules/@playwright/test/cli.js test"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.11.2",
+    "idb": "^8.0.3",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^24.13.5",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "fake-indexeddb": "^6.2.5",
+    "prettier": "^3.9.8",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.1",
+    "wxt": "^0.21.4"
+  }
+}

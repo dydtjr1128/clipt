@@ -1,0 +1,23 @@
+/* 확장 페이지(팝업·결과·설정·권한) 공통 기본 스타일 */
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-fg);
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
