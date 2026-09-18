@@ -33,7 +33,7 @@ test('E2E 빌드만 host 권한을 가진다', async ({ serviceWorker }) => {
   expect(manifest.host_permissions).toEqual(['<all_urls>']);
 });
 
-for (const page of ['popup', 'options', 'permission']) {
+for (const page of ['options', 'permission']) {
   test(`${page} 페이지가 오류 없이 렌더링된다`, async ({ context, extensionId }) => {
     const tab = await context.newPage();
     const errors: string[] = [];

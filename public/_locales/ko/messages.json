@@ -26,5 +26,137 @@
   "resultImageAlt": {
     "message": "캡처 결과 이미지",
     "description": "결과 이미지 대체 텍스트"
+  },
+  "popupScreenshots": {
+    "message": "스크린샷",
+    "description": "팝업 섹션 제목"
+  },
+  "popupRecording": {
+    "message": "녹화",
+    "description": "팝업 섹션 제목"
+  },
+  "popupSettings": {
+    "message": "설정",
+    "description": "설정 버튼 이름"
+  },
+  "popupShortcuts": {
+    "message": "단축키 설정",
+    "description": "단축키 설정 버튼 이름"
+  },
+  "menuVisible": {
+    "message": "보이는 화면",
+    "description": "메뉴: 보이는 화면 캡처"
+  },
+  "menuFullpage": {
+    "message": "전체 페이지",
+    "description": "메뉴: 전체 페이지 캡처"
+  },
+  "menuElement": {
+    "message": "요소 선택",
+    "description": "메뉴: 요소 캡처"
+  },
+  "menuRegion": {
+    "message": "영역 선택",
+    "description": "메뉴: 영역 캡처"
+  },
+  "menuRecTab": {
+    "message": "탭 녹화",
+    "description": "메뉴: 탭 녹화"
+  },
+  "menuRecRegion": {
+    "message": "영역 녹화",
+    "description": "메뉴: 영역 녹화"
+  },
+  "menuRecElement": {
+    "message": "요소 녹화",
+    "description": "메뉴: 요소 녹화"
+  },
+  "modeTab": {
+    "message": "탭",
+    "description": "녹화 모드 짧은 이름"
+  },
+  "modeRegion": {
+    "message": "영역",
+    "description": "녹화 모드 짧은 이름"
+  },
+  "modeElement": {
+    "message": "요소",
+    "description": "녹화 모드 짧은 이름"
+  },
+  "hintEscCancel": {
+    "message": "요소·영역 선택 중 Esc로 취소할 수 있어요.",
+    "description": "첫 실행 힌트"
+  },
+  "restrictedTitle": {
+    "message": "이 페이지에서는 사용할 수 없어요",
+    "description": "제한 페이지 안내 제목"
+  },
+  "restrictedBody": {
+    "message": "브라우저 내부 페이지와 웹스토어는 캡처가 제한돼요.",
+    "description": "제한 페이지 안내 본문"
+  },
+  "restrictedFile": {
+    "message": "파일 URL은 확장 관리 화면에서 ‘파일 URL에 대한 액세스 허용’을 켜야 사용할 수 있어요.",
+    "description": "파일 URL 제한 안내"
+  },
+  "selectingElement": {
+    "message": "요소를 선택하는 중",
+    "description": "선택 진행 중 제목"
+  },
+  "selectingRegion": {
+    "message": "영역을 선택하는 중",
+    "description": "선택 진행 중 제목"
+  },
+  "selectingHintElement": {
+    "message": "페이지에서 요소를 클릭하세요. Esc로 취소할 수 있어요.",
+    "description": "요소 선택 안내"
+  },
+  "selectingHintRegion": {
+    "message": "페이지에서 드래그해 영역을 선택하세요. Esc로 취소할 수 있어요.",
+    "description": "영역 선택 안내"
+  },
+  "busyCapturing": {
+    "message": "캡처하는 중이에요",
+    "description": "캡처 진행 중"
+  },
+  "countdownTitle": {
+    "message": "곧 녹화를 시작해요",
+    "description": "카운트다운 중"
+  },
+  "recordingTitle": {
+    "message": "녹화 중 · $1",
+    "description": "녹화 중 제목. $1은 모드 이름"
+  },
+  "recStop": {
+    "message": "녹화 중지",
+    "description": "녹화 중지 버튼"
+  },
+  "commonCancel": {
+    "message": "취소",
+    "description": "취소 버튼"
+  },
+  "commonDismiss": {
+    "message": "닫기",
+    "description": "알림 닫기"
+  },
+  "errorJobActive": {
+    "message": "이미 진행 중인 작업이 있어요.",
+    "description": "작업 중복 오류"
+  },
+  "errorRestricted": {
+    "message": "이 페이지에서는 사용할 수 없어요.",
+    "description": "제한 페이지 오류"
+  },
+  "errorTabClosed": {
+    "message": "대상 탭이 닫혔어요.",
+    "description": "탭 닫힘 오류"
+  },
+  "errorInterrupted": {
+    "message": "이전 작업이 중단됐어요. 다시 시도해 주세요.",
+    "description": "작업 중단 오류"
+  },
+  "errorGeneric": {
+    "message": "작업을 완료하지 못했어요. 다시 시도해 주세요.",
+    "description": "일반 오류"
   }
 }

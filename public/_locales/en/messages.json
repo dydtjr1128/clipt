@@ -26,5 +26,137 @@
   "resultImageAlt": {
     "message": "Captured image",
     "description": "Alt text for result image"
+  },
+  "popupScreenshots": {
+    "message": "Screenshot",
+    "description": "팝업 섹션 제목"
+  },
+  "popupRecording": {
+    "message": "Recording",
+    "description": "팝업 섹션 제목"
+  },
+  "popupSettings": {
+    "message": "Settings",
+    "description": "설정 버튼 이름"
+  },
+  "popupShortcuts": {
+    "message": "Keyboard shortcuts",
+    "description": "단축키 설정 버튼 이름"
+  },
+  "menuVisible": {
+    "message": "Visible area",
+    "description": "메뉴: 보이는 화면 캡처"
+  },
+  "menuFullpage": {
+    "message": "Full page",
+    "description": "메뉴: 전체 페이지 캡처"
+  },
+  "menuElement": {
+    "message": "Element",
+    "description": "메뉴: 요소 캡처"
+  },
+  "menuRegion": {
+    "message": "Region",
+    "description": "메뉴: 영역 캡처"
+  },
+  "menuRecTab": {
+    "message": "Record tab",
+    "description": "메뉴: 탭 녹화"
+  },
+  "menuRecRegion": {
+    "message": "Record region",
+    "description": "메뉴: 영역 녹화"
+  },
+  "menuRecElement": {
+    "message": "Record element",
+    "description": "메뉴: 요소 녹화"
+  },
+  "modeTab": {
+    "message": "Tab",
+    "description": "녹화 모드 짧은 이름"
+  },
+  "modeRegion": {
+    "message": "Region",
+    "description": "녹화 모드 짧은 이름"
+  },
+  "modeElement": {
+    "message": "Element",
+    "description": "녹화 모드 짧은 이름"
+  },
+  "hintEscCancel": {
+    "message": "Press Esc to cancel while selecting.",
+    "description": "첫 실행 힌트"
+  },
+  "restrictedTitle": {
+    "message": "Not available on this page",
+    "description": "제한 페이지 안내 제목"
+  },
+  "restrictedBody": {
+    "message": "Browser pages and the Web Store cannot be captured.",
+    "description": "제한 페이지 안내 본문"
+  },
+  "restrictedFile": {
+    "message": "To use Clipt on file URLs, turn on “Allow access to file URLs” in the extension details.",
+    "description": "파일 URL 제한 안내"
+  },
+  "selectingElement": {
+    "message": "Selecting an element",
+    "description": "선택 진행 중 제목"
+  },
+  "selectingRegion": {
+    "message": "Selecting a region",
+    "description": "선택 진행 중 제목"
+  },
+  "selectingHintElement": {
+    "message": "Click an element on the page. Press Esc to cancel.",
+    "description": "요소 선택 안내"
+  },
+  "selectingHintRegion": {
+    "message": "Drag on the page to select a region. Press Esc to cancel.",
+    "description": "영역 선택 안내"
+  },
+  "busyCapturing": {
+    "message": "Capturing…",
+    "description": "캡처 진행 중"
+  },
+  "countdownTitle": {
+    "message": "Recording starts soon",
+    "description": "카운트다운 중"
+  },
+  "recordingTitle": {
+    "message": "Recording · $1",
+    "description": "녹화 중 제목. $1은 모드 이름"
+  },
+  "recStop": {
+    "message": "Stop recording",
+    "description": "녹화 중지 버튼"
+  },
+  "commonCancel": {
+    "message": "Cancel",
+    "description": "취소 버튼"
+  },
+  "commonDismiss": {
+    "message": "Dismiss",
+    "description": "알림 닫기"
+  },
+  "errorJobActive": {
+    "message": "Another capture or recording is in progress.",
+    "description": "작업 중복 오류"
+  },
+  "errorRestricted": {
+    "message": "Not available on this page.",
+    "description": "제한 페이지 오류"
+  },
+  "errorTabClosed": {
+    "message": "The tab was closed.",
+    "description": "탭 닫힘 오류"
+  },
+  "errorInterrupted": {
+    "message": "The previous task was interrupted. Please try again.",
+    "description": "작업 중단 오류"
+  },
+  "errorGeneric": {
+    "message": "Something went wrong. Please try again.",
+    "description": "일반 오류"
   }
 }

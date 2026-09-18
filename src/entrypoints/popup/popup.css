@@ -1,0 +1,222 @@
+/* 팝업 (docs/ux-design.md 3절) */
+body {
+  width: 320px;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--sp-2);
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.popup-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.popup-actions {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--c-fg-2);
+  font: inherit;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--c-bg-2);
+  color: var(--c-fg);
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: var(--sp-3) var(--sp-4) 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--c-bg-2);
+  font-size: var(--fs-sm);
+}
+
+.notice-warn {
+  border-left: 3px solid var(--c-warn);
+}
+
+.notice-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notice-title {
+  font-weight: 600;
+}
+
+.menu section + section {
+  border-top: 1px solid var(--c-border);
+}
+
+.menu ul {
+  margin: 0;
+  padding: 0 var(--sp-2) var(--sp-2);
+  list-style: none;
+}
+
+.menu-heading {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4) var(--sp-1);
+  color: var(--c-fg-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--sp-2);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--c-fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--motion);
+}
+
+.menu-item:hover:not(:disabled) {
+  background: var(--c-bg-2);
+}
+
+.menu-item:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.menu-icon {
+  width: 20px;
+  color: var(--c-fg-2);
+  text-align: center;
+}
+
+.menu-icon.is-rec {
+  color: var(--c-rec);
+}
+
+.menu-label {
+  flex: 1;
+}
+
+.menu-shortcut {
+  color: var(--c-fg-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+
+.popup-hint {
+  margin: 0 var(--sp-4);
+  color: var(--c-fg-2);
+  font-size: var(--fs-xs);
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+}
+
+.state-title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.state-text {
+  margin: 0;
+  color: var(--c-fg-2);
+  font-size: var(--fs-sm);
+}
+
+.state-progress {
+  width: 100%;
+  accent-color: var(--c-accent);
+}
+
+.state-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--sp-2);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 32px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-bg);
+  color: var(--c-fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--c-bg-2);
+}
+
+.button-rec {
+  width: 100%;
+  border-color: transparent;
+  background: var(--c-rec);
+  color: #fff;
+}
+
+.button-rec:hover {
+  background: var(--c-rec);
+  filter: brightness(1.08);
+}
+
+.button-rec .menu-shortcut {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.rec-dot {
+  color: var(--c-rec);
+}
+
+.rec-timer {
+  margin: var(--sp-2) 0;
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}

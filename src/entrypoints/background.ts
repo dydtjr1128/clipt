@@ -17,6 +17,11 @@ export default defineBackground(() => {
       await endJob(jobId);
       return null;
     },
+    'job:stop': async ({ jobId }) => {
+      // TODO(#11): 녹화 중이면 오프스크린에 rec:stop을 보내 결과를 저장한 뒤 끝낸다
+      await endJob(jobId);
+      return null;
+    },
     'job:get': () => readJob(),
     'tab:status': ({ tabId }) => checkTab(tabId),
   });
