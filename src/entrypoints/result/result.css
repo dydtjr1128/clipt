@@ -1,0 +1,20 @@
+.result {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: var(--sp-6);
+  background: var(--c-bg-2);
+}
+
+.result-media {
+  max-width: 100%;
+  height: auto;
+  box-shadow: var(--shadow-panel);
+  background: repeating-conic-gradient(var(--c-bg-2) 0 25%, var(--c-bg) 0 50%) 0 0 / 16px 16px;
+}
+
+.result-status {
+  padding: var(--sp-6);
+  color: var(--c-fg-2);
+  text-align: center;
+}

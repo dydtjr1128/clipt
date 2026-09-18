@@ -93,16 +93,18 @@ tests/{unit,e2e,fixtures}/       # fixtures: 고정 헤더·지연 로딩·Shado
                               └──────────────────┘               └─────────────────┘
 ```
 
-| 컨텍스트 | 소유 | 하지 않는 것 |
-| --- | --- | --- |
-| 서비스 워커 | 작업 상태 머신, 권한 있는 API 호출, 컨텍스트 생성·정리, 배지, 결과 페이지 열기 | 픽셀 처리, DOM 접근 |
-| 콘텐츠 스크립트 | 사용자 선택 UI, 페이지 측정·스크롤·스타일 임시 변경과 복원, 녹화 중 표시(옵션) | 캡처 API 호출, Blob 보관 |
-| 오프스크린 | 캔버스·MediaRecorder·오디오 합성·클립보드, IndexedDB 쓰기 | 사용자 입력 |
-| 팝업 | 진입 메뉴, 설정 편집, 진행·녹화 상태 표시 | 작업 진행 자체(닫혀도 무관해야 함) |
-| 결과 페이지 | 결과 소비, 포맷 변환(후속: GIF) | 새 캡처 시작(팝업으로 안내) |
-| 권한 페이지 | 마이크 `getUserMedia` 권한 프롬프트 1회 | 그 외 |
+| 컨텍스트 | 소유 | 주로 쓰는 API | 하지 않는 것 |
+| --- | --- | --- | --- |
+| 서비스 워커 (`entrypoints/background.ts`, `background/`) | 작업 상태 머신, 권한 있는 API 호출, 컨텍스트 생성·정리, 배지, 결과 페이지 열기 | `tabs.captureVisibleTab`, `tabCapture.getMediaStreamId`, `scripting`, `offscreen`, `action`, `commands`, `downloads`, `storage.session` | 픽셀 처리, DOM 접근, 미디어 스트림 보유 |
+| 콘텐츠 스크립트 (`entrypoints/content.ts`, `content/`) | 사용자 선택 UI, 페이지 측정·스크롤·스타일 임시 변경과 복원, 녹화 중 표시(옵션) | DOM, `runtime.onMessage` | 캡처 API 호출, Blob 보관 |
+| 오프스크린 (`entrypoints/offscreen/`, `offscreen/`) | 캔버스·MediaRecorder·오디오 합성·클립보드, IndexedDB 쓰기 | `OffscreenCanvas`, `getUserMedia`, `MediaRecorder`, `AudioContext`, `navigator.clipboard`, IndexedDB | 사용자 입력, `chrome.*` 대부분(오프스크린은 `runtime`만 사용 가능) |
+| 팝업 (`entrypoints/popup/`) | 진입 메뉴, 설정 편집, 진행·녹화 상태 표시 | `storage.session`(구독), `storage.sync`, 메시지 전송 | 작업 진행 자체(닫혀도 무관해야 함) |
+| 결과 페이지 (`entrypoints/result/`) | 결과 소비, 포맷 변환(후속: GIF) | IndexedDB, `downloads`, `navigator.clipboard` | 새 캡처 시작(팝업으로 안내) |
+| 권한 페이지 (`entrypoints/permission/`) | 마이크 `getUserMedia` 권한 프롬프트 1회 | `getUserMedia` | 그 외 |
 
-콘텐츠 스크립트는 `chrome.scripting.executeScript`로 필요할 때만 주입한다. 주입 여부는 `PING` 메시지 응답으로 확인해 중복 주입을 막는다.
+콘텐츠 스크립트는 `chrome.scripting.executeScript`로 필요할 때만 주입한다. 주입 여부는 PING 메시지 응답으로 확인해 중복 주입을 막는다(#3).
+
+오프스크린 문서는 `background/offscreen.ts`의 `ensureOffscreen(reasons)`로만 만든다. 한 번에 하나만 존재할 수 있으므로 생성 중인 요청을 공유하고, `runtime.getContexts`로 존재 여부를 확인한다. 서비스 워커가 종료돼도 오프스크린 문서는 살아 있어 녹화가 이어진다.
 
 ## 5. 작업(Job) 상태 머신
 
@@ -116,7 +118,8 @@ type Mode =
 type Job = {
   id: string; mode: Mode; tabId: number; windowId: number;
   phase: 'selecting' | 'preparing' | 'capturing' | 'countdown' | 'recording' | 'finalizing';
-  startedAt: number;            // recording 진입 시각 (타이머 기준)
+  createdAt: number;
+  startedAt?: number;           // recording 진입 시각 (타이머 기준)
   target?: Rect<'css'>;         // 영역·요소 모드에서 확정된 범위
   progress?: { done: number; total: number };
 };
@@ -130,19 +133,42 @@ type Job = {
 어느 단계든 ─▶ cancelled ─▶ idle  (Esc, 단축키 재입력, 탭 닫힘, 오류)
 ```
 
-- 전이는 서비스 워커의 `jobs.transition(id, next)`만 수행하고, 다른 컨텍스트는 요청만 보낸다.
-- 서비스 워커 재기동 시 `job`을 읽어 `recording`이면 오프스크린·배지를 복원하고, `capturing`·`preparing`이면 페이지 복원을 지시하고 취소한다.
+- 모델과 전이 규칙은 `core/job.ts`(순수 함수), 저장·전이 실행은 `background/jobs.ts`가 맡는다.
+- 전이는 서비스 워커의 `transitionJob(id, next)`만 수행하고, 다른 컨텍스트는 메시지로 요청만 보낸다. 허용되지 않은 전이는 `INVALID_TRANSITION`, 이미 작업이 있으면 `JOB_ACTIVE`로 거부한다.
+- 작업 변경은 서비스 워커 안에서 직렬화해 동시 요청이 겹쳐도 작업이 하나만 생긴다.
+- 팝업은 `job:state` 방송 대신 `storage.session`의 `job` 키를 `storage.onChanged`로 구독한다. 수신자가 없을 때의 메시지 오류가 없고 팝업을 다시 열어도 즉시 현재 상태를 읽는다.
+- 서비스 워커 재기동 시 `restoreJob()`이 남은 작업을 판정한다(`core/job.ts`의 `restoreAction`).
+
+| 남은 단계 | 처리 |
+| --- | --- |
+| `selecting`, `countdown` | 유지. 콘텐츠 스크립트가 진행 중 |
+| `recording`, `finalizing`(녹화) | 오프스크린 문서가 있으면 유지하고 배지 복원, 없으면 정리 |
+| `preparing`, `capturing`, `finalizing`(캡처) | 서비스 워커가 진행하던 단계라 정리 |
+
+- 정리한 경우 `storage.session`의 `lastError`에 `INTERRUPTED`를 남긴다. 페이지 스타일 복원 지시(`page:restore`)는 해당 파이프라인 이슈(#6)에서 추가한다.
 - 콘텐츠 스크립트는 `pagehide`에서 자신이 바꾼 스타일을 복원한다.
 
 ## 6. 메시지 프로토콜
 
-`src/shared/messages.ts`에 요청·응답 쌍을 타입으로 정의하고 `send('K', payload)` / `on('K', handler)` 헬퍼로만 사용한다. 수신자를 `target` 필드로 명시해 라우팅한다.
+`src/shared/messages.ts`의 `Protocol` 인터페이스에 수신 컨텍스트별 메시지 시그니처를 정의하고, 보낼 때는 `send(target, type, payload)` / `sendToTab(tabId, type, payload)`, 받을 때는 `listen(target, handlers)`만 사용한다.
+
+- **봉투**: `{ __clipt: 1, target, type, payload }`. 표식과 `target`이 맞지 않으면 응답하지 않아 올바른 수신자가 답한다.
+- **응답**: `{ ok: true, data }` 또는 `{ ok: false, error: { code, message } }`. `send`는 오류 응답을 `CliptError`로 다시 던지고, 응답이 없으면 `NO_HANDLER`.
+- **대용량 데이터**: 이미지·영상 Blob은 메시지로 보내지 않는다. IndexedDB(10절)에 저장하고 `resultId`만 주고받는다.
+
+구현된 메시지:
 
 | 이름 | 방향 | 용도 |
 | --- | --- | --- |
-| `job:start {mode}` | popup/commands → SW | 작업 시작 |
-| `job:cancel` | any → SW | 취소 |
-| `job:state` | SW → popup (broadcast) | 팝업 표시 갱신 |
+| `job:start {mode, tabId?}` | popup/commands → SW | 작업 시작. `tabId`가 없으면 마지막으로 포커스된 창의 활성 탭 |
+| `job:cancel {jobId?}` | any → SW | 취소 |
+| `job:get` | any → SW | 현재 작업 조회 |
+| `offscreen:ping` | SW·페이지 → OS | 오프스크린 응답 확인 |
+
+기능 이슈에서 추가할 메시지:
+
+| 이름 | 방향 | 용도 |
+| --- | --- | --- |
 | `page:probe` | SW → CS | `{dpr, viewport, scrollSize, scroll, innerScroller?}` 응답 |
 | `select:region` / `select:element {forRecording}` | SW → CS | 선택 UI 시작, 응답 `Rect<'css'>` + 선택자 경로 |
 | `page:prepare {hideFixed, hideScrollbar}` / `page:restore` | SW → CS | 캡처 전후 페이지 조정 |
@@ -288,11 +314,12 @@ SW: rec:stop → OS: stop → chunks 병합 → webm duration 보정 → results
 
 | 스토어 | 키 | 값 | 비고 |
 | --- | --- | --- | --- |
-| `results` | `id` | `{id, kind:'image'|'video', mode, mime, width, height, bytes, duration?, fps?, audio?, pageUrl, pageTitle, selector?, scaled?, fallbackReason?, createdAt}` | 인덱스 `createdAt` |
+| `results` | `id` | `ResultMeta`: `id, kind(image·video), mode, mime, width, height, bytes, createdAt` + 선택 `duration, fps, audio, pageUrl, pageTitle, selector, scaled, fallbackReason` | 인덱스 `createdAt` |
 | `blobs` | `id` | `Blob` | results와 동일 id |
 | `chunks` | `[jobId, seq]` | `Blob` | 녹화 중 임시. 병합 후 삭제 |
 
-- 보존: 결과는 24시간 또는 총 500MB 초과 시 오래된 것부터 삭제(결과 페이지 진입·서비스 워커 기동 시 정리).
+- 구현: `shared/db.ts`(`saveResult`, `loadResult`, `deleteResults`, `pruneResults`, `appendChunk`, `readChunks`, `deleteChunks`, `listChunkJobIds`). 확장 페이지와 오프스크린 문서가 같은 origin이라 같은 DB를 공유한다.
+- 보존: 결과는 24시간 또는 총 500MB 초과 시 오래된 것부터 삭제(`core/retention.ts`). 결과 페이지 진입·서비스 워커 기동 시 정리.
 - `storage.session`: `job`, `lastError`.
 - `storage.sync`: `settings`.
 

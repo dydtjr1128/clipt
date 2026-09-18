@@ -17,7 +17,7 @@ test('manifest는 host 권한 없이 필요한 권한만 요청한다', async ({
   );
 });
 
-for (const page of ['popup', 'options', 'result', 'permission']) {
+for (const page of ['popup', 'options', 'permission']) {
   test(`${page} 페이지가 오류 없이 렌더링된다`, async ({ context, extensionId }) => {
     const tab = await context.newPage();
     const errors: string[] = [];
@@ -27,3 +27,12 @@ for (const page of ['popup', 'options', 'result', 'permission']) {
     expect(errors).toEqual([]);
   });
 }
+
+test('result 페이지는 id가 없으면 만료 안내를 보여준다', async ({ context, extensionId }) => {
+  const tab = await context.newPage();
+  const errors: string[] = [];
+  tab.on('pageerror', (e) => errors.push(e.message));
+  await tab.goto(`chrome-extension://${extensionId}/result.html`);
+  await expect(tab.locator('.result-status')).toBeVisible();
+  expect(errors).toEqual([]);
+});

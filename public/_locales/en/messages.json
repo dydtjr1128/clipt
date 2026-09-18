@@ -14,5 +14,17 @@
   "placeholderComingSoon": {
     "message": "This screen is coming soon.",
     "description": "Temporary text for pages not implemented yet"
+  },
+  "resultLoading": {
+    "message": "Loading the result.",
+    "description": "Result page loading text"
+  },
+  "resultExpired": {
+    "message": "This result has expired. Results are kept for 24 hours.",
+    "description": "When the result cannot be found"
+  },
+  "resultImageAlt": {
+    "message": "Captured image",
+    "description": "Alt text for result image"
   }
 }
