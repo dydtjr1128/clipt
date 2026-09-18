@@ -54,20 +54,32 @@ async function copyToClipboard(tabId: number, pngDataUrl: string): Promise<void>
   if (injection?.result !== true) throw new Error('clipboard write failed');
 }
 
+/** Blob을 dataURL로 바꾼다. 서비스 워커에는 URL.createObjectURL이 없어 다운로드·페이지 전달에 쓴다 */
+export async function blobToDataUrl(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return `data:${blob.type};base64,${btoa(binary)}`;
+}
+
 export async function emitCapture(
   job: Job,
   meta: ResultMeta,
-  dataUrl: string,
+  blob: Blob,
   settings: Settings,
 ): Promise<EmitOutcome> {
   try {
     if (settings.afterCapture === 'download') {
+      const dataUrl = await blobToDataUrl(blob);
       await download(meta, dataUrl, settings);
       await flashBadge('✓');
       return 'download';
     }
     if (settings.afterCapture === 'clipboard' && meta.mime === 'image/png') {
-      await copyToClipboard(job.tabId, dataUrl);
+      await copyToClipboard(job.tabId, await blobToDataUrl(blob));
       await flashBadge('✓');
       return 'clipboard';
     }

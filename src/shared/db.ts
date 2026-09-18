@@ -28,6 +28,8 @@ export interface ResultMeta {
   dpr?: number;
   /** 캔버스 한계로 축소한 배율 (0~1) */
   scaled?: number;
+  /** 결과 페이지에 알릴 주의 사항 (예: internal-scroll) */
+  warnings?: string[];
   /** 요청 포맷을 지원하지 않아 폴백한 사유 */
   fallbackReason?: string;
 }

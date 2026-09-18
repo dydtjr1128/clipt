@@ -1,6 +1,8 @@
 import { CliptError } from '@/core/errors';
 import type { Job, Mode } from '@/core/job';
+import { sendToTab } from '@/shared/messages';
 import { endJob, getJob, recordError } from '../jobs';
+import { runFullPageCapture } from './fullpage';
 import { runVisibleCapture } from './visible';
 
 /**
@@ -9,6 +11,7 @@ import { runVisibleCapture } from './visible';
  */
 const PIPELINES: Partial<Record<Mode, (job: Job) => Promise<void>>> = {
   visible: runVisibleCapture,
+  fullpage: runFullPageCapture,
 };
 
 /**
@@ -26,5 +29,7 @@ export async function runPipeline(job: Job): Promise<void> {
     if (cancelled || current?.id !== job.id) return;
     await recordError(error, job.mode);
     await endJob(job.id);
+    // 취소·실패 시 페이지 스타일·스크롤이 남지 않게 한 번 더 복원한다
+    await sendToTab(job.tabId, 'page:restore', null).catch(() => undefined);
   }
 }

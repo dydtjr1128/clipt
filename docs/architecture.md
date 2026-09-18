@@ -49,6 +49,8 @@ src/
 ├── background/
 │   ├── jobs.ts                  # 작업 상태 머신 (storage.session)
 │   ├── capture-service.ts       # captureVisibleTab 래퍼 + 속도 제한 큐
+│   ├── stitch.ts                # OffscreenCanvas 스크롤 스티칭·크롭
+│   ├── pipelines/               # 모드별 캡처·녹화 흐름
 │   ├── recording-service.ts     # tabCapture streamId, 오프스크린 제어
 │   ├── router.ts                # 메시지 라우팅
 │   └── badge.ts
@@ -61,7 +63,6 @@ src/
 │   ├── countdown.ts
 │   └── rec-indicator.ts         # 녹화 중 표시 (옵션)
 ├── offscreen/
-│   ├── stitcher.ts              # OffscreenCanvas 스티칭·크롭
 │   ├── recorder.ts              # MediaRecorder + chunk 저장
 │   ├── frame-cropper.ts         # 영역·요소 녹화용 캔버스 크롭
 │   ├── audio-mixer.ts           # 탭·마이크 오디오 합성, 탭 소리 재생 유지
@@ -166,22 +167,19 @@ type Job = {
 | `job:get` | any → SW | 현재 작업 조회. 복원이 끝난 뒤의 상태를 돌려준다 |
 | `tab:status {tabId}` | popup → SW | 탭 사용 가능 여부와 제한 사유 (13절) |
 | `content:ping` | SW → CS | 콘텐츠 스크립트 주입 여부 확인 |
+| `page:probe` | SW → CS | 뷰포트·스크롤·`scrollHeight`·DPR·내부 스크롤 여부 |
+| `page:prepare {hideScrollbar}` / `page:hideFixed` / `page:restore` | SW → CS | 캡처 전후 페이지 조정과 원상 복구 (8.1절) |
+| `page:scrollTo {y, lazyWaitMs}` | SW → CS | 스크롤 후 렌더·지연 이미지 대기, 실제 scrollY 응답 |
 | `offscreen:ping` | SW·페이지 → OS | 오프스크린 응답 확인 |
 
 기능 이슈에서 추가할 메시지:
 
 | 이름 | 방향 | 용도 |
 | --- | --- | --- |
-| `page:probe` | SW → CS | `{dpr, viewport, scrollSize, scroll, innerScroller?}` 응답 |
 | `select:region` / `select:element {forRecording}` | SW → CS | 선택 UI 시작, 응답 `Rect<'css'>` + 선택자 경로 |
-| `page:prepare {hideFixed, hideScrollbar}` / `page:restore` | SW → CS | 캡처 전후 페이지 조정 |
-| `page:scrollTo {y}` | SW → CS | 스티칭 스크롤, 렌더 안정 후 응답 |
-| `capture:shot` | SW 내부 | `captureVisibleTab` (속도 제한 큐 통과) |
-| `stitch:begin/piece/end` | SW → OS | 조각 전달(dataURL), 완료 시 `resultId` 응답 |
 | `rec:start {streamId, crop?, profile}` / `rec:pause` / `rec:resume` / `rec:stop` | SW → OS | 녹화 제어 |
 | `rec:tick {elapsed}` | OS → SW → popup | 1초 타이머 |
 | `indicator:show {kind}` / `indicator:hide` | SW → CS | 녹화 중 표시(옵션) |
-| `emit {resultId}` | SW 내부 | 설정에 따른 배출 |
 | `clipboard:write {resultId}` | SW → OS | 복사 |
 
 장시간 흐름(진행률, 녹화 tick)은 `chrome.runtime.connect` 포트, 단발 요청은 `sendMessage`.
@@ -211,19 +209,20 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 | 요소 | 요소 Rect | 동일 | 동일 |
 | 전체 페이지 | 문서 전체 | 스티칭 | 없음 |
 
-### 8.1 스크롤 스티칭 (`core/stitch-plan.ts` + `offscreen/stitcher.ts`)
+### 8.1 스크롤 스티칭 (`core/stitch-plan.ts` + `background/stitch.ts`)
 
-전체 페이지 캡처는 스크롤 스티칭만 지원한다(`chrome.debugger` 방식은 채택하지 않음).
+전체 페이지 캡처는 스크롤 스티칭만 지원한다(`chrome.debugger` 방식은 채택하지 않음). 영역·요소 캡처에서 대상이 뷰포트를 넘을 때도 같은 코드를 쓴다.
 
-1. `page:probe`로 `scrollHeight`, 뷰포트 높이 `vh`, dpr 획득. 대상 문서 Rect(`docRect`) 결정.
-2. 계획: `pieces = ceil(docRect.h / vh)`, 조각 `i`의 `scrollY = docRect.y + i*vh`. 마지막 조각은 `scrollY = docRect.bottom - vh`로 맞추고 앞 조각과 겹치는 높이만큼 잘라 붙인다.
-3. `page:prepare`: 첫 조각 이후 `position: fixed|sticky` 요소를 `visibility: hidden`(레이아웃 유지)으로 숨기고, 스크롤바 숨김 클래스를 적용. 원래 인라인 스타일을 `WeakMap`에 보존.
-4. 조각마다 `page:scrollTo` → 콘텐츠는 `scrollTo` 후 `requestAnimationFrame` 2회 + 뷰포트 안 이미지 `decode` 대기(최대 `lazyWaitMs`) 후 응답 → `capture:shot`. 속도 제한 큐가 호출 간격을 최소 550ms로 보장(API 제한 초당 2회).
-5. 오프스크린 `OffscreenCanvas(docW*dpr, docH*dpr)`에 조각을 `drawImage`. 캔버스 한계(한 변 16384 또는 면적 초과) 예상 시 축소 배율 `scale = min(1, limit/size)`를 계획 단계에서 결정하고 사용자에게 알린다.
-6. `page:restore` → 결과 Blob → IndexedDB → `resultId`.
-7. 진행률은 `job.progress`에 저장, 콘텐츠 토스트와 팝업이 표시. 중단 시 즉시 `page:restore`.
+1. `page:probe`로 뷰포트, 스크롤 위치, `scrollHeight`, dpr, 내부 스크롤 여부를 얻고 대상 문서 Rect를 정한다(전체 페이지는 `0, 0, 뷰포트 너비, scrollHeight`).
+2. 계획(`planStitch`): 대상이 지금 화면 안에 다 들어오면 스크롤 없이 한 조각. 아니면 대상 위쪽부터 뷰포트 높이씩 나누되 스크롤은 최대 스크롤 위치에서 멈추고, 그 화면에 보이는 남은 부분만 붙인다. 조각 높이 합 = 대상 높이, 겹침 없음.
+3. 캔버스 한계(Chrome: 한 변 32767px, 면적 16384²)를 넘으면 계획 단계에서 축소 배율을 정하고 결과 메타 `scaled`에 기록한다.
+4. `page:prepare`: 스크롤 위치·`scroll-behavior`를 기억하고 조각이 여러 개면 스크롤바를 숨긴다. 두 번째 조각부터 `page:hideFixed`로 `position: fixed|sticky` 요소를 `visibility: hidden`(레이아웃 유지)으로 숨겨 고정 헤더가 한 번만 나오게 한다.
+5. 조각마다 `page:scrollTo` → 콘텐츠는 `scrollTo(behavior: instant)` 후 2프레임 대기, 뷰포트 안 미완료 이미지를 `decode`로 기다리고(최대 `lazyWaitMs`) 다시 2프레임 뒤 **실제 scrollY**를 돌려준다. 자를 위치는 요청값이 아니라 실제 위치로 계산한다.
+6. `captureShot`(초당 2회 제한용 550ms 간격 큐) → 서비스 워커의 `OffscreenCanvas`에 `drawImage`. 이웃 조각 경계는 같은 반올림으로 계산해 소수 DPR에서도 틈·겹침이 없다(`pieceRects`). 이미지를 다른 컨텍스트로 보내지 않아도 돼 오프스크린 문서를 쓰지 않는다.
+7. 끝나거나 실패·취소되면 `page:restore`로 숨긴 요소·스크롤바·스크롤 위치·인라인 스타일을 원래대로 되돌린다(원래 없던 `style`·`class` 속성은 지운다).
+8. 진행률은 `job.progress`(배지 `3/12`, 팝업 진행 바). 페이지에서 Esc를 누르거나 팝업에서 취소하면 다음 조각 전에 멈춘다. 캡처 중에는 페이지에 토스트를 띄우지 않는다(결과에 찍히므로).
 
-내부 스크롤 컨테이너를 쓰는 페이지(문서는 안 움직이고 `overflow: auto` 요소가 스크롤)는 probe가 감지해 "일부만 캡처될 수 있음"을 안내한다. 내부 스크롤러 스티칭은 후속 이슈.
+내부 스크롤 컨테이너를 쓰는 페이지(문서는 안 움직이고 `overflow: auto` 요소가 스크롤)는 probe가 감지해 결과 메타 `warnings: ['internal-scroll']`로 남기고 보이는 만큼 찍는다. 내부 스크롤러 스티칭은 후속 이슈.
 
 ### 8.2 요소 선택 (`content/hover-picker.ts`, `core/element-path.ts`)
 

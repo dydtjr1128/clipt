@@ -2,6 +2,7 @@ import { browser, type Browser } from 'wxt/browser';
 import { CliptError, toErrorPayload, type ErrorPayload } from '@/core/errors';
 import type { Job, Mode } from '@/core/job';
 import type { TabAccess } from '@/core/restricted';
+import type { PageProbe } from '@/core/page';
 
 /**
  * 컨텍스트 간 메시지 프로토콜 (docs/architecture.md 6절).
@@ -26,6 +27,16 @@ export interface Protocol {
   content: {
     /** 주입 여부 확인. 응답이 없으면 아직 주입되지 않은 것 */
     'content:ping': (payload: null) => 'pong';
+    /** 뷰포트·스크롤·DPR 측정 */
+    'page:probe': (payload: null) => PageProbe;
+    /** 캡처 전 준비: 스크롤 위치 기억, 부드러운 스크롤·스크롤바 끄기 */
+    'page:prepare': (payload: { hideScrollbar: boolean }) => null;
+    /** fixed·sticky 요소 숨김. 숨긴 요소 수 */
+    'page:hideFixed': (payload: null) => number;
+    /** 스크롤 후 렌더 안정(지연 로딩 이미지 대기)까지 기다려 실제 scrollY 반환 */
+    'page:scrollTo': (payload: { y: number; lazyWaitMs: number }) => number;
+    /** 캡처 후·취소 시 원상 복구 */
+    'page:restore': (payload: null) => null;
   };
 }
 
