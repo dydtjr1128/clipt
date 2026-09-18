@@ -23,6 +23,9 @@ export interface ResultMeta {
   pageUrl?: string;
   pageTitle?: string;
   selector?: string;
+  /** 캡처 시점 뷰포트(CSS px)와 기기 배율 */
+  viewport?: { w: number; h: number };
+  dpr?: number;
   /** 캔버스 한계로 축소한 배율 (0~1) */
   scaled?: number;
   /** 요청 포맷을 지원하지 않아 폴백한 사유 */

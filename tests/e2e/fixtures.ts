@@ -31,6 +31,11 @@ type Fixtures = {
   extensionId: string;
   /** 확장 페이지를 새 탭으로 연다 */
   openExtensionPage: (path: string) => Promise<Page>;
+  /**
+   * 확장 페이지를 별도 창으로 연다. captureVisibleTab은 창의 활성 탭을 찍으므로
+   * 조작용 페이지를 다른 창에 두어 대상 사이트 탭을 활성 상태로 유지한다.
+   */
+  openControlWindow: (path?: string) => Promise<Page>;
 };
 
 /** 빌드된 확장을 로드한 Chromium 컨텍스트와 서비스 워커를 제공한다. */
@@ -69,6 +74,18 @@ export const test = base.extend<Fixtures & Options>({
     await use(async (path) => {
       const page = await context.newPage();
       await page.goto(`chrome-extension://${extensionId}/${path}`);
+      return page;
+    });
+  },
+  openControlWindow: async ({ context, serviceWorker }, use) => {
+    await use(async (path = 'options.html') => {
+      const opened = context.waitForEvent('page', (p) => p.url().includes(path));
+      await serviceWorker.evaluate(
+        (url) => chrome.windows.create({ url, focused: false, width: 400, height: 300 }),
+        `/${path}`,
+      );
+      const page = await opened;
+      await page.waitForLoadState();
       return page;
     });
   },
