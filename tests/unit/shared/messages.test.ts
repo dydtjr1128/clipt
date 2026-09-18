@@ -63,6 +63,15 @@ describe('listen', () => {
   });
 });
 
+it('프로토타입 속성 이름의 메시지는 핸들러 없음으로 처리한다', async () => {
+  const cap = captureListener();
+  listen('background', {});
+  expect(await dispatch(cap.get(), env('background', 'toString'))).toMatchObject({
+    ok: false,
+    error: { code: 'NO_HANDLER' },
+  });
+});
+
 describe('send', () => {
   it('ok 응답의 data를 돌려주고 오류 응답은 CliptError로 던진다', async () => {
     // sendMessage의 반환 타입이 오버로드로 void가 잡혀 응답 객체를 never로 넘긴다

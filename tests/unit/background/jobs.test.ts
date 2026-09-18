@@ -4,6 +4,7 @@ import {
   LAST_ERROR_KEY,
   endJob,
   getJob,
+  readJob,
   restoreJob,
   startJob,
   transitionJob,
@@ -116,5 +117,36 @@ describe('restoreJob (서비스 워커 재기동)', () => {
       [JOB_KEY]: { ...base, mode: 'element', phase: 'selecting' },
     });
     expect((await restoreJob(async () => false)).action).toBe('keep');
+  });
+});
+
+describe('복원과 요청 순서', () => {
+  it('복원 중 들어온 요청은 정리가 끝난 뒤의 상태를 본다', async () => {
+    const tab = await openTab();
+    await fakeBrowser.storage.session.set({
+      [JOB_KEY]: {
+        id: 'old',
+        mode: 'fullpage',
+        tabId: tab.id,
+        windowId: 1,
+        phase: 'capturing',
+        createdAt: 0,
+      },
+    });
+    let release!: () => void;
+    const gate = new Promise<boolean>((resolve) => (release = () => resolve(false)));
+
+    const restoring = restoreJob(() => gate); // 오프스크린 확인이 끝나지 않은 상태
+    const read = readJob();
+    const started = startJob('visible', tab.id);
+    release();
+
+    expect((await restoring).action).toBe('abort');
+    expect(await read).toBeNull();
+    await expect(started).resolves.toMatchObject({ mode: 'visible' });
+  });
+
+  it('없는 탭으로 시작하면 TAB_CLOSED', async () => {
+    await expect(startJob('visible', 99999)).rejects.toMatchObject({ code: 'TAB_CLOSED' });
   });
 });

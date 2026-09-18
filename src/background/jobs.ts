@@ -50,7 +50,8 @@ export async function recordError(error: unknown, mode?: Mode): Promise<void> {
 
 async function resolveTab(tabId?: number): Promise<{ id: number; windowId: number }> {
   if (tabId !== undefined) {
-    const tab = await browser.tabs.get(tabId);
+    const tab = await browser.tabs.get(tabId).catch(() => null);
+    if (!tab) throw new CliptError('TAB_CLOSED', `Tab ${tabId} does not exist`);
     return { id: tabId, windowId: tab.windowId };
   }
   const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
@@ -126,22 +127,30 @@ export function endJob(jobId?: string): Promise<Job | null> {
 /**
  * 서비스 워커 기동 시 호출. 남은 작업을 이어갈 수 있으면 배지를 복원하고,
  * 이어갈 수 없으면 정리하고 INTERRUPTED 오류를 남긴다.
+ * 작업 변경과 같은 줄에 세워, 복원이 끝나기 전 들어온 요청이 정리 전 상태를 보지 않게 한다.
  */
-export async function restoreJob(isOffscreenAlive: () => Promise<boolean> = hasOffscreen) {
-  const job = await getJob();
-  if (!job) {
-    await applyBadge(null).catch(() => undefined);
-    return { job: null, action: 'none' as const };
-  }
-  const action = restoreAction(job, await isOffscreenAlive().catch(() => false));
-  if (action === 'keep') {
-    await applyBadge(job).catch(() => undefined);
+export function restoreJob(isOffscreenAlive: () => Promise<boolean> = hasOffscreen) {
+  return serial(async () => {
+    const job = await getJob();
+    if (!job) {
+      await applyBadge(null).catch(() => undefined);
+      return { job: null, action: 'none' as const };
+    }
+    const action = restoreAction(job, await isOffscreenAlive().catch(() => false));
+    if (action === 'keep') {
+      await applyBadge(job).catch(() => undefined);
+      return { job, action };
+    }
+    await saveJob(null);
+    await recordError(
+      new CliptError('INTERRUPTED', `${job.mode} interrupted at ${job.phase}`),
+      job.mode,
+    );
     return { job, action };
-  }
-  await endJob(job.id);
-  await recordError(
-    new CliptError('INTERRUPTED', `${job.mode} interrupted at ${job.phase}`),
-    job.mode,
-  );
-  return { job, action };
+  });
+}
+
+/** 진행 중인 작업 변경(복원 포함)이 끝난 뒤의 작업을 읽는다. 메시지 응답용 */
+export function readJob(): Promise<Job | null> {
+  return serial(getJob);
 }

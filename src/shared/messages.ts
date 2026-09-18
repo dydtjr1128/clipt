@@ -108,8 +108,10 @@ export function listen<T extends Target>(target: T, handlers: HandlerMap<T>): ()
     sendResponse: (response: Response) => void,
   ): boolean => {
     if (!isEnvelope(message) || message.target !== target) return false;
-    const handler = handlers[message.type as MessageType<T>] as
-      ((payload: unknown, sender: Sender) => unknown) | undefined;
+    // 프로토타입 속성(toString 등)이 핸들러로 잡히지 않도록 자기 속성만 본다
+    const handler = (
+      Object.hasOwn(handlers, message.type) ? handlers[message.type as MessageType<T>] : undefined
+    ) as ((payload: unknown, sender: Sender) => unknown) | undefined;
     if (!handler) {
       sendResponse({
         ok: false,

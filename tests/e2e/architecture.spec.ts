@@ -34,8 +34,16 @@ async function stopServiceWorker(page: Page, extensionId: string) {
   });
   await cdp.send('ServiceWorker.enable');
   await cdp.send('ServiceWorker.stopAllWorkers');
-  await stopped;
-  await cdp.detach();
+  try {
+    await Promise.race([
+      stopped,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('service worker did not stop within 10s')), 10_000),
+      ),
+    ]);
+  } finally {
+    await cdp.detach();
+  }
 }
 
 test('팝업이 닫혀도 작업은 서비스 워커에 남는다', async ({ context, extensionId }) => {
