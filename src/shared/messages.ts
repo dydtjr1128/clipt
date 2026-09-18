@@ -1,6 +1,7 @@
 import { browser, type Browser } from 'wxt/browser';
 import { CliptError, toErrorPayload, type ErrorPayload } from '@/core/errors';
 import type { Job, Mode } from '@/core/job';
+import type { TabAccess } from '@/core/restricted';
 
 /**
  * 컨텍스트 간 메시지 프로토콜 (docs/architecture.md 6절).
@@ -14,11 +15,16 @@ export interface Protocol {
     /** 진행 중인 작업 취소. jobId를 주면 해당 작업일 때만 취소 */
     'job:cancel': (payload: { jobId?: string }) => null;
     'job:get': (payload: null) => Job | null;
+    /** 탭에서 캡처·녹화를 시작할 수 있는지 확인 (팝업 메뉴 활성화 판단) */
+    'tab:status': (payload: { tabId: number }) => TabAccess;
   };
   offscreen: {
     'offscreen:ping': (payload: null) => 'pong';
   };
-  content: Record<never, never>;
+  content: {
+    /** 주입 여부 확인. 응답이 없으면 아직 주입되지 않은 것 */
+    'content:ping': (payload: null) => 'pong';
+  };
 }
 
 export type Target = keyof Protocol;

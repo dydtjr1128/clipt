@@ -10,6 +10,7 @@ import {
 } from '@/core/job';
 import { applyBadge } from './badge';
 import { hasOffscreen } from './offscreen';
+import { assertTabAvailable } from './access';
 
 /**
  * 작업 상태 저장소 (docs/architecture.md 5절).
@@ -63,6 +64,7 @@ export function startJob(mode: Mode, tabId?: number, now: number = Date.now()): 
   return serial(async () => {
     if (await getJob()) throw new CliptError('JOB_ACTIVE', 'Another job is in progress');
     const tab = await resolveTab(tabId);
+    await assertTabAvailable(tab.id);
     const job: Job = {
       id: crypto.randomUUID(),
       mode,
