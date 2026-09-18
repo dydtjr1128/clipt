@@ -384,7 +384,7 @@ type Settings = {
              "capture-fullpage", "record-region", "record-element", "_execute_action"]
 ```
 
-`host_permissions` 없음. 마이크는 manifest 권한이 아니라 사이트 권한 프롬프트(권한 페이지)로 처리. 기본 단축키는 4개까지만 제안([#17](https://github.com/dydtjr1128/clipt/issues/17)).
+`host_permissions` 없음. 권한별 사용 사유와 activeTab 부여 조건은 [docs/store/permissions.md](store/permissions.md). 탭 접근은 `background/access.ts`의 `checkTab`이 URL 판정(`core/restricted.ts`) 후 실제 주입 가능 여부로 확인하고, 제한 페이지면 `job:start`가 `RESTRICTED_PAGE`(사유 `browser`·`webstore`·`file`·`unsupported`·`no-access`)로 거부한다. 확장은 `tabs` 권한이 없어 activeTab이 없는 탭(`chrome://` 포함)의 URL을 읽지 못하며 이 경우 `no-access`다. 마이크는 manifest 권한이 아니라 사이트 권한 프롬프트(권한 페이지)로 처리. 기본 단축키는 4개까지만 제안([#17](https://github.com/dydtjr1128/clipt/issues/17)).
 
 ## 14. 설계 결정 기록
 

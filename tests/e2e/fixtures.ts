@@ -1,23 +1,59 @@
-import { test as base, chromium, type BrowserContext, type Worker } from '@playwright/test';
+import {
+  test as base,
+  chromium,
+  type BrowserContext,
+  type Page,
+  type Worker,
+} from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { browser } from 'wxt/browser';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-export const extensionPath = path.join(root, '.output/chrome-mv3');
+/** E2E 전용 빌드(host 권한 포함). 배포 빌드 경로는 productionPath */
+export const extensionPath = path.join(root, '.output/chrome-mv3-e2e');
+export const productionPath = path.join(root, '.output/chrome-mv3');
+
+/** 테스트 사이트 origin. 네트워크 없이 context.route로 응답한다 */
+export const SITE = 'https://clipt.test';
+
+/** 확장 페이지·서비스 워커 전역의 chrome 객체 타입 */
+declare const chrome: typeof browser;
+
+type Options = {
+  /** Chromium 실행 시 기기 배율. --force-device-scale-factor */
+  scaleFactor: number;
+};
 
 type Fixtures = {
   context: BrowserContext;
   serviceWorker: Worker;
   extensionId: string;
+  /** 확장 페이지를 새 탭으로 연다 */
+  openExtensionPage: (path: string) => Promise<Page>;
 };
 
 /** 빌드된 확장을 로드한 Chromium 컨텍스트와 서비스 워커를 제공한다. */
-export const test = base.extend<Fixtures>({
-  // eslint-disable-next-line no-empty-pattern
-  context: async ({}, use) => {
+export const test = base.extend<Fixtures & Options>({
+  scaleFactor: [1, { option: true }],
+  context: async ({ scaleFactor }, use) => {
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
-      args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+      viewport: null,
+      args: [
+        `--disable-extensions-except=${extensionPath}`,
+        `--load-extension=${extensionPath}`,
+        `--force-device-scale-factor=${scaleFactor}`,
+        '--window-size=1000,800',
+      ],
+    });
+    await context.route(`${SITE}/**`, (route) => {
+      const url = new URL(route.request().url());
+      const title = url.searchParams.get('title') ?? 'site';
+      return route.fulfill({
+        contentType: 'text/html',
+        body: `<!doctype html><title>${title}</title><body style="margin:0;background:#0a7"><h1>${title}</h1></body>`,
+      });
     });
     await use(context);
     await context.close();
@@ -29,6 +65,32 @@ export const test = base.extend<Fixtures>({
   extensionId: async ({ serviceWorker }, use) => {
     await use(new URL(serviceWorker.url()).host);
   },
+  openExtensionPage: async ({ context, extensionId }, use) => {
+    await use(async (path) => {
+      const page = await context.newPage();
+      await page.goto(`chrome-extension://${extensionId}/${path}`);
+      return page;
+    });
+  },
 });
 
 export const expect = test.expect;
+
+/** 확장 페이지 컨텍스트에서 서비스 워커로 프로토콜 메시지를 보낸다 */
+export function sendToBackground(page: Page, type: string, payload: unknown = null) {
+  return page.evaluate(
+    ([type, payload]) =>
+      chrome.runtime.sendMessage({ __clipt: 1, target: 'background', type, payload }),
+    [type, payload] as const,
+  ) as Promise<{ ok: boolean; data?: unknown; error?: { code: string; message: string } }>;
+}
+
+/** URL로 탭 id를 찾는다 (E2E 빌드는 host 권한이 있어 URL을 읽을 수 있다) */
+export function tabIdOf(extensionPage: Page, url: string): Promise<number> {
+  return extensionPage.evaluate(async (url) => {
+    const tabs = await chrome.tabs.query({});
+    const tab = tabs.find((t) => t.url === url);
+    if (tab?.id === undefined) throw new Error(`tab not found: ${url}`);
+    return tab.id;
+  }, url);
+}

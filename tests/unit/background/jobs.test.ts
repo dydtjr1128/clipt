@@ -19,6 +19,9 @@ async function openTab() {
 beforeEach(() => {
   vi.spyOn(fakeBrowser.action, 'setBadgeText').mockResolvedValue(undefined);
   vi.spyOn(fakeBrowser.action, 'setBadgeBackgroundColor').mockResolvedValue(undefined);
+  // 일반 웹페이지로 간주: 주입 확인 성공
+  vi.spyOn(fakeBrowser.scripting, 'executeScript').mockResolvedValue([] as never);
+  vi.spyOn(fakeBrowser.extension, 'isAllowedFileSchemeAccess').mockResolvedValue(false as never);
 });
 
 describe('startJob', () => {
@@ -148,5 +151,25 @@ describe('복원과 요청 순서', () => {
 
   it('없는 탭으로 시작하면 TAB_CLOSED', async () => {
     await expect(startJob('visible', 99999)).rejects.toMatchObject({ code: 'TAB_CLOSED' });
+  });
+});
+
+describe('제한 페이지', () => {
+  it('브라우저 내부 페이지에서는 RESTRICTED_PAGE로 거부한다', async () => {
+    const tab = (await fakeBrowser.tabs.create({ url: 'chrome://extensions' })) as { id: number };
+    await expect(startJob('visible', tab.id)).rejects.toMatchObject({
+      code: 'RESTRICTED_PAGE',
+      message: 'browser',
+    });
+    expect(await getJob()).toBeNull();
+  });
+
+  it('주입이 거부되면 no-access로 거부한다', async () => {
+    const tab = await openTab();
+    vi.mocked(fakeBrowser.scripting.executeScript).mockRejectedValue(new Error('Cannot access'));
+    await expect(startJob('visible', tab.id)).rejects.toMatchObject({
+      code: 'RESTRICTED_PAGE',
+      message: 'no-access',
+    });
   });
 });

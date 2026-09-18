@@ -1,26 +1,11 @@
-import type { BrowserContext, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import type { browser } from 'wxt/browser';
-import { test, expect } from './fixtures';
+import { test, expect, SITE, sendToBackground, tabIdOf } from './fixtures';
 
 /** 확장 페이지·서비스 워커 전역의 chrome 객체 타입 */
 declare const chrome: typeof browser;
 
 type Job = { id: string; mode: string; phase: string; tabId: number };
-
-/** 확장 페이지 컨텍스트에서 서비스 워커로 프로토콜 메시지를 보낸다 */
-async function sendToBackground(page: Page, type: string, payload: unknown = null) {
-  return page.evaluate(
-    ([type, payload]) =>
-      chrome.runtime.sendMessage({ __clipt: 1, target: 'background', type, payload }),
-    [type, payload] as const,
-  ) as Promise<{ ok: boolean; data?: unknown; error?: { code: string } }>;
-}
-
-async function openExtensionPage(context: BrowserContext, extensionId: string, path: string) {
-  const page = await context.newPage();
-  await page.goto(`chrome-extension://${extensionId}/${path}`);
-  return page;
-}
 
 /** CDP로 서비스 워커를 강제 종료한다 (chrome://serviceworker-internals의 Stop과 동일) */
 async function stopServiceWorker(page: Page, extensionId: string) {
@@ -46,24 +31,17 @@ async function stopServiceWorker(page: Page, extensionId: string) {
   }
 }
 
-test('팝업이 닫혀도 작업은 서비스 워커에 남는다', async ({ context, extensionId }) => {
+test('팝업이 닫혀도 작업은 서비스 워커에 남는다', async ({ context, openExtensionPage }) => {
   const site = await context.newPage();
-  await site.goto('data:text/html,<h1>site</h1>');
+  await site.goto(`${SITE}/site`);
 
-  const popup = await openExtensionPage(context, extensionId, 'popup.html');
-  const tabId = await popup.evaluate(async () => {
-    // tabs 권한이 없어 일반 페이지 URL은 읽을 수 없다. 가장 최근에 연 일반 탭을 고른다
-    const tabs = await chrome.tabs.query({});
-    const site = tabs
-      .filter((t) => !t.url?.startsWith('chrome-extension://'))
-      .sort((a, b) => b.id! - a.id!)[0];
-    return site!.id!;
-  });
+  const popup = await openExtensionPage('popup.html');
+  const tabId = await tabIdOf(popup, `${SITE}/site`);
   const started = await sendToBackground(popup, 'job:start', { mode: 'region', tabId });
   expect(started.ok).toBe(true);
   await popup.close();
 
-  const other = await openExtensionPage(context, extensionId, 'options.html');
+  const other = await openExtensionPage('options.html');
   const current = await sendToBackground(other, 'job:get');
   expect(current.data).toMatchObject({ mode: 'region', phase: 'selecting', tabId });
 
@@ -73,9 +51,9 @@ test('팝업이 닫혀도 작업은 서비스 워커에 남는다', async ({ con
 });
 
 test('서비스 워커를 강제 종료해도 녹화 상태가 복원된다', async ({
-  context,
   extensionId,
   serviceWorker,
+  openExtensionPage,
 }) => {
   // 녹화 중 상태를 재현: 오프스크린 문서를 띄우고 recording 작업을 저장한다
   await serviceWorker.evaluate(async () => {
@@ -98,7 +76,7 @@ test('서비스 워커를 강제 종료해도 녹화 상태가 복원된다', as
     await chrome.action.setBadgeText({ text: '' });
   });
 
-  const page = await openExtensionPage(context, extensionId, 'options.html');
+  const page = await openExtensionPage('options.html');
   await stopServiceWorker(page, extensionId);
 
   // 메시지가 서비스 워커를 깨우고, 기동 시 restoreJob이 상태를 복원한다
@@ -119,9 +97,9 @@ test('서비스 워커를 강제 종료해도 녹화 상태가 복원된다', as
 });
 
 test('오프스크린 없이 남은 녹화 작업은 재기동 시 정리된다', async ({
-  context,
   extensionId,
   serviceWorker,
+  openExtensionPage,
 }) => {
   await serviceWorker.evaluate(() =>
     chrome.storage.session.set({
@@ -135,7 +113,7 @@ test('오프스크린 없이 남은 녹화 작업은 재기동 시 정리된다'
       },
     }),
   );
-  const page = await openExtensionPage(context, extensionId, 'options.html');
+  const page = await openExtensionPage('options.html');
   await stopServiceWorker(page, extensionId);
 
   await sendToBackground(page, 'job:get'); // 서비스 워커 깨우기
@@ -145,9 +123,9 @@ test('오프스크린 없이 남은 녹화 작업은 재기동 시 정리된다'
   expect((await sendToBackground(page, 'job:get')).data).toBeNull();
 });
 
-test('50MB가 넘는 결과를 결과 페이지에서 표시한다', async ({ context, extensionId }) => {
+test('50MB가 넘는 결과를 결과 페이지에서 표시한다', async ({ extensionId, openExtensionPage }) => {
   // 결과 페이지를 한 번 열어 DB 스키마를 만든다
-  const page = await openExtensionPage(context, extensionId, 'result.html');
+  const page = await openExtensionPage('result.html');
   await expect(page.locator('.result-status')).toBeVisible();
 
   const { id, bytes } = await page.evaluate(async () => {

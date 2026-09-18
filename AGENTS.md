@@ -64,7 +64,8 @@
 | `npm run lint` | ESLint |
 | `npm run format` / `npm run format:check` | Prettier 적용 / 검사 (md·yml 제외) |
 | `npm test` | Vitest 단위 테스트(`tests/unit`) |
-| `npm run test:e2e` | 빌드 후 Playwright로 확장을 로드해 E2E(`tests/e2e`). 최초 1회 `node node_modules/@playwright/test/cli.js install chromium` 필요 |
+| `npm run build:e2e` | E2E 전용 빌드(`.output/chrome-mv3-e2e`). Playwright가 activeTab을 부여할 수 없어 `<all_urls>` host 권한을 더한다. 배포에 쓰지 않는다 |
+| `npm run test:e2e` | 배포·E2E 빌드 후 Playwright로 E2E 빌드를 로드해 테스트(`tests/e2e`). 배포 빌드 manifest에 host 권한이 없는지도 확인한다. 최초 1회 `node node_modules/@playwright/test/cli.js install chromium` 필요 |
 
 - 변경 후 최소 `typecheck`, `lint`, `test`를 통과시킨다. 확장 동작이 바뀌면 `test:e2e`도 실행한다.
 - npm 스크립트는 CLI를 `node node_modules/...`로 직접 호출한다. 프로젝트 경로의 `&` 때문에 Windows npm `.cmd` shim이 실패하기 때문이며, `npx <cli>`도 같은 이유로 이 경로에서 실패할 수 있다.
