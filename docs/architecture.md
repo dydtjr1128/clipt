@@ -206,7 +206,7 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 
 | 모드 | 대상 | 소스 | 후처리 |
 | --- | --- | --- | --- |
-| 보이는 화면 | 뷰포트 | shot 1회 | 없음 |
+| 보이는 화면 | 뷰포트 | shot 1회 (`background/pipelines/visible.ts`: 팝업 닫힘 대기 → 대상 탭이 활성인지 확인 → 뷰포트·DPR 측정 → 캡처) | 없음 |
 | 영역 | 드래그 Rect | 뷰포트 안이면 shot 1회, 아니면 스티칭 | device 크롭 |
 | 요소 | 요소 Rect | 동일 | 동일 |
 | 전체 페이지 | 문서 전체 | 스티칭 | 없음 |
@@ -317,7 +317,7 @@ SW: rec:stop → OS: stop → chunks 병합 → webm duration 보정 → results
 
 | 스토어 | 키 | 값 | 비고 |
 | --- | --- | --- | --- |
-| `results` | `id` | `ResultMeta`: `id, kind(image·video), mode, mime, width, height, bytes, createdAt` + 선택 `duration, fps, audio, pageUrl, pageTitle, selector, scaled, fallbackReason` | 인덱스 `createdAt` |
+| `results` | `id` | `ResultMeta`: `id, kind(image·video), mode, mime, width, height, bytes, createdAt` + 선택 `duration, fps, audio, pageUrl, pageTitle, selector, viewport{w,h}, dpr, scaled, fallbackReason` | 인덱스 `createdAt` |
 | `blobs` | `id` | `Blob` | results와 동일 id |
 | `chunks` | `[jobId, seq]` | `Blob` | 녹화 중 임시. 병합 후 삭제 |
 
@@ -353,13 +353,13 @@ type Settings = {
 
 ## 11. 배출(emit)과 결과 페이지
 
-`emit(resultId)`는 설정을 읽어 분기한다.
+`background/emit.ts`의 `emitCapture()`가 설정(`afterCapture`)을 읽어 분기한다. 결과는 이미 IndexedDB에 저장된 뒤이며, 다운로드·복사가 실패하면 결과 페이지로 대신 연다. 배지 `✓`가 작업 종료 시 배지 초기화에 지워지지 않도록 작업을 먼저 끝내고 배출한다.
 
 | 동작 | 처리 | 피드백 |
 | --- | --- | --- |
-| 결과 페이지 | `chrome.tabs.create({url: 'result.html?id=…'})` | 새 탭 |
-| 바로 다운로드 | `chrome.downloads.download({url, filename, saveAs})` (오프스크린이 Blob URL 생성) | 배지 `✓` 2초 |
-| 클립보드 | 오프스크린 `navigator.clipboard.write([ClipboardItem({'image/png'})])`. JPEG는 PNG로 재인코딩. 영상은 불가 → 결과 페이지로 대체 | 배지 `✓` 2초 |
+| 결과 페이지 | `chrome.tabs.create({url: 'result.html?id=…'})`, 대상 탭 바로 오른쪽 | 새 탭 |
+| 바로 다운로드 | `chrome.downloads.download({url, filename, saveAs})`. 이미지는 캡처 dataURL을 그대로 쓰고, 영상(Blob URL)은 녹화 이슈에서 오프스크린이 만든다. 파일명 규칙은 `core/filename.ts` | 배지 `✓` 2초 |
+| 클립보드 | 대상 탭 문서에서 `scripting.executeScript`로 `navigator.clipboard.write([ClipboardItem({'image/png'})])`. 오프스크린 문서는 포커스를 가질 수 없어 이미지 쓰기가 막히므로, 팝업이 닫혀 포커스가 돌아온 페이지에서 쓴다. 클립보드는 PNG만 받으므로 이 설정이면 PNG로 캡처한다. 영상은 불가 → 결과 페이지 | 배지 `✓` 2초 |
 
 결과 페이지는 `id`로 `results`+`blobs`를 읽어 표시한다. 영상 결과는 "다른 포맷으로 저장"에서 GIF 변환(후속)을 제공한다. 상세 UI는 `docs/ux-design.md` 8절.
 

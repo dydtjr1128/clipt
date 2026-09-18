@@ -21,20 +21,33 @@ const MODES = [
   'rec-element',
 ] as const;
 
-test('팝업에서 7개 기능을 모두 시작할 수 있다', async ({ context, openExtensionPage }) => {
+test('팝업에서 7개 기능을 모두 시작할 수 있다', async ({ context, openControlWindow }) => {
   const site = await context.newPage();
-  await site.goto(`${SITE}/menu`);
-  const control = await openExtensionPage('options.html');
-  const tabId = await tabIdOf(control, `${SITE}/menu`);
+  await site.goto(SITE + '/menu');
+  await site.bringToFront();
+  // 실제 팝업처럼 대상 탭과 다른 창에 띄워 대상 탭이 활성 상태로 남게 한다
+  const control = await openControlWindow();
+  const tabId = await tabIdOf(control, SITE + '/menu');
 
   for (const mode of MODES) {
-    const popup = await openPopup(openExtensionPage, tabId);
-    const item = popup.locator(`.menu-item[data-mode="${mode}"]`);
+    const popup = await openControlWindow('popup.html?tabId=' + tabId);
+    const item = popup.locator('.menu-item[data-mode="' + mode + '"]');
     await expect(item).toBeEnabled();
     const closed = popup.waitForEvent('close');
+    const resultOpened =
+      mode === 'visible'
+        ? context.waitForEvent('page', (p) => p.url().includes('/result.html'))
+        : null;
     await item.click();
     await closed; // 시작하면 팝업이 닫힌다
 
+    if (resultOpened) {
+      // 보이는 화면 캡처는 바로 끝나고 결과 페이지가 열린다
+      await (await resultOpened).close();
+      expect((await sendToBackground(control, 'job:get')).data).toBeNull();
+      await site.bringToFront();
+      continue;
+    }
     const job = await sendToBackground(control, 'job:get');
     expect(job.data).toMatchObject({ mode, tabId });
     await sendToBackground(control, 'job:cancel', {});
