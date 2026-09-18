@@ -8,6 +8,7 @@ import {
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { browser } from 'wxt/browser';
+import { handleSite } from './site';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 /** E2E 전용 빌드(host 권한 포함). 배포 빌드 경로는 productionPath */
@@ -23,6 +24,8 @@ declare const chrome: typeof browser;
 type Options = {
   /** Chromium 실행 시 기기 배율. --force-device-scale-factor */
   scaleFactor: number;
+  /** 브라우저 창 크기 */
+  windowSize: [number, number];
 };
 
 type Fixtures = {
@@ -41,7 +44,8 @@ type Fixtures = {
 /** 빌드된 확장을 로드한 Chromium 컨텍스트와 서비스 워커를 제공한다. */
 export const test = base.extend<Fixtures & Options>({
   scaleFactor: [1, { option: true }],
-  context: async ({ scaleFactor }, use) => {
+  windowSize: [[1000, 800], { option: true }],
+  context: async ({ scaleFactor, windowSize }, use) => {
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       viewport: null,
@@ -49,17 +53,10 @@ export const test = base.extend<Fixtures & Options>({
         `--disable-extensions-except=${extensionPath}`,
         `--load-extension=${extensionPath}`,
         `--force-device-scale-factor=${scaleFactor}`,
-        '--window-size=1000,800',
+        `--window-size=${windowSize[0]},${windowSize[1]}`,
       ],
     });
-    await context.route(`${SITE}/**`, (route) => {
-      const url = new URL(route.request().url());
-      const title = url.searchParams.get('title') ?? 'site';
-      return route.fulfill({
-        contentType: 'text/html',
-        body: `<!doctype html><title>${title}</title><body style="margin:0;background:#0a7"><h1>${title}</h1></body>`,
-      });
-    });
+    await context.route(`${SITE}/**`, handleSite);
     await use(context);
     await context.close();
   },
