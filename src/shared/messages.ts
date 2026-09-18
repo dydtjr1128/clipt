@@ -14,6 +14,8 @@ export interface Protocol {
     'job:start': (payload: { mode: Mode; tabId?: number }) => Job;
     /** 진행 중인 작업 취소. jobId를 주면 해당 작업일 때만 취소 */
     'job:cancel': (payload: { jobId?: string }) => null;
+    /** 녹화 중지. 녹화 결과 저장은 녹화 파이프라인(#11)에서 연결하며 지금은 작업만 끝낸다 */
+    'job:stop': (payload: { jobId?: string }) => null;
     'job:get': (payload: null) => Job | null;
     /** 탭에서 캡처·녹화를 시작할 수 있는지 확인 (팝업 메뉴 활성화 판단) */
     'tab:status': (payload: { tabId: number }) => TabAccess;

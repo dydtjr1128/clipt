@@ -162,7 +162,10 @@ type Job = {
 | --- | --- | --- |
 | `job:start {mode, tabId?}` | popup/commands → SW | 작업 시작. `tabId`가 없으면 마지막으로 포커스된 창의 활성 탭 |
 | `job:cancel {jobId?}` | any → SW | 취소 |
-| `job:get` | any → SW | 현재 작업 조회 |
+| `job:stop {jobId?}` | popup → SW | 녹화 중지. 지금은 작업만 끝내며 결과 저장은 #11에서 연결 |
+| `job:get` | any → SW | 현재 작업 조회. 복원이 끝난 뒤의 상태를 돌려준다 |
+| `tab:status {tabId}` | popup → SW | 탭 사용 가능 여부와 제한 사유 (13절) |
+| `content:ping` | SW → CS | 콘텐츠 스크립트 주입 여부 확인 |
 | `offscreen:ping` | SW·페이지 → OS | 오프스크린 응답 확인 |
 
 기능 이슈에서 추가할 메시지:

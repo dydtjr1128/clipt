@@ -1,4 +1,5 @@
 import { mount } from '@/components/mount';
-import { Placeholder } from '@/components/Placeholder';
+import { Popup } from './Popup';
+import './popup.css';
 
-mount(<Placeholder />);
+mount(<Popup />);
