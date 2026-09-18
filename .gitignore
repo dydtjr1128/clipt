@@ -1,0 +1,28 @@
+# 의존성·빌드
+node_modules/
+dist/
+build/
+*.zip
+*.crx
+*.pem
+
+# 환경·비밀
+.env
+.env.*
+
+# 캡처·녹화 산출물
+*.png
+*.jpg
+*.jpeg
+*.webm
+*.mp4
+!src/**/*.png
+!public/**/*.png
+!assets/**/*.png
+
+# 로그·OS·IDE
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
