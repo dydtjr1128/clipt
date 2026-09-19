@@ -180,6 +180,8 @@ type Job = {
 | `select:start {jobId, kind, forRecording}` / `select:cancel` | SW → CS | 선택 UI 열기(즉시 응답) / 팝업 취소 시 닫기 |
 | `select:done {jobId, target, page, selector?}` | CS → SW | 사용자가 확정. 오버레이를 지우고 2프레임 뒤 측정한 페이지 상태와 대상(x는 뷰포트, y는 문서 기준)을 보냄. SW가 이어서 캡처 |
 | `select:cancelled {jobId}` | CS → SW | 선택 UI에서 Esc·취소 |
+| `countdown:start {seconds, mode}` / `countdown:cancel` | SW → CS | 카운트다운. 완료 true, Esc false |
+| `indicator:show` / `indicator:state` / `indicator:hide` | SW → CS | 녹화 중 표시(옵션, 9.4절) |
 | `page:resized {jobId}` | CS → SW | 영역·요소 녹화 중 뷰포트 크기 변경 (9.2절) |
 | `offscreen:ping` | SW·페이지 → OS | 오프스크린 응답 확인 |
 
@@ -187,8 +189,6 @@ type Job = {
 
 | 이름 | 방향 | 용도 |
 | --- | --- | --- |
-| `rec:tick {elapsed}` | OS → SW → popup | 1초 타이머 |
-| `indicator:show {kind}` / `indicator:hide` | SW → CS | 녹화 중 표시(옵션) |
 | `clipboard:write {resultId}` | SW → OS | 복사 |
 
 장시간 흐름(진행률, 녹화 tick)은 `chrome.runtime.connect` 포트, 단발 요청은 `sendMessage`.
@@ -346,11 +346,17 @@ select:done(target: x 뷰포트, y 문서) → core/crop.ts normalizeCrop: 녹�
 
 탭 모드 `border`·`widget`은 결과에 포함된다는 경고를 설정 항목 옆에 표시한다.
 
+구현: `content/rec-indicator.ts`. 테두리는 크롭 경계에서 3px 띄워 그려 짝수 정렬 반올림에도 영상에 들어가지 않는다. 위젯은 크롭 영역과 겹치지 않는 모서리(오른쪽 아래 우선)에 두고 끌어 옮길 수 있으며, 일시정지·중지 버튼은 `job:pause`·`job:resume`·`job:stop`을 보낸다. 상태는 서비스 워커가 `indicator:state`로 알려 주고 타이머는 페이지에서 계산한다.
+
+**카운트다운** (`content/countdown.ts`): 서비스 워커가 `countdown:start`를 보내면 페이지 중앙에 숫자를 보여 주고, 끝나면 오버레이를 지우고 2프레임 뒤 `true`로 응답한다. Esc면 `false`로 응답해 작업을 끝낸다. 스트림 id는 카운트다운 뒤에 받는다.
+
+**최대 길이**: 새 권한(`alarms`) 없이 오프스크린이 chunk마다 녹화 시간을 확인해 `maxMs`에 도달하면 저장하고 `rec:ended`로 알린다(결과 `warnings: max-length`). 팝업은 1분 전부터 자동 중지 시각을 경고색으로 보여 준다.
+
 ### 9.5 종료 조건과 복구
 
 - 종료: 팝업 중지, 위젯 중지, 단축키 토글, 최대 시간 도달, 대상 탭 닫힘, 스트림 `ended`.
 - 탭 내비게이션: 탭 모드는 계속 녹화(탭 캡처는 문서 교체 후에도 유지). 영역·요소 모드는 레이아웃이 바뀌므로 중지 후 "페이지가 이동해 녹화를 마쳤어요" 안내.
-- 복구: 시작 시 `chunks`에 고아 chunk가 있으면 결과 페이지가 "복구 가능한 녹화" 배너를 표시하고 병합을 제공.
+- 복구(`shared/recover.ts`): 진행 중인 작업이 아닌 녹화의 chunk가 남아 있으면 결과 페이지가 배너로 복구·삭제를 제안한다. 복구는 chunk를 합쳐 결과로 저장하고(길이는 chunk 수로 어림, `warnings: recovered`) 그 결과 페이지로 이동한다.
 
 ## 10. 저장소 설계
 

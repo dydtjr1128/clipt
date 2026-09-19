@@ -288,6 +288,13 @@ function RecordingView({ job, shortcuts }: { job: Job; shortcuts: Map<string, st
         </p>
       )}
       {paused && <p class="rec-paused">{t('recPaused')}</p>}
+      {recording &&
+        job.media?.maxMs !== undefined &&
+        job.media.maxMs - recordedMs(job, now) <= 60_000 && (
+          <p class="rec-max" role="status">
+            {t('recMaxSoon', formatElapsed(job.media.maxMs))}
+          </p>
+        )}
       {job.media && <p class="rec-media">{mediaSummary(job.media)}</p>}
       <div class="state-actions rec-actions">
         {recording && (

@@ -4,7 +4,8 @@ import { buildFilename } from '@/core/filename';
 import type { Job } from '@/core/job';
 import type { Settings } from '@/core/settings';
 import { loadResult } from '@/shared/db';
-import { send } from '@/shared/messages';
+import { send, sendToTab } from '@/shared/messages';
+import { ensureContentScript } from '../access';
 import { loadSettings } from '@/shared/settings';
 import { flashBadge } from '../badge';
 import { openResultPage } from '../emit';
@@ -33,6 +34,18 @@ export async function beginRecording(
   const settings = await loadSettings();
   if (!options.crop) await waitForPopupClosed();
 
+  // 카운트다운: 페이지 중앙에 숫자를 보여주고, 지운 뒤 녹화를 시작한다
+  const seconds = settings.record.countdownSeconds;
+  if (seconds > 0) {
+    await ensureContentScript(job.tabId);
+    const completed = await sendToTab(job.tabId, 'countdown:start', { seconds, mode: job.mode });
+    if ((await getJob())?.id !== job.id) return; // 카운트다운 중 팝업에서 취소
+    if (!completed) {
+      await endJob(job.id); // Esc
+      return;
+    }
+  }
+
   const streamId = await browser.tabCapture
     .getMediaStreamId({ targetTabId: job.tabId })
     .catch((error: unknown) => {
@@ -40,7 +53,6 @@ export async function beginRecording(
     });
   const size = await tabCaptureSize(job.tabId);
   await ensureOffscreen(['USER_MEDIA', 'BLOBS'], 'Record the tab with MediaRecorder');
-  // 카운트다운은 #13에서 추가한다
   const info = await send('offscreen', 'rec:start', {
     jobId: job.id,
     mode: job.mode,
@@ -52,6 +64,7 @@ export async function beginRecording(
     size,
     ...(options.crop ? { crop: options.crop } : {}),
     ...(options.warnings?.length ? { warnings: options.warnings } : {}),
+    maxMs: settings.record.maxMinutes * 60_000,
   });
   const current = await getJob();
   if (current?.id !== job.id) {
@@ -60,7 +73,7 @@ export async function beginRecording(
     await closeOffscreen();
     return;
   }
-  await transitionJob(job.id, 'recording');
+  const recording = await transitionJob(job.id, 'recording');
   await patchJob(job.id, {
     media: {
       mime: info.mime,
@@ -68,8 +81,37 @@ export async function beginRecording(
       height: info.height,
       audio: settings.record.audio,
       audioTracks: info.audioTracks,
+      maxMs: settings.record.maxMinutes * 60_000,
     },
   });
+
+  // 녹화 중 표시(옵션). 실패해도 녹화는 계속한다
+  if (settings.record.indicator !== 'none' && recording.startedAt !== undefined) {
+    await ensureContentScript(job.tabId)
+      .then(() =>
+        sendToTab(job.tabId, 'indicator:show', {
+          kind: settings.record.indicator as 'border' | 'widget',
+          jobId: job.id,
+          ...(options.crop ? { crop: options.crop } : {}),
+          state: { startedAt: recording.startedAt! },
+        }),
+      )
+      .catch(() => undefined);
+  }
+}
+
+function hideIndicator(job: Job): Promise<unknown> {
+  return sendToTab(job.tabId, 'indicator:hide', null).catch(() => undefined);
+}
+
+async function syncIndicator(jobId: string): Promise<void> {
+  const job = await getJob();
+  if (job?.id !== jobId || job.startedAt === undefined) return;
+  await sendToTab(job.tabId, 'indicator:state', {
+    startedAt: job.startedAt,
+    ...(job.pausedAt !== undefined ? { pausedAt: job.pausedAt } : {}),
+    ...(job.pausedTotal !== undefined ? { pausedTotal: job.pausedTotal } : {}),
+  }).catch(() => undefined);
 }
 
 /** 탭 뷰포트의 device px 크기. 측정할 수 없으면 1920×1080 안에서 탭 캡처가 정한다 */
@@ -135,6 +177,7 @@ export async function stopTabRecording(jobId?: string, warning?: string): Promis
     return;
   }
   await transitionJob(job.id, 'finalizing');
+  await hideIndicator(job);
   let resultId: string;
   try {
     ({ resultId } = await send('offscreen', 'rec:stop', warning ? { warning } : null));
@@ -151,6 +194,7 @@ export async function stopTabRecording(jobId?: string, warning?: string): Promis
 /** 결과 저장 후 공통 마무리: 작업 종료 → 배출 → 오프스크린 닫기 */
 export async function finishRecording(job: Job, resultId: string | null): Promise<void> {
   await endJob(job.id);
+  await hideIndicator(job);
   try {
     if (resultId) await emitRecording(job, resultId, await loadSettings());
   } finally {
@@ -161,6 +205,8 @@ export async function finishRecording(job: Job, resultId: string | null): Promis
 /** 녹화를 버린다(취소) */
 export async function cancelRecording(job: Job): Promise<void> {
   await endJob(job.id);
+  await sendToTab(job.tabId, 'countdown:cancel', null).catch(() => undefined);
+  await hideIndicator(job);
   await send('offscreen', 'rec:discard', null).catch(() => undefined);
   await closeOffscreen().catch(() => undefined);
 }
@@ -170,6 +216,7 @@ export async function pauseRecording(jobId?: string, now = Date.now()): Promise<
   if (!job || job.phase !== 'recording' || job.pausedAt || (jobId && job.id !== jobId)) return;
   await send('offscreen', 'rec:pause', null);
   await patchJob(job.id, { pausedAt: now });
+  await syncIndicator(job.id);
 }
 
 export async function resumeRecording(jobId?: string, now = Date.now()): Promise<void> {
@@ -180,6 +227,7 @@ export async function resumeRecording(jobId?: string, now = Date.now()): Promise
     pausedAt: undefined,
     pausedTotal: (job.pausedTotal ?? 0) + (now - job.pausedAt),
   });
+  await syncIndicator(job.id);
 }
 
 /**
