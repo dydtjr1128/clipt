@@ -434,12 +434,12 @@ type Settings = {
 ## 13. 권한
 
 ```json
-"permissions": ["activeTab", "scripting", "tabCapture", "offscreen", "storage", "downloads", "clipboardWrite"],
-"commands": ["capture-visible", "capture-region", "capture-element", "toggle-recording",
-             "capture-fullpage", "record-region", "record-element", "_execute_action"]
+"permissions": ["activeTab", "scripting", "tabCapture", "offscreen", "storage", "downloads", "clipboardWrite"]
 ```
 
-`host_permissions` 없음. 권한별 사용 사유와 activeTab 부여 조건은 [docs/store/permissions.md](store/permissions.md). 탭 접근은 `background/access.ts`의 `checkTab`이 URL 판정(`core/restricted.ts`) 후 실제 주입 가능 여부로 확인하고, 제한 페이지면 `job:start`가 `RESTRICTED_PAGE`(사유 `browser`·`webstore`·`file`·`unsupported`·`no-access`)로 거부한다. 확장은 `tabs` 권한이 없어 activeTab이 없는 탭(`chrome://` 포함)의 URL을 읽지 못하며 이 경우 `no-access`다. 마이크는 manifest 권한이 아니라 사이트 권한 프롬프트(권한 페이지)로 처리. 기본 단축키는 4개까지만 제안([#17](https://github.com/dydtjr1128/clipt/issues/17)).
+**단축키** (`core/menu.ts`, `background/commands.ts`): 메뉴 항목마다 명령 하나(`capture-visible`, `capture-fullpage`, `capture-element`, `capture-region`, `toggle-recording`, `record-region`, `record-element`). Chrome은 기본 키를 4개까지만 허용하므로 보이는 화면 `Alt+Shift+1`, 영역 `Alt+Shift+2`, 요소 `Alt+Shift+3`, 녹화 토글 `Alt+Shift+4`만 제안하고 나머지는 사용자가 `chrome://extensions/shortcuts`에서 지정한다(`Alt+Shift+R`은 Chrome이 받아들이지 않아 쓰지 않는다). 명령은 팝업 클릭과 같은 진입 함수로 시작하며, 녹화 중 토글 키는 저장 후 중지, 카운트다운 중이면 취소, 선택 중 같은 키를 다시 누르면 취소, 그 밖에 작업이 있으면 무시한다. 제한 페이지 등으로 시작하지 못하면 배지 `!`와 다음 팝업의 알림으로 알린다.
+
+`host_permissions` 없음. 권한별 사용 사유와 activeTab 부여 조건은 [docs/store/permissions.md](store/permissions.md). 탭 접근은 `background/access.ts`의 `checkTab`이 URL 판정(`core/restricted.ts`) 후 실제 주입 가능 여부로 확인하고, 제한 페이지면 `job:start`가 `RESTRICTED_PAGE`(사유 `browser`·`webstore`·`file`·`unsupported`·`no-access`)로 거부한다. 확장은 `tabs` 권한이 없어 activeTab이 없는 탭(`chrome://` 포함)의 URL을 읽지 못하며 이 경우 `no-access`다. 마이크는 manifest 권한이 아니라 사이트 권한 프롬프트(권한 페이지)로 처리. 
 
 ## 14. 설계 결정 기록
 

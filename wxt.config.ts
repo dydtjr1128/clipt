@@ -1,6 +1,7 @@
 import { defineConfig } from 'wxt';
 import preact from '@preact/preset-vite';
 import { readFileSync } from 'node:fs';
+import { RECORDING_MENU, SCREENSHOT_MENU, SUGGESTED_KEYS } from './src/core/menu';
 
 /**
  * E2E 전용 빌드(CLIPT_E2E=1)는 `.output/chrome-mv3-e2e`에 따로 만들고 `<all_urls>` host 권한을 더한다.
@@ -12,6 +13,17 @@ const e2e = process.env.CLIPT_E2E === '1';
 const e2eKey = e2e
   ? (JSON.parse(readFileSync('scripts/e2e-key.json', 'utf8')) as { key: string }).key
   : undefined;
+
+/** 단축키 명령. 설명은 _locales의 cmd_<이름> 메시지 */
+const commands = Object.fromEntries(
+  [...SCREENSHOT_MENU, ...RECORDING_MENU].map(({ command }) => [
+    command,
+    {
+      description: `__MSG_cmd_${command.replaceAll('-', '_')}__`,
+      ...(SUGGESTED_KEYS[command] ? { suggested_key: { default: SUGGESTED_KEYS[command] } } : {}),
+    },
+  ]),
+);
 
 // 권한과 manifest는 docs/architecture.md 13절, 권한 사유는 docs/store/permissions.md
 export default defineConfig({
@@ -38,6 +50,7 @@ export default defineConfig({
       'downloads',
       'clipboardWrite',
     ],
+    commands,
     ...(e2e ? { host_permissions: ['<all_urls>'], key: e2eKey } : {}),
   },
 });

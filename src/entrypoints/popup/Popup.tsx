@@ -222,7 +222,12 @@ function Menu({
           {item.icon}
         </span>
         <span class="menu-label">{t(MENU_LABEL[item.mode])}</span>
-        <kbd class="menu-shortcut">{shortcuts.get(item.command) ?? NO_SHORTCUT}</kbd>
+        <kbd
+          class="menu-shortcut"
+          title={shortcuts.has(item.command) ? undefined : t('shortcutUnassigned')}
+        >
+          {shortcuts.get(item.command) ?? NO_SHORTCUT}
+        </kbd>
       </button>
     </li>
   );
