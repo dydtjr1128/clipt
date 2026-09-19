@@ -57,6 +57,12 @@ export const test = base.extend<Fixtures & Options>({
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       viewport: null,
+      // UI 언어: Windows·macOS는 --lang, Linux는 LANGUAGE 환경 변수를 따른다
+      env: {
+        ...process.env,
+        LANGUAGE: lang.replace('-', '_'),
+        LANG: `${lang.replace('-', '_')}.UTF-8`,
+      },
       args: [
         `--disable-extensions-except=${extensionPath}`,
         `--load-extension=${extensionPath}`,

@@ -57,8 +57,9 @@ test('카운트다운을 보여준 뒤 녹화하고 첫 프레임에 카운트�
   const opened = waitResult(context);
   await sendToBackground(control, 'job:stop', {});
   const video = await readVideo(await opened, [[0.5, 0.5]]);
-  // 화면 중앙은 첫 번째 색 띠. 카운트다운 원(검은 반투명)이 찍혔다면 어두운 색이 된다
-  expectColor(video.pixels[0], PALETTE.bandA, 24);
+  // 화면 중앙은 첫 번째 색 띠. 카운트다운 원(검은 반투명)이 찍혔다면 채널 차이가 100을 넘는다.
+  // 소프트웨어 인코더(Linux CI)는 순색을 30 가까이 다르게 복원하므로 허용 오차를 넉넉히 둔다
+  expectColor(video.pixels[0], PALETTE.bandA, 48);
 });
 
 test('카운트다운 중 Esc를 누르면 녹화를 시작하지 않는다', async ({

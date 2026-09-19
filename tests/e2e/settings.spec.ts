@@ -66,6 +66,7 @@ test('브라우저를 다시 시작해도 설정이 유지된다', async () => {
     chromium.launchPersistentContext(dir, {
       channel: 'chromium',
       args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+      env: { ...process.env, LANGUAGE: 'ko', LANG: 'ko.UTF-8' },
     });
   const url = `chrome-extension://${E2E_EXTENSION_ID}/options.html`;
   try {
