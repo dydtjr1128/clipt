@@ -58,7 +58,9 @@ src/
 │   ├── overlay/                 # Shadow host, 레이어 관리, 토스트
 │   ├── dom-tree.ts              # Shadow DOM을 넘는 트리 어댑터, 좌표 아래 요소 탐색
 │   ├── element-picker.ts        # 요소 호버·클릭 고정
-│   ├── selection-panel.tsx      # 선택 패널
+│   ├── element-session.ts       # 호버·고정 + 패널 + 키보드 조정 흐름
+│   ├── panel/SelectionPanel.tsx # 선택 패널(Preact, Shadow DOM 안)
+│   ├── selection.ts             # 선택 UI 수명, select:done 전송
 │   ├── region-selector.ts       # 드래그 영역 선택
 │   ├── page-probe.ts            # 페이지 측정, fixed 요소 숨김, 스크롤 제어
 │   ├── countdown.ts
@@ -237,7 +239,8 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
   - ↑ / 슬라이더 좌 → `d-1`, ↓ / 슬라이더 우 → `d+1` (`path` 안에서만)
   - ← / → → 현재 요소의 형제(선택 가능 요소만)로 이동. 이동 후 `anchor = 새 요소`, `path` 재계산, `d = path.length-1`
   - 경로 항목 클릭 → 해당 `d`
-- 결과: `Rect<'css'>` + 표시용 선택자 문자열. 요소 참조는 콘텐츠 내부에만 둔다.
+- 결과: 대상 범위(x는 뷰포트, y는 문서 기준, 가로는 화면 안으로 자름) + 선택자 경로(`body > div#card.card > p#p2`, 결과 메타 `selector`). 요소 참조는 콘텐츠 내부에만 둔다.
+- 패널은 `element-session.ts`가 상태를 들고 Preact 컴포넌트는 그리기만 한다. 키 입력은 창 캡처 단계에서 처리하며, 확정 버튼이 아닌 버튼에 포커스가 있을 때의 Enter는 그 버튼 동작을 따른다. 패널 드래그는 헤더에 포인터 캡처를 걸어 페이지 클릭 차단과 충돌하지 않는다.
 
 ### 8.3 캡처 직전 보장 (모든 모드 공통)
 
