@@ -38,6 +38,7 @@ ${lazyAt ? `<img id="lazy" loading="lazy" src="/img/slow.svg" style="top:${lazyA
 /** `/blocks` 선택 테스트용: 위치가 정해진 블록·링크·Shadow DOM·긴 요소 */
 function blocksPage(params: URLSearchParams): string {
   const tall = Number(params.get('tall') ?? 0);
+  const fixed = params.get('fixed') === '1';
   return `<!doctype html><title>blocks</title>
 <style>html,body{margin:0;background:${css(PALETTE.background)};font:16px sans-serif}
 #block{position:absolute;left:200px;top:150px;width:240px;height:120px;background:${css(PALETTE.block)}}
@@ -47,6 +48,9 @@ function blocksPage(params: URLSearchParams): string {
 .card p{margin:0 0 8px;height:30px;background:#ddd}
 #tall{position:absolute;left:600px;top:${tall ? 500 : -9999}px;width:200px;height:${tall}px;
  background:linear-gradient(${css(PALETTE.bandA)} 0 50%, ${css(PALETTE.bandB)} 50% 100%)}
+#scroller{position:absolute;left:100px;top:700px;width:300px;height:150px;overflow:auto;background:#fff}
+#inner-tall{height:600px;background:linear-gradient(${css(PALETTE.bandA)} 0 50%, ${css(PALETTE.bandB)} 50% 100%)}
+#hdr{position:fixed;top:0;left:0;right:0;height:60px;background:${css(PALETTE.header)};z-index:10}
 #spacer{height:${Math.max(2000, tall + 1200)}px}</style>
 <body><div id="spacer"></div>
 <div id="block"></div>
@@ -54,6 +58,8 @@ function blocksPage(params: URLSearchParams): string {
 <div id="host"></div>
 <div class="card" id="card"><p id="p1"></p><p id="p2"></p><p id="p3"></p></div>
 <div id="tall"></div>
+<div id="scroller"><div id="inner-tall"></div></div>
+${fixed ? '<div id="hdr"></div>' : ''}
 <script>
 const root = document.getElementById('host').attachShadow({ mode: 'open' });
 root.innerHTML = '<button id="inner" style="width:120px;height:40px">shadow</button>';

@@ -1,5 +1,5 @@
 import { send, type SelectKind } from '@/shared/messages';
-import { probe, settleFrames } from './page';
+import { probe, setCaptureTarget, settleFrames } from './page';
 import { startRegionSelector, type RegionTarget } from './region-selector';
 import { startElementSession } from './element-session';
 
@@ -14,14 +14,21 @@ export function cancelSelection(): void {
   active = null;
 }
 
-async function confirm(jobId: string, target: RegionTarget, selector?: string): Promise<void> {
+async function confirm(
+  jobId: string,
+  target: RegionTarget,
+  extra: { selector?: string; element?: Element; warnings?: string[] } = {},
+): Promise<void> {
   active = null;
+  // 요소 캡처면 고정 요소를 숨길 때 대상 요소는 남긴다
+  setCaptureTarget(extra.element ?? null);
   await settleFrames();
   await send('background', 'select:done', {
     jobId,
     target,
     page: probe(),
-    ...(selector ? { selector } : {}),
+    ...(extra.selector ? { selector: extra.selector } : {}),
+    ...(extra.warnings?.length ? { warnings: extra.warnings } : {}),
   });
 }
 
@@ -30,8 +37,8 @@ export function startSelection(jobId: string, kind: SelectKind, forRecording: bo
   if (kind === 'element') {
     const dispose = startElementSession({
       forRecording,
-      onConfirm: (target, selector) => {
-        void confirm(jobId, target, selector).catch(() => undefined);
+      onConfirm: (target, selector, element, warnings) => {
+        void confirm(jobId, target, { selector, element, warnings }).catch(() => undefined);
       },
       onCancel: () => {
         active = null;

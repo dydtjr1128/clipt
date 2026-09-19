@@ -226,5 +226,9 @@
   "panelMove": {
     "message": "패널 옮기기",
     "description": "패널 드래그 핸들 접근성 이름"
+  },
+  "panelClipped": {
+    "message": "일부 잘림",
+    "description": "요소가 스크롤 영역에 가려 일부만 캡처됨"
   }
 }

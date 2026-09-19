@@ -226,5 +226,9 @@
   "panelMove": {
     "message": "Move panel",
     "description": "패널 드래그 핸들 접근성 이름"
+  },
+  "panelClipped": {
+    "message": "Partly hidden",
+    "description": "요소가 스크롤 영역에 가려 일부만 캡처됨"
   }
 }

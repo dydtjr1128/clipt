@@ -43,7 +43,15 @@ export async function stitchCapture(
   page: PageProbe,
   target: StitchTarget,
   settings: Settings,
+  options: {
+    /**
+     * 몇 번째 조각부터 fixed·sticky 요소를 숨길지. 전체 페이지·영역은 1(첫 화면에는 헤더를 남김),
+     * 요소는 0(고정 헤더가 요소 위를 덮지 않게). null이면 숨기지 않는다
+     */
+    hideFixedFrom?: number | null;
+  } = {},
 ): Promise<StitchResult> {
+  const hideFixedFrom = settings.fullpage.hideFixed ? (options.hideFixedFrom ?? 1) : null;
   const plan = planStitch({
     target,
     viewport: page.viewport,
@@ -64,16 +72,17 @@ export async function stitchCapture(
       if (multi) {
         await patchJob(job.id, { progress: { done: index, total: plan.pieces.length } });
       }
-      // 첫 조각 이후에는 고정 헤더 등이 반복해서 찍히지 않도록 숨긴다
-      if (index === 1 && settings.fullpage.hideFixed) {
-        await sendToTab(job.tabId, 'page:hideFixed', null);
-      }
-      const scrollY = multi
-        ? await sendToTab(job.tabId, 'page:scrollTo', {
-            y: piece.scrollY,
-            lazyWaitMs: settings.fullpage.lazyWaitMs,
-          })
-        : page.scroll.y;
+      // 고정 헤더 등이 반복해서(요소 캡처면 요소 위에) 찍히지 않도록 숨긴다
+      const hideNow = index === hideFixedFrom;
+      if (hideNow) await sendToTab(job.tabId, 'page:hideFixed', null);
+      // 스크롤하거나 스타일을 바꿨으면 렌더가 안정될 때까지 기다린다
+      const scrollY =
+        multi || hideNow
+          ? await sendToTab(job.tabId, 'page:scrollTo', {
+              y: piece.scrollY,
+              lazyWaitMs: settings.fullpage.lazyWaitMs,
+            })
+          : page.scroll.y;
       const bitmap = await decode(await captureShot(windowId, { format: 'png' }));
       try {
         const r = pieceRects(piece, scrollY, target, page.dpr, plan.scale);

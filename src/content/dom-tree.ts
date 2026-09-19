@@ -55,3 +55,40 @@ export function sizeOf(el: Element): string {
   const r = el.getBoundingClientRect();
   return `${Math.round(r.width)}×${Math.round(r.height)}`;
 }
+
+/**
+ * 요소에서 실제로 보이는 사각형(뷰포트 CSS px). overflow로 잘라내는 조상과 겹친 부분만 남긴다.
+ * 문서 자체 스크롤은 스티칭으로 담으므로 여기서는 자르지 않는다.
+ */
+export function visibleRectOf(el: Element): { rect: DOMRect; clipped: boolean } {
+  const r = el.getBoundingClientRect();
+  let left = r.left;
+  let top = r.top;
+  let right = r.right;
+  let bottom = r.bottom;
+  const scroller = document.scrollingElement ?? document.documentElement;
+  for (let node = domTree.parent(el); node && node !== document.body; node = domTree.parent(node)) {
+    if (node === scroller) break;
+    const style = getComputedStyle(node);
+    const clipsX = style.overflowX !== 'visible';
+    const clipsY = style.overflowY !== 'visible';
+    if (!clipsX && !clipsY) continue;
+    const c = node.getBoundingClientRect();
+    // 테두리 안쪽(스크롤바 제외) 영역으로 자른다
+    const innerLeft = c.left + node.clientLeft;
+    const innerTop = c.top + node.clientTop;
+    if (clipsX) {
+      left = Math.max(left, innerLeft);
+      right = Math.min(right, innerLeft + node.clientWidth);
+    }
+    if (clipsY) {
+      top = Math.max(top, innerTop);
+      bottom = Math.min(bottom, innerTop + node.clientHeight);
+    }
+  }
+  const width = Math.max(0, right - left);
+  const height = Math.max(0, bottom - top);
+  const clipped =
+    Math.round(width) < Math.round(r.width) || Math.round(height) < Math.round(r.height);
+  return { rect: new DOMRect(left, top, width, height), clipped };
+}

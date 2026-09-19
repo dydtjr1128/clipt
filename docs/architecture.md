@@ -245,10 +245,16 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 ### 8.3 캡처 직전 보장 (모든 모드 공통)
 
 ```text
-overlay.hide() → await nextFrames(2) → rect 재측정(요소·영역) → shot → overlay.destroy()
+선택 확정 → 대상 범위 측정 → overlay.dispose() → 2프레임 대기 → page:probe → select:done
+        → (SW) page:prepare → [요소: 고정 요소 숨김] → 스크롤·2프레임 → shot → … → page:restore
 ```
 
-팝업이 열려 있으면 서비스 워커가 `job:start` 처리 직후 팝업에 `close` 신호를 보내고 100ms 후 진행한다.
+- 오버레이는 캡처 요청 전에 DOM에서 제거한다. 선택 UI의 테두리·라벨·패널은 결과에 들어갈 수 없다.
+- 보이는 화면·전체 페이지는 팝업 컨텍스트가 사라질 때까지(최대 1초) 기다린 뒤 80ms 후 찍는다.
+- **요소 캡처**는 첫 조각부터 `position: fixed|sticky` 요소를 숨겨 고정 헤더가 요소 위를 덮지 않게 한다. 선택한 요소 자신과 그 조상·자손인 고정 요소는 숨기지 않는다(`setCaptureTarget`). 영역 캡처는 사용자가 본 그대로를 담도록 두 번째 조각부터 숨긴다.
+- 스타일을 바꾸거나 스크롤했으면 `page:scrollTo`로 2프레임 + 이미지 디코드를 기다린 뒤 찍는다(조각이 하나여도 동일).
+- overflow 조상에 잘린 요소는 보이는 부분(`visibleRectOf`)만 대상으로 삼고, 패널에 "일부 잘림"을 표시하며 결과 메타 `warnings: ['clipped']`를 남긴다.
+- 화면 밖 요소는 스티칭 계획이 해당 위치로 스크롤해 찍고, `page:restore`가 선택 당시 스크롤 위치로 되돌린다.
 
 ## 9. 녹화 파이프라인
 

@@ -543,3 +543,13 @@ kbd {
   color: var(--c-fg-2);
   font-size: var(--fs-xs);
 }
+
+.info-clipped {
+  margin-right: var(--sp-2);
+  padding: 0 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--c-warn) 18%, transparent);
+  color: var(--c-warn);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+}
