@@ -506,5 +506,109 @@
   "noticeRecovered": {
     "message": "저장되지 못한 녹화를 복구했어요. 길이가 정확하지 않을 수 있어요.",
     "description": "복구 안내"
+  },
+  "resultKindImage": {
+    "message": "캡처",
+    "description": "결과 종류: 이미지"
+  },
+  "resultKindVideo": {
+    "message": "녹화",
+    "description": "결과 종류: 영상"
+  },
+  "resultFilename": {
+    "message": "파일 이름",
+    "description": "파일명 입력 접근성 이름"
+  },
+  "resultCopy": {
+    "message": "복사",
+    "description": "복사 버튼"
+  },
+  "resultCopied": {
+    "message": "복사됨",
+    "description": "복사 완료"
+  },
+  "resultDownload": {
+    "message": "다운로드",
+    "description": "다운로드 버튼"
+  },
+  "resultSaved": {
+    "message": "저장됨",
+    "description": "저장 완료"
+  },
+  "resultCopyAsPng": {
+    "message": "PNG로 복사돼요",
+    "description": "JPEG 결과 복사 안내"
+  },
+  "resultCopyVideo": {
+    "message": "영상은 클립보드 복사를 지원하지 않아요",
+    "description": "영상 복사 불가 안내"
+  },
+  "resultCopyFailed": {
+    "message": "복사하지 못했어요. 이 탭을 클릭한 뒤 다시 시도해 주세요.",
+    "description": "복사 실패"
+  },
+  "resultDownloadFailed": {
+    "message": "다운로드하지 못했어요.",
+    "description": "다운로드 실패"
+  },
+  "resultInfo": {
+    "message": "정보",
+    "description": "정보 패널 제목"
+  },
+  "resultSaveAs": {
+    "message": "다른 포맷으로 저장",
+    "description": "포맷 변환 저장"
+  },
+  "resultNewCapture": {
+    "message": "새 캡처는 툴바의 Clipt 아이콘에서 시작해요.",
+    "description": "새 캡처 안내"
+  },
+  "resultZoom": {
+    "message": "확대·축소",
+    "description": "확대 도구 모음 이름"
+  },
+  "zoomFit": {
+    "message": "맞춤",
+    "description": "화면 맞춤"
+  },
+  "zoomIn": {
+    "message": "확대",
+    "description": "확대"
+  },
+  "zoomOut": {
+    "message": "축소",
+    "description": "축소"
+  },
+  "infoSize": {
+    "message": "크기",
+    "description": "정보: 이미지 크기"
+  },
+  "infoFormat": {
+    "message": "포맷",
+    "description": "정보: 포맷"
+  },
+  "infoDuration": {
+    "message": "길이",
+    "description": "정보: 영상 길이"
+  },
+  "infoResolution": {
+    "message": "해상도",
+    "description": "정보: 해상도"
+  },
+  "infoBytes": {
+    "message": "용량",
+    "description": "정보: 용량"
+  },
+  "infoPage": {
+    "message": "페이지",
+    "description": "정보: 원본 페이지"
+  },
+  "infoTime": {
+    "message": "시각",
+    "description": "정보: 캡처 시각"
+  },
+  "infoSelector": {
+    "message": "선택자",
+    "description": "정보: 요소 선택자"
   }
 }
