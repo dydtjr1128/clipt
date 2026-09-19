@@ -4,6 +4,17 @@ import type { Job, Mode } from '@/core/job';
 import type { TabAccess } from '@/core/restricted';
 import type { PageProbe } from '@/core/page';
 
+/** 선택 UI 종류 */
+export type SelectKind = 'region' | 'element';
+
+/** 사용자가 확정한 캡처 대상. x는 뷰포트 기준, y는 문서 기준 CSS px */
+export interface SelectionTarget {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /**
  * 컨텍스트 간 메시지 프로토콜 (docs/architecture.md 6절).
  * 수신 컨텍스트별로 메시지 이름 → (payload) => 응답 시그니처를 정의한다.
@@ -20,6 +31,15 @@ export interface Protocol {
     'job:get': (payload: null) => Job | null;
     /** 탭에서 캡처·녹화를 시작할 수 있는지 확인 (팝업 메뉴 활성화 판단) */
     'tab:status': (payload: { tabId: number }) => TabAccess;
+    /** 콘텐츠 선택 UI에서 사용자가 범위를 확정함. 오버레이는 이미 제거된 상태 */
+    'select:done': (payload: {
+      jobId: string;
+      target: SelectionTarget;
+      page: PageProbe;
+      selector?: string;
+    }) => null;
+    /** 사용자가 선택 UI에서 Esc·취소를 누름 */
+    'select:cancelled': (payload: { jobId: string }) => null;
   };
   offscreen: {
     'offscreen:ping': (payload: null) => 'pong';
@@ -27,6 +47,10 @@ export interface Protocol {
   content: {
     /** 주입 여부 확인. 응답이 없으면 아직 주입되지 않은 것 */
     'content:ping': (payload: null) => 'pong';
+    /** 선택 UI 시작. 결과는 select:done·select:cancelled로 따로 알린다 */
+    'select:start': (payload: { jobId: string; kind: SelectKind; forRecording: boolean }) => null;
+    /** 팝업 취소 등으로 선택 UI를 닫는다 */
+    'select:cancel': (payload: null) => null;
     /** 뷰포트·스크롤·DPR 측정 */
     'page:probe': (payload: null) => PageProbe;
     /** 캡처 전 준비: 스크롤 위치 기억, 부드러운 스크롤·스크롤바 끄기 */
