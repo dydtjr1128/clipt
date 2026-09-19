@@ -174,5 +174,13 @@
   "hintDragRegionRec": {
     "message": "Drag to select a region to record",
     "description": "영역 녹화 선택 안내"
+  },
+  "hintPickElement": {
+    "message": "Click an element to capture",
+    "description": "요소 선택 안내"
+  },
+  "hintPickElementRec": {
+    "message": "Click an element to record",
+    "description": "요소 녹화 선택 안내"
   }
 }
