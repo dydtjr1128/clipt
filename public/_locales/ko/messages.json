@@ -174,5 +174,13 @@
   "hintDragRegionRec": {
     "message": "드래그해서 녹화할 영역을 선택하세요",
     "description": "영역 녹화 선택 안내"
+  },
+  "hintPickElement": {
+    "message": "캡처할 요소를 클릭하세요",
+    "description": "요소 선택 안내"
+  },
+  "hintPickElementRec": {
+    "message": "녹화할 요소를 클릭하세요",
+    "description": "요소 녹화 선택 안내"
   }
 }

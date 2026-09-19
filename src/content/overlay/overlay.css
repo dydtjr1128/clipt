@@ -231,3 +231,102 @@ kbd {
   border-color: var(--c-border);
   color: var(--c-fg-2);
 }
+
+/* 요소 선택 하이라이트 (docs/ux-design.md 5.1·5.2절) */
+.hl-box {
+  position: fixed;
+  left: 0;
+  top: 0;
+  border: 2px solid var(--c-hover);
+  background: var(--c-hover-soft);
+  border-radius: 2px;
+  pointer-events: none;
+  will-change: transform, width, height;
+}
+
+.hl-box.is-locked {
+  border-width: 3px;
+  border-color: var(--c-accent);
+  background: var(--c-accent-soft);
+}
+
+.hl-box .corner {
+  display: none;
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 0 solid var(--c-accent);
+}
+
+.hl-box.is-locked .corner {
+  display: block;
+}
+
+.corner-tl {
+  left: -6px;
+  top: -6px;
+  border-left-width: 3px;
+  border-top-width: 3px;
+}
+.corner-tr {
+  right: -6px;
+  top: -6px;
+  border-right-width: 3px;
+  border-top-width: 3px;
+}
+.corner-bl {
+  left: -6px;
+  bottom: -6px;
+  border-left-width: 3px;
+  border-bottom-width: 3px;
+}
+.corner-br {
+  right: -6px;
+  bottom: -6px;
+  border-right-width: 3px;
+  border-bottom-width: 3px;
+}
+
+.hl-box.is-pulse {
+  animation: clipt-pulse var(--motion);
+}
+
+@keyframes clipt-pulse {
+  50% {
+    transform-origin: center;
+    outline: 3px solid var(--c-accent-soft);
+    outline-offset: -6px;
+  }
+}
+
+.hl-label {
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  gap: var(--sp-2);
+  max-width: min(420px, calc(100vw - 8px));
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  background: var(--c-hover);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 18px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.hl-label.is-locked {
+  background: var(--c-accent);
+}
+
+.hl-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hl-size {
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
