@@ -31,6 +31,8 @@ type Options = {
   scaleFactor: number;
   /** 브라우저 창 크기 */
   windowSize: [number, number];
+  /** 브라우저 UI 언어(--lang). chrome.i18n이 이 값을 따른다 */
+  lang: string;
 };
 
 type Fixtures = {
@@ -50,7 +52,8 @@ type Fixtures = {
 export const test = base.extend<Fixtures & Options>({
   scaleFactor: [1, { option: true }],
   windowSize: [[1000, 800], { option: true }],
-  context: async ({ scaleFactor, windowSize }, use) => {
+  lang: ['ko', { option: true }],
+  context: async ({ scaleFactor, windowSize, lang }, use) => {
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       viewport: null,
@@ -59,6 +62,7 @@ export const test = base.extend<Fixtures & Options>({
         `--load-extension=${extensionPath}`,
         `--force-device-scale-factor=${scaleFactor}`,
         `--window-size=${windowSize[0]},${windowSize[1]}`,
+        `--lang=${lang}`,
         // 툴바 클릭 없이도 탭 캡처를 허용한다(테스트 전용 플래그)
         `--allowlisted-extension-id=${E2E_EXTENSION_ID}`,
         // 주의: --use-fake-ui-for-media-stream은 탭 캡처(getUserMedia)를 NotFoundError로 막는다.

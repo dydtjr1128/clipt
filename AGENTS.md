@@ -51,6 +51,7 @@
 - WXT(Vite 기반) + TypeScript strict + Preact·`@preact/signals`, 스타일은 순수 CSS와 `src/styles/tokens.css` 디자인 토큰
 - 확장 API는 `chrome` 전역 대신 `wxt/browser`의 `browser`를 사용한다.
 - 사용자에게 보이는 문자열은 `src/shared/i18n.ts`의 `t()`와 `public/_locales/{ko,en}/messages.json`으로만 다룬다. JSX 문자열 리터럴은 lint 오류다.
+- 문구를 추가할 때는 ko·en 두 파일에 같은 키와 같은 치환자(`$1`)로 넣는다. `tests/unit/locales.test.ts`가 키·치환자 불일치, 쓰이지 않는 키, 주석 밖 한글 문자열을 잡는다. 문체는 `docs/ux-design.md` 11절을 따른다.
 
 ### 명령
 
