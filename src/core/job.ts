@@ -35,6 +35,9 @@ export interface Job {
     height: number;
     audio: string;
     audioTracks: number;
+    frameRate?: number;
+    /** 요청 포맷을 지원하지 않아 다른 포맷으로 녹화 중이면 요청 포맷 */
+    fallbackFrom?: string;
     /** 최대 녹화 길이(ms) */
     maxMs?: number;
   };

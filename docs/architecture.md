@@ -334,6 +334,8 @@ select:done(target: x 뷰포트, y 문서) → core/crop.ts normalizeCrop: 녹�
 - **마이크**: 오프스크린 문서는 권한 프롬프트를 띄울 수 없으므로, 마이크 옵션을 처음 켤 때 `entrypoints/permission` 페이지를 열어 `getUserMedia({audio:true})`로 권한을 1회 받는다. 이후 오프스크린에서 마이크 스트림을 열 수 있다.
 - **일시정지/재개**: `MediaRecorder.pause()/resume()`. 팝업 중지 버튼 옆에 일시정지 제공.
 
+지원 확인 결과와 품질 옵션 적용 방식은 [media-support.md](media-support.md). 폴백이 일어나면 결과 메타 `fallbackReason`에 요청 포맷을 남기고 결과 페이지가 배너로 알린다(`entrypoints/result/ResultNotices.tsx`).
+
 ### 9.4 녹화 중 표시 (옵션)
 
 설정 `record.indicator`로 선택한다. 결과 영상에 찍힐 수 있음을 설정 UI에 명시한다.

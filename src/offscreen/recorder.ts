@@ -37,6 +37,8 @@ export interface StartInfo {
   width: number;
   height: number;
   audioTracks: number;
+  /** 탭 캡처 트랙에 적용된 프레임레이트 */
+  frameRate: number;
   warnings: string[];
 }
 
@@ -202,6 +204,7 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
     width,
     height,
     audioTracks: output.getAudioTracks().length,
+    frameRate: video.getSettings().frameRate ?? options.fps,
     warnings,
   };
 }

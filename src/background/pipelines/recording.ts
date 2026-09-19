@@ -51,7 +51,7 @@ export async function beginRecording(
     .catch((error: unknown) => {
       throw new CliptError('PERMISSION_DENIED', String(error));
     });
-  const size = await tabCaptureSize(job.tabId);
+  const size = await tabCaptureSize(job.tabId, settings.record.scale);
   await ensureOffscreen(['USER_MEDIA', 'BLOBS'], 'Record the tab with MediaRecorder');
   const info = await send('offscreen', 'rec:start', {
     jobId: job.id,
@@ -81,6 +81,8 @@ export async function beginRecording(
       height: info.height,
       audio: settings.record.audio,
       audioTracks: info.audioTracks,
+      frameRate: info.frameRate,
+      ...(info.fallbackFrom ? { fallbackFrom: info.fallbackFrom } : {}),
       maxMs: settings.record.maxMinutes * 60_000,
     },
   });
@@ -115,7 +117,11 @@ async function syncIndicator(jobId: string): Promise<void> {
 }
 
 /** 탭 뷰포트의 device px 크기. 측정할 수 없으면 1920×1080 안에서 탭 캡처가 정한다 */
-async function tabCaptureSize(tabId: number): Promise<{ width: number; height: number }> {
+/** scale: 설정의 해상도 배율. 탭 캡처가 최대 크기에 맞춰 줄여 보낸다 */
+async function tabCaptureSize(
+  tabId: number,
+  scale: number,
+): Promise<{ width: number; height: number }> {
   const [injection] = await browser.scripting
     .executeScript({
       target: { tabId },
@@ -123,10 +129,13 @@ async function tabCaptureSize(tabId: number): Promise<{ width: number; height: n
     })
     .catch(() => []);
   const probe = injection?.result as { w: number; h: number; dpr: number } | undefined;
-  if (!probe) return { width: 1920, height: 1080 };
+  if (!probe) return { width: 1920 * scale, height: 1080 * scale };
   // 인코더가 짝수 크기를 요구하는 경우가 있어 짝수로 맞춘다
   const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
-  return { width: even(probe.w * probe.dpr), height: even(probe.h * probe.dpr) };
+  return {
+    width: even(probe.w * probe.dpr * scale),
+    height: even(probe.h * probe.dpr * scale),
+  };
 }
 
 async function emitRecording(job: Job, resultId: string, settings: Settings): Promise<void> {

@@ -474,5 +474,37 @@
   "afterClipboard": {
     "message": "Copy to clipboard",
     "description": "캡처 후 동작"
+  },
+  "noticeFallback": {
+    "message": "$1 is not supported here, so this was saved as $2.",
+    "description": "포맷 폴백 안내. $1 요청 포맷, $2 저장 포맷"
+  },
+  "noticeScaled": {
+    "message": "The page was too long, so it was captured at $1%.",
+    "description": "축소 캡처 안내"
+  },
+  "noticeLayoutChanged": {
+    "message": "The page changed, so recording stopped.",
+    "description": "레이아웃 변경 안내"
+  },
+  "noticeMaxLength": {
+    "message": "Recording stopped at the maximum length.",
+    "description": "최대 길이 안내"
+  },
+  "noticeMicUnavailable": {
+    "message": "The microphone was unavailable, so it was not recorded.",
+    "description": "마이크 없음 안내"
+  },
+  "noticeInternalScroll": {
+    "message": "This page scrolls inside a container, so part of it may be missing.",
+    "description": "내부 스크롤 안내"
+  },
+  "noticeClipped": {
+    "message": "Only the visible part was included.",
+    "description": "잘림 안내"
+  },
+  "noticeRecovered": {
+    "message": "Recovered an unsaved recording. Its length may be inexact.",
+    "description": "복구 안내"
   }
 }

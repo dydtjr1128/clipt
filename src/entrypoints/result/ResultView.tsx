@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { loadResult, type ResultMeta } from '@/shared/db';
 import { t } from '@/shared/i18n';
+import { ResultNotices } from './ResultNotices';
 
 type State =
   | { status: 'loading' }
@@ -50,18 +51,21 @@ export function ResultView({ id }: { id: string | null }) {
   }
   const { meta, url } = state;
   return (
-    <main class="result" data-result-id={meta.id}>
-      {meta.kind === 'image' ? (
-        <img
-          class="result-media"
-          src={url}
-          width={meta.width}
-          height={meta.height}
-          alt={t('resultImageAlt')}
-        />
-      ) : (
-        <video class="result-media" src={url} controls />
-      )}
-    </main>
+    <>
+      <ResultNotices meta={meta} />
+      <main class="result" data-result-id={meta.id}>
+        {meta.kind === 'image' ? (
+          <img
+            class="result-media"
+            src={url}
+            width={meta.width}
+            height={meta.height}
+            alt={t('resultImageAlt')}
+          />
+        ) : (
+          <video class="result-media" src={url} controls />
+        )}
+      </main>
+    </>
   );
 }
