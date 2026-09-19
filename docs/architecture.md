@@ -166,9 +166,13 @@ type Job = {
 | --- | --- | --- |
 | `job:start {mode, tabId?}` | popup/commands → SW | 작업 시작. `tabId`가 없으면 마지막으로 포커스된 창의 활성 탭 |
 | `job:cancel {jobId?}` | any → SW | 취소 |
-| `job:stop {jobId?}` | popup → SW | 녹화 중지. 지금은 작업만 끝내며 결과 저장은 #11에서 연결 |
+| `job:stop {jobId?}` | popup → SW | 녹화 중지·결과 저장 (9.1절) |
 | `job:get` | any → SW | 현재 작업 조회. 복원이 끝난 뒤의 상태를 돌려준다 |
 | `tab:status {tabId}` | popup → SW | 탭 사용 가능 여부와 제한 사유 (13절) |
+| `job:pause` / `job:resume {jobId?}` | popup → SW | 녹화 일시정지·재개 (9.1절) |
+| `rec:ended {jobId, resultId}` | OS → SW | 탭이 닫히는 등으로 녹화 스트림이 끝나 저장함 |
+| `rec:start` / `rec:pause` / `rec:resume` / `rec:stop` / `rec:discard` / `rec:status` | SW → OS | 녹화 제어 (9.1절) |
+| `result:objectUrl {resultId}` | SW → OS | 결과 Blob URL (다운로드용) |
 | `content:ping` | SW → CS | 콘텐츠 스크립트 주입 여부 확인 |
 | `page:probe` | SW → CS | 뷰포트·스크롤·`scrollHeight`·DPR·내부 스크롤 여부 |
 | `page:prepare {hideScrollbar}` / `page:hideFixed` / `page:restore` | SW → CS | 캡처 전후 페이지 조정과 원상 복구 (8.1절) |
@@ -182,7 +186,6 @@ type Job = {
 
 | 이름 | 방향 | 용도 |
 | --- | --- | --- |
-| `rec:start {streamId, crop?, profile}` / `rec:pause` / `rec:resume` / `rec:stop` | SW → OS | 녹화 제어 |
 | `rec:tick {elapsed}` | OS → SW → popup | 1초 타이머 |
 | `indicator:show {kind}` / `indicator:hide` | SW → CS | 녹화 중 표시(옵션) |
 | `clipboard:write {resultId}` | SW → OS | 복사 |
@@ -261,18 +264,31 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 ### 9.1 흐름
 
 ```text
-SW: tabCapture.getMediaStreamId({targetTabId})
- └▶ offscreen.create({reasons:['USER_MEDIA','BLOBS']})  (있으면 재사용)
-     └▶ OS: getUserMedia({video:{chromeMediaSource:'tab', chromeMediaSourceId}, audio: 탭 오디오 여부})
-          ├▶ audio-mixer: 탭 오디오 → AudioContext.destination (탭 소리 유지)
-          │              + 마이크 스트림(옵션) → 하나의 오디오 트랙으로 합성
-          ├▶ 탭 모드: 비디오 트랙 그대로
-          ├▶ 영역·요소 모드: <video> → OffscreenCanvas.drawImage(crop) @ requestVideoFrameCallback
-          │                  → canvas.captureStream(fps)
-          └▶ MediaRecorder(profile.mimeType, bitrate, timeslice=1000)
-               → chunk를 IndexedDB `chunks`에 append (메모리 누적 없음)
-SW: rec:stop → OS: stop → chunks 병합 → webm duration 보정 → results 저장 → resultId
+SW(background/pipelines/recording.ts):
+  팝업 닫힘 대기 → tabCapture.getMediaStreamId({targetTabId}) → 탭 뷰포트 크기(device px, 짝수) 측정
+  → offscreen.create({reasons:['USER_MEDIA','BLOBS']})  (있으면 재사용)
+  → rec:start {streamId, audio, format, fps, bitrate, size}
+OS(offscreen/recorder.ts):
+  getUserMedia({video:{chromeMediaSource:'tab', maxWidth·maxHeight=size, minFrameRate=maxFrameRate=fps},
+                audio: 탭 소리면 tab 소스})
+   ├▶ 마이크 옵션이면 getUserMedia({audio:true}). 권한이 없으면 마이크 없이 녹화, 결과 warnings: mic-unavailable
+   ├▶ audio-mixer: 탭 소리 → AudioContext.destination(사용자에게 계속 들림) + 녹화용 목적지
+   │              마이크 → 녹화용 목적지만(하울링 방지) → 오디오 트랙 1개
+   ├▶ 영역·요소 모드(#12): <video> → OffscreenCanvas.drawImage(crop) → canvas.captureStream(fps)
+   └▶ MediaRecorder(mimeType, bitrate, timeslice=1000) → chunk를 IndexedDB `chunks`에 순서대로 append
+SW: recording 전이(startedAt) → 배지 REC
+중지(job:stop): finalizing → rec:stop → OS: stop 이벤트까지 대기 → chunk 병합 → webm 길이 메타 보정
+              → results 저장 → chunk 삭제 → resultId → SW: 작업 종료 → 결과 페이지(또는 다운로드) → 오프스크린 닫기
 ```
+
+- **해상도·프레임**: 크기 제약이 없으면 탭 캡처가 낮은 기본 해상도로 잡히고, 화면이 바뀌지 않으면 프레임이 나오지 않아 MediaRecorder가 데이터를 만들지 않는다. 탭 뷰포트 × DPR을 최대 크기로, `minFrameRate`를 fps로 준다.
+- **메모리**: chunk를 1초마다 IndexedDB에 쓰고 메모리에 모으지 않는다. 녹화 길이와 관계없이 오프스크린 메모리가 일정하다.
+- **길이 메타**: MediaRecorder의 webm에는 길이가 없어 탐색이 안 되므로 `fix-webm-duration`으로 채운다. 길이는 일시정지 구간을 뺀 실제 녹화 시간이다.
+- **종료 경쟁**: 탭이 닫혀 트랙이 끝나면 MediaRecorder가 스스로 멈추며 마지막 데이터를 늦게 내보낸다. 상태만 보지 않고 항상 `stop` 이벤트를 기다린다(최대 5초).
+- **일시정지**: `job:pause`·`job:resume` → 오프스크린 `MediaRecorder.pause()/resume()`. 작업에 `pausedAt`·`pausedTotal`을 기록해 팝업 타이머와 배지(`❚❚`)가 멈춘다.
+- **취소**: `job:cancel` → `rec:discard`(스트림 정지, chunk 삭제) → 오프스크린 닫기. 결과를 만들지 않는다.
+- **다운로드**: 서비스 워커에는 `URL.createObjectURL`이 없어 오프스크린이 만든 Blob URL(`result:objectUrl`)로 받고, 다운로드가 끝날 때까지 오프스크린을 유지한다.
+- **E2E**: 툴바 클릭 없이 탭 캡처를 쓰도록 E2E 빌드에만 고정 `key`(scripts/e2e-key.json)로 확장 ID를 고정하고 `--allowlisted-extension-id`로 실행한다. `--use-fake-ui-for-media-stream`은 탭 캡처를 `NotFoundError`로 막아 쓰지 않으며, 확장 origin에는 마이크 권한을 줄 수 없어 마이크 합성은 단위 테스트와 수동 확인으로 검증한다.
 
 ### 9.2 대상 선택
 

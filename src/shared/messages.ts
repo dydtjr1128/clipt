@@ -3,6 +3,8 @@ import { CliptError, toErrorPayload, type ErrorPayload } from '@/core/errors';
 import type { Job, Mode } from '@/core/job';
 import type { TabAccess } from '@/core/restricted';
 import type { PageProbe } from '@/core/page';
+import type { RecordFormat } from '@/core/media-profile';
+import type { Settings } from '@/core/settings';
 
 /** 선택 UI 종류 */
 export type SelectKind = 'region' | 'element';
@@ -29,6 +31,11 @@ export interface Protocol {
     /** 녹화 중지. 녹화 결과 저장은 녹화 파이프라인(#11)에서 연결하며 지금은 작업만 끝낸다 */
     'job:stop': (payload: { jobId?: string }) => null;
     'job:get': (payload: null) => Job | null;
+    /** 녹화 일시정지·재개 */
+    'job:pause': (payload: { jobId?: string }) => null;
+    'job:resume': (payload: { jobId?: string }) => null;
+    /** 오프스크린: 탭이 닫히는 등으로 녹화 스트림이 끝나 그때까지 저장함 */
+    'rec:ended': (payload: { jobId: string; resultId: string | null }) => null;
     /** 탭에서 캡처·녹화를 시작할 수 있는지 확인 (팝업 메뉴 활성화 판단) */
     'tab:status': (payload: { tabId: number }) => TabAccess;
     /** 콘텐츠 선택 UI에서 사용자가 범위를 확정함. 오버레이는 이미 제거된 상태 */
@@ -45,6 +52,35 @@ export interface Protocol {
   };
   offscreen: {
     'offscreen:ping': (payload: null) => 'pong';
+    /** 녹화 시작. 실제 쓰인 mimeType·해상도·오디오 트랙 수를 돌려준다 */
+    'rec:start': (payload: {
+      jobId: string;
+      mode: Mode;
+      streamId: string;
+      audio: Settings['record']['audio'];
+      format: RecordFormat;
+      fps: Settings['record']['fps'];
+      bitrate: Settings['record']['bitrate'];
+      size: { width: number; height: number };
+    }) => {
+      mime: string;
+      fallbackFrom?: RecordFormat;
+      width: number;
+      height: number;
+      audioTracks: number;
+      warnings: string[];
+    };
+    'rec:pause': (payload: null) => null;
+    'rec:resume': (payload: null) => null;
+    /** 녹화 종료·결과 저장 */
+    'rec:stop': (payload: null) => { resultId: string };
+    /** 녹화 버림(취소) */
+    'rec:discard': (payload: null) => null;
+    'rec:status': (
+      payload: null,
+    ) => { jobId: string; state: 'recording' | 'paused'; chunks: number } | null;
+    /** 결과 Blob의 object URL (서비스 워커 다운로드용) */
+    'result:objectUrl': (payload: { resultId: string }) => string;
   };
   content: {
     /** 주입 여부 확인. 응답이 없으면 아직 주입되지 않은 것 */

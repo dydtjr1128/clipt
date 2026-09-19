@@ -15,6 +15,8 @@ test('배포 빌드 manifest는 host 권한 없이 정해진 권한만 요청한
   expect(manifest.manifest_version).toBe(3);
   expect(manifest.host_permissions ?? []).toEqual([]);
   expect(manifest.content_scripts ?? []).toEqual([]);
+  // E2E 빌드의 고정 key가 배포 빌드에 섞이지 않는다
+  expect(manifest.key).toBeUndefined();
   expect([...manifest.permissions].sort()).toEqual(
     [
       'activeTab',
@@ -33,7 +35,7 @@ test('E2E 빌드만 host 권한을 가진다', async ({ serviceWorker }) => {
   expect(manifest.host_permissions).toEqual(['<all_urls>']);
 });
 
-for (const page of ['options', 'permission']) {
+for (const page of ['options']) {
   test(`${page} 페이지가 오류 없이 렌더링된다`, async ({ context, extensionId }) => {
     const tab = await context.newPage();
     const errors: string[] = [];
@@ -50,5 +52,15 @@ test('result 페이지는 id가 없으면 만료 안내를 보여준다', async 
   tab.on('pageerror', (e) => errors.push(e.message));
   await tab.goto(`chrome-extension://${extensionId}/result.html`);
   await expect(tab.locator('.result-status')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('권한 페이지가 마이크 권한 안내를 보여준다', async ({ context, extensionId }) => {
+  const tab = await context.newPage();
+  const errors: string[] = [];
+  tab.on('pageerror', (e) => errors.push(e.message));
+  await tab.goto(`chrome-extension://${extensionId}/permission.html`);
+  await expect(tab.locator('.permission h1')).toContainText('마이크');
+  await expect(tab.locator('.permission-button')).toBeVisible();
   expect(errors).toEqual([]);
 });

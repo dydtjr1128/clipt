@@ -105,12 +105,16 @@ export function transitionJob(
 /** 같은 단계 안에서 진행률 등 부가 정보만 갱신한다 */
 export function patchJob(
   jobId: string,
-  patch: Partial<Pick<Job, 'target' | 'progress'>>,
+  patch: Partial<Pick<Job, 'target' | 'progress' | 'pausedAt' | 'pausedTotal' | 'media'>>,
 ): Promise<Job> {
   return serial(async () => {
     const job = await getJob();
     if (!job || job.id !== jobId) throw new CliptError('NO_JOB');
-    const updated = { ...job, ...patch };
+    const updated: Job = { ...job, ...patch };
+    // undefined로 준 필드는 지운다(storage에 undefined를 남기지 않게)
+    for (const key of Object.keys(patch) as (keyof Job)[]) {
+      if (patch[key as keyof typeof patch] === undefined) delete updated[key];
+    }
     await saveJob(updated);
     return updated;
   });

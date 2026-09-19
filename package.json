@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@preact/signals": "^2.11.2",
+    "fix-webm-duration": "^1.0.6",
     "idb": "^8.0.3",
     "preact": "^10.29.8"
   },

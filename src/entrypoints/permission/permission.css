@@ -1,0 +1,43 @@
+.permission {
+  max-width: 420px;
+  margin: 15vh auto 0;
+  padding: var(--sp-6);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-panel);
+  text-align: center;
+}
+
+.permission h1 {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-lg);
+}
+
+.permission p {
+  margin: 0 0 var(--sp-4);
+  color: var(--c-fg-2);
+}
+
+.permission-button {
+  min-height: 36px;
+  padding: 0 var(--sp-6);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--c-accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.permission .permission-note {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+}
+
+.permission .permission-result.is-ok {
+  color: var(--c-success);
+}
+
+.permission .permission-result.is-denied {
+  color: var(--c-warn);
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { browser } from 'wxt/browser';
 import type { ErrorCode } from '@/core/errors';
-import { isRecordMode, type Job, type Mode } from '@/core/job';
+import { isRecordMode, recordedMs, type Job, type Mode } from '@/core/job';
 import { RECORDING_MENU, SCREENSHOT_MENU, type MenuItem } from '@/core/menu';
 import type { RestrictReason } from '@/core/restricted';
 import { formatElapsed } from '@/core/time';
@@ -254,9 +254,23 @@ function BusyView({ job }: { job: Job }) {
   );
 }
 
+const AUDIO_LABEL: Record<string, MessageKey> = {
+  none: 'audioNone',
+  tab: 'audioTab',
+  mic: 'audioMic',
+  'tab+mic': 'audioTabMic',
+};
+
+function mediaSummary(media: NonNullable<Job['media']>): string {
+  const container = media.mime.startsWith('video/mp4') ? 'MP4' : 'WebM';
+  const audio = t(AUDIO_LABEL[media.audio] ?? 'audioNone');
+  return `${media.width}×${media.height} · ${container} · ${audio}`;
+}
+
 function RecordingView({ job, shortcuts }: { job: Job; shortcuts: Map<string, string> }) {
   const recording = job.phase === 'recording' && job.startedAt !== undefined;
-  const now = useNow(1000, recording);
+  const paused = recording && job.pausedAt !== undefined;
+  const now = useNow(1000, recording && !paused);
   const modeLabel = t(REC_MODE_LABEL[job.mode] ?? 'modeTab');
   const stopShortcut = shortcuts.get('toggle-recording');
 
@@ -269,11 +283,26 @@ function RecordingView({ job, shortcuts }: { job: Job; shortcuts: Map<string, st
         {recording ? t('recordingTitle', modeLabel) : t('countdownTitle')}
       </h2>
       {recording && (
-        <p class="rec-timer" role="timer" aria-live="off">
-          {formatElapsed(now - (job.startedAt ?? now))}
+        <p class={`rec-timer${paused ? ' is-paused' : ''}`} role="timer" aria-live="off">
+          {formatElapsed(recordedMs(job, now))}
         </p>
       )}
-      <div class="state-actions">
+      {paused && <p class="rec-paused">{t('recPaused')}</p>}
+      {job.media && <p class="rec-media">{mediaSummary(job.media)}</p>}
+      <div class="state-actions rec-actions">
+        {recording && (
+          <button
+            type="button"
+            class="button"
+            data-action={paused ? 'resume' : 'pause'}
+            onClick={() =>
+              void send('background', paused ? 'job:resume' : 'job:pause', { jobId: job.id })
+            }
+          >
+            <span aria-hidden="true">{paused ? '▶' : '❚❚'}</span>{' '}
+            {t(paused ? 'recResume' : 'recPause')}
+          </button>
+        )}
         <button
           type="button"
           class="button button-rec"
