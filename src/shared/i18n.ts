@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 
-/** 기본 로케일(ko) 메시지 파일의 키. 키 오타를 타입 단계에서 막는다. */
+/** ko 메시지 파일의 키(ko·en 키 일치는 테스트가 보장). 키 오타를 타입 단계에서 막는다. */
 export type MessageKey = keyof typeof import('../../public/_locales/ko/messages.json');
 
 /**

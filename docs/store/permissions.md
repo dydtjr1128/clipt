@@ -18,7 +18,7 @@ Chrome 웹스토어 제출 시 "권한 정당성" 항목에 그대로 쓰는 문
 | `downloads` | "바로 다운로드" 설정과 결과 페이지의 다운로드 버튼으로 결과 파일을 저장한다. | Saves captured images and recordings when the user chooses to download them. |
 | `clipboardWrite` | "클립보드에 복사" 설정과 결과 페이지의 복사 버튼으로 캡처 이미지를 클립보드에 넣는다. | Copies captured images to the clipboard when the user chooses to. |
 
-`host_permissions`는 요청하지 않는다. 테스트 빌드(`CLIPT_E2E=1`)에만 `<all_urls>`가 붙으며 배포 zip은 `npm run zip`의 기본 빌드를 사용한다.
+`commands`(단축키)는 권한 경고가 없는 manifest 항목이다. `host_permissions`는 요청하지 않는다. 테스트 빌드(`CLIPT_E2E=1`)에만 `<all_urls>`가 붙으며 배포 zip은 `npm run zip`의 기본 빌드를 사용한다.
 
 ## activeTab이 부여되는 경우
 

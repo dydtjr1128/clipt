@@ -15,6 +15,8 @@ test('배포 빌드 manifest는 host 권한 없이 정해진 권한만 요청한
   expect(manifest.manifest_version).toBe(3);
   expect(manifest.host_permissions ?? []).toEqual([]);
   expect(manifest.content_scripts ?? []).toEqual([]);
+  expect(manifest.default_locale).toBe('en');
+  expect(Object.keys(manifest.icons)).toEqual(['16', '32', '48', '128']);
   // E2E 빌드의 고정 key가 배포 빌드에 섞이지 않는다
   expect(manifest.key).toBeUndefined();
   expect([...manifest.permissions].sort()).toEqual(

@@ -81,6 +81,10 @@
 - 단축키 지원
 - Esc로 언제든 취소
 
+## 개인정보
+
+- Clipt는 어떤 데이터도 수집하거나 외부로 보내지 않는다. 자세한 내용은 [PRIVACY.md](PRIVACY.md).
+
 ## 기여
 
 - 이슈와 PR 작성 규칙은 [AGENTS.md](AGENTS.md)와 `.github/` 템플릿을 따른다.
