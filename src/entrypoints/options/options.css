@@ -1,0 +1,16 @@
+.options {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.options h1 {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-lg);
+}
+
+.options-card {
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-panel);
+}

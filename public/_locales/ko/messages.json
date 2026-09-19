@@ -314,5 +314,165 @@
   "recoverDiscard": {
     "message": "삭제",
     "description": "복구 대상 삭제 버튼"
+  },
+  "commonBack": {
+    "message": "뒤로",
+    "description": "뒤로 가기"
+  },
+  "commonChange": {
+    "message": "변경",
+    "description": "설정 변경 링크"
+  },
+  "setImage": {
+    "message": "이미지",
+    "description": "설정 섹션"
+  },
+  "setRecord": {
+    "message": "녹화",
+    "description": "설정 섹션"
+  },
+  "setAfterCapture": {
+    "message": "캡처 후",
+    "description": "설정 섹션"
+  },
+  "setAfterRecord": {
+    "message": "녹화 후",
+    "description": "설정 섹션"
+  },
+  "setDownload": {
+    "message": "다운로드",
+    "description": "설정 섹션"
+  },
+  "setFormat": {
+    "message": "포맷",
+    "description": "설정 항목"
+  },
+  "setJpegQuality": {
+    "message": "JPEG 품질",
+    "description": "설정 항목"
+  },
+  "setFps": {
+    "message": "프레임",
+    "description": "설정 항목"
+  },
+  "setScale": {
+    "message": "해상도",
+    "description": "설정 항목"
+  },
+  "setBitrate": {
+    "message": "화질",
+    "description": "설정 항목"
+  },
+  "setAudio": {
+    "message": "소리",
+    "description": "설정 항목"
+  },
+  "setCountdown": {
+    "message": "카운트다운",
+    "description": "설정 항목"
+  },
+  "setMaxLength": {
+    "message": "최대 길이",
+    "description": "설정 항목"
+  },
+  "setIndicator": {
+    "message": "녹화 중 표시",
+    "description": "설정 항목"
+  },
+  "setSaveAs": {
+    "message": "저장할 위치를 매번 묻기",
+    "description": "설정 항목"
+  },
+  "formatMp4": {
+    "message": "MP4 (H.264)",
+    "description": "녹화 포맷"
+  },
+  "formatVp9": {
+    "message": "WebM (VP9)",
+    "description": "녹화 포맷"
+  },
+  "formatVp8": {
+    "message": "WebM (VP8)",
+    "description": "녹화 포맷"
+  },
+  "formatAv1": {
+    "message": "WebM (AV1)",
+    "description": "녹화 포맷"
+  },
+  "formatMp4Hint": {
+    "message": "가장 널리 재생돼요.",
+    "description": "포맷 설명"
+  },
+  "formatVp9Hint": {
+    "message": "화질 대비 용량이 작아요.",
+    "description": "포맷 설명"
+  },
+  "formatVp8Hint": {
+    "message": "오래된 환경에서도 재생돼요.",
+    "description": "포맷 설명"
+  },
+  "formatAv1Hint": {
+    "message": "용량이 가장 작지만 녹화 중 부하가 커요.",
+    "description": "포맷 설명"
+  },
+  "formatUnsupported": {
+    "message": "이 브라우저는 지원하지 않아요",
+    "description": "미지원 포맷 표시"
+  },
+  "bitrateAuto": {
+    "message": "자동",
+    "description": "화질 옵션"
+  },
+  "bitrateLow": {
+    "message": "낮음",
+    "description": "화질 옵션"
+  },
+  "bitrateHigh": {
+    "message": "높음",
+    "description": "화질 옵션"
+  },
+  "countdownOff": {
+    "message": "없음",
+    "description": "카운트다운 옵션"
+  },
+  "countdownSeconds": {
+    "message": "$1초",
+    "description": "카운트다운 옵션. $1은 초"
+  },
+  "minutes": {
+    "message": "$1분",
+    "description": "분 단위. $1은 숫자"
+  },
+  "indicatorNone": {
+    "message": "없음",
+    "description": "녹화 중 표시 옵션"
+  },
+  "indicatorBorder": {
+    "message": "테두리",
+    "description": "녹화 중 표시 옵션"
+  },
+  "indicatorWidget": {
+    "message": "위젯",
+    "description": "녹화 중 표시 옵션"
+  },
+  "indicatorWarn": {
+    "message": "탭 녹화에서는 결과에 함께 찍혀요.",
+    "description": "녹화 중 표시 경고"
+  },
+  "micNeedsPermission": {
+    "message": "마이크는 처음 한 번 권한이 필요해요.",
+    "description": "마이크 권한 안내"
+  },
+  "afterResult": {
+    "message": "결과 페이지 열기",
+    "description": "캡처 후 동작"
+  },
+  "afterDownload": {
+    "message": "바로 다운로드",
+    "description": "캡처 후 동작"
+  },
+  "afterClipboard": {
+    "message": "클립보드에 복사",
+    "description": "캡처 후 동작"
   }
 }

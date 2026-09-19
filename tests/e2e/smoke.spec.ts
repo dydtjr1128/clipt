@@ -41,7 +41,7 @@ for (const page of ['options']) {
     const errors: string[] = [];
     tab.on('pageerror', (e) => errors.push(e.message));
     await tab.goto(`chrome-extension://${extensionId}/${page}.html`);
-    await expect(tab.locator('#app h1')).toHaveText('Clipt');
+    await expect(tab.locator('form.settings')).toBeVisible();
     expect(errors).toEqual([]);
   });
 }
