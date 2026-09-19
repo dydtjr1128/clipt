@@ -254,3 +254,41 @@ body {
   font-size: var(--fs-sm);
   text-align: center;
 }
+
+.popup-title-center {
+  flex: 1;
+  font-size: var(--fs-md);
+  text-align: center;
+}
+
+.popup-scroll {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.popup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+  padding: var(--sp-2) var(--sp-4) 0;
+  border-top: 1px solid var(--c-border);
+  color: var(--c-fg-2);
+  font-size: var(--fs-xs);
+}
+
+.popup-profile {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-accent);
+  font: inherit;
+  cursor: pointer;
+}

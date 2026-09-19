@@ -8,6 +8,7 @@ import { formatElapsed } from '@/core/time';
 import { t, type MessageKey } from '@/shared/i18n';
 import { send } from '@/shared/messages';
 import { clearLastError, useNow, useSessionState, useShortcuts, useTargetTab } from './hooks';
+import { SettingsForm, profileSummary, useSettings } from '@/components/SettingsForm';
 
 /** 팝업 화면 (docs/ux-design.md 3절). 작업 상태에 따라 메뉴·선택 중·캡처 중·녹화 중 화면을 그린다 */
 
@@ -47,11 +48,37 @@ export function Popup() {
   const target = useTargetTab();
   const shortcuts = useShortcuts();
 
+  const [view, setView] = useState<'main' | 'settings'>('main');
+
   if (!loaded) return null;
+
+  if (view === 'settings') {
+    return (
+      <div class="popup" data-view="settings">
+        <header class="popup-header">
+          <button
+            type="button"
+            class="icon-button"
+            data-action="back"
+            aria-label={t('commonBack')}
+            title={t('commonBack')}
+            onClick={() => setView('main')}
+          >
+            <span aria-hidden="true">{'←'}</span>
+          </button>
+          <h1 class="popup-title popup-title-center">{t('popupSettings')}</h1>
+          <span class="icon-button" aria-hidden="true" />
+        </header>
+        <div class="popup-scroll">
+          <SettingsForm />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div class="popup">
-      <Header />
+      <Header onSettings={() => setView('settings')} />
       {lastError && (
         <Notice tone="warn" onDismiss={() => void clearLastError()}>
           {errorText(lastError.code)}
@@ -60,13 +87,29 @@ export function Popup() {
       {job ? (
         <JobView job={job} shortcuts={shortcuts} />
       ) : (
-        <Menu tabId={target.tabId} access={target.access} shortcuts={shortcuts} />
+        <>
+          <Menu tabId={target.tabId} access={target.access} shortcuts={shortcuts} />
+          <ProfileFooter onChange={() => setView('settings')} />
+        </>
       )}
     </div>
   );
 }
 
-function Header() {
+/** 현재 녹화 프로파일 요약. 누르면 설정으로 간다 */
+function ProfileFooter({ onChange }: { onChange: () => void }) {
+  const [settings] = useSettings();
+  return (
+    <footer class="popup-footer">
+      <span class="popup-profile">{profileSummary(settings)}</span>
+      <button type="button" class="link-button" data-action="profile" onClick={onChange}>
+        {t('commonChange')}
+      </button>
+    </footer>
+  );
+}
+
+function Header({ onSettings }: { onSettings: () => void }) {
   return (
     <header class="popup-header">
       <h1 class="popup-title">
@@ -78,7 +121,8 @@ function Header() {
           class="icon-button"
           title={t('popupSettings')}
           aria-label={t('popupSettings')}
-          onClick={() => void browser.runtime.openOptionsPage()}
+          data-action="settings"
+          onClick={onSettings}
         >
           <span aria-hidden="true">{'⚙'}</span>
         </button>

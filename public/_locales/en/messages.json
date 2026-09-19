@@ -314,5 +314,165 @@
   "recoverDiscard": {
     "message": "Delete",
     "description": "복구 대상 삭제 버튼"
+  },
+  "commonBack": {
+    "message": "Back",
+    "description": "뒤로 가기"
+  },
+  "commonChange": {
+    "message": "Change",
+    "description": "설정 변경 링크"
+  },
+  "setImage": {
+    "message": "Image",
+    "description": "설정 섹션"
+  },
+  "setRecord": {
+    "message": "Recording",
+    "description": "설정 섹션"
+  },
+  "setAfterCapture": {
+    "message": "After capture",
+    "description": "설정 섹션"
+  },
+  "setAfterRecord": {
+    "message": "After recording",
+    "description": "설정 섹션"
+  },
+  "setDownload": {
+    "message": "Download",
+    "description": "설정 섹션"
+  },
+  "setFormat": {
+    "message": "Format",
+    "description": "설정 항목"
+  },
+  "setJpegQuality": {
+    "message": "JPEG quality",
+    "description": "설정 항목"
+  },
+  "setFps": {
+    "message": "Frame rate",
+    "description": "설정 항목"
+  },
+  "setScale": {
+    "message": "Resolution",
+    "description": "설정 항목"
+  },
+  "setBitrate": {
+    "message": "Quality",
+    "description": "설정 항목"
+  },
+  "setAudio": {
+    "message": "Audio",
+    "description": "설정 항목"
+  },
+  "setCountdown": {
+    "message": "Countdown",
+    "description": "설정 항목"
+  },
+  "setMaxLength": {
+    "message": "Max length",
+    "description": "설정 항목"
+  },
+  "setIndicator": {
+    "message": "On-page indicator",
+    "description": "설정 항목"
+  },
+  "setSaveAs": {
+    "message": "Ask where to save each file",
+    "description": "설정 항목"
+  },
+  "formatMp4": {
+    "message": "MP4 (H.264)",
+    "description": "녹화 포맷"
+  },
+  "formatVp9": {
+    "message": "WebM (VP9)",
+    "description": "녹화 포맷"
+  },
+  "formatVp8": {
+    "message": "WebM (VP8)",
+    "description": "녹화 포맷"
+  },
+  "formatAv1": {
+    "message": "WebM (AV1)",
+    "description": "녹화 포맷"
+  },
+  "formatMp4Hint": {
+    "message": "Plays almost everywhere.",
+    "description": "포맷 설명"
+  },
+  "formatVp9Hint": {
+    "message": "Good quality at a small size.",
+    "description": "포맷 설명"
+  },
+  "formatVp8Hint": {
+    "message": "Works in older environments.",
+    "description": "포맷 설명"
+  },
+  "formatAv1Hint": {
+    "message": "Smallest files, but heavier while recording.",
+    "description": "포맷 설명"
+  },
+  "formatUnsupported": {
+    "message": "not supported in this browser",
+    "description": "미지원 포맷 표시"
+  },
+  "bitrateAuto": {
+    "message": "Auto",
+    "description": "화질 옵션"
+  },
+  "bitrateLow": {
+    "message": "Low",
+    "description": "화질 옵션"
+  },
+  "bitrateHigh": {
+    "message": "High",
+    "description": "화질 옵션"
+  },
+  "countdownOff": {
+    "message": "Off",
+    "description": "카운트다운 옵션"
+  },
+  "countdownSeconds": {
+    "message": "$1s",
+    "description": "카운트다운 옵션. $1은 초"
+  },
+  "minutes": {
+    "message": "$1 min",
+    "description": "분 단위. $1은 숫자"
+  },
+  "indicatorNone": {
+    "message": "None",
+    "description": "녹화 중 표시 옵션"
+  },
+  "indicatorBorder": {
+    "message": "Border",
+    "description": "녹화 중 표시 옵션"
+  },
+  "indicatorWidget": {
+    "message": "Widget",
+    "description": "녹화 중 표시 옵션"
+  },
+  "indicatorWarn": {
+    "message": "Will appear in tab recordings.",
+    "description": "녹화 중 표시 경고"
+  },
+  "micNeedsPermission": {
+    "message": "Microphone needs a one-time permission.",
+    "description": "마이크 권한 안내"
+  },
+  "afterResult": {
+    "message": "Open the result page",
+    "description": "캡처 후 동작"
+  },
+  "afterDownload": {
+    "message": "Download right away",
+    "description": "캡처 후 동작"
+  },
+  "afterClipboard": {
+    "message": "Copy to clipboard",
+    "description": "캡처 후 동작"
   }
 }

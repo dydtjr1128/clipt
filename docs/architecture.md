@@ -396,7 +396,10 @@ type Settings = {
 };
 ```
 
-읽기 시 `defaults`와 깊은 병합, `version` 불일치 시 `migrate()` 체인 실행.
+- 읽기(`resolveSettings`): 마이그레이션 → 기본값과 깊은 병합(모르는 키·타입이 다른 값 무시) → 선택지에 없는 값은 기본값으로(`OPTIONS`) → 범위 보정(JPEG 품질 0.6~1, 최대 길이 0~60분).
+- 마이그레이션(`MIGRATIONS`): 키가 변환 전 버전인 함수 표를 현재 버전까지 순서대로 적용한다. v0(버전 필드 없는 평면 스키마 `imageFormat`·`videoFormat`·`includeTabAudio`) → v1. 스키마를 바꿀 때는 `SETTINGS_VERSION`을 올리고 함수를 추가한다.
+- 저장(`shared/settings.ts`): `saveSetting(path, value)`가 한 항목을 바꿔 `storage.sync`에 즉시 저장하고, `watchSettings`로 다른 화면의 변경을 받는다.
+- 화면(`components/SettingsForm.tsx`): 팝업 ⚙ 화면과 옵션 페이지가 같은 컴포넌트를 쓴다. 미지원 녹화 포맷은 `MediaRecorder.isTypeSupported`로 비활성, 마이크를 고르면 권한 상태를 확인해 권한 페이지 버튼을 보여 준다.
 
 ## 11. 배출(emit)과 결과 페이지
 
