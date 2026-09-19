@@ -79,12 +79,16 @@ export function startRegionSelector(options: RegionOptions): () => void {
   let raf = 0;
   let disposed = false;
 
-  const bounds = (): Box => ({
-    x: scrollX,
-    y: 0,
-    w: innerWidth,
-    h: Math.max(document.documentElement.scrollHeight, innerHeight),
-  });
+  // 녹화는 보이는 화면만 담을 수 있어 현재 뷰포트 안으로 제한한다
+  const bounds = (): Box =>
+    options.forRecording
+      ? { x: scrollX, y: scrollY, w: innerWidth, h: innerHeight }
+      : {
+          x: scrollX,
+          y: 0,
+          w: innerWidth,
+          h: Math.max(document.documentElement.scrollHeight, innerHeight),
+        };
   const docPoint = (): Point =>
     clampPoint({ x: pointer.clientX + scrollX, y: pointer.clientY + scrollY }, bounds());
 
@@ -139,7 +143,8 @@ export function startRegionSelector(options: RegionOptions): () => void {
   /** 드래그 중 포인터가 가장자리에 있으면 계속 스크롤한다 */
   function autoScroll(): void {
     raf = 0;
-    if (disposed || !['drawing', 'moving', 'resizing'].includes(phase)) return;
+    if (disposed || options.forRecording || !['drawing', 'moving', 'resizing'].includes(phase))
+      return;
     const speed = edgeScrollSpeed(pointer.clientY, innerHeight);
     if (speed !== 0) {
       scrollBy({ top: speed, behavior: 'instant' });

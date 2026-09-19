@@ -9,6 +9,20 @@ import { startElementSession } from './element-session';
  */
 let active: { jobId: string; dispose: () => void } | null = null;
 
+/**
+ * 영역·요소 녹화는 시작 시점 화면 좌표로 자르므로 뷰포트 크기가 바뀌면 같은 영역을 이어 녹화할 수 없다.
+ * 탭 캡처는 요청 크기에 맞춰 프레임을 늘리거나 줄여 보내 프레임만으로는 알 수 없어 페이지에서 감지한다.
+ */
+function watchResize(jobId: string): void {
+  const start = { w: innerWidth, h: innerHeight };
+  const onResize = () => {
+    if (innerWidth === start.w && innerHeight === start.h) return;
+    removeEventListener('resize', onResize);
+    void send('background', 'page:resized', { jobId }).catch(() => undefined);
+  };
+  addEventListener('resize', onResize);
+}
+
 export function cancelSelection(): void {
   active?.dispose();
   active = null;
@@ -17,9 +31,15 @@ export function cancelSelection(): void {
 async function confirm(
   jobId: string,
   target: RegionTarget,
-  extra: { selector?: string; element?: Element; warnings?: string[] } = {},
+  extra: {
+    selector?: string;
+    element?: Element;
+    warnings?: string[];
+    forRecording?: boolean;
+  } = {},
 ): Promise<void> {
   active = null;
+  if (extra.forRecording) watchResize(jobId);
   // 요소 캡처면 고정 요소를 숨길 때 대상 요소는 남긴다
   setCaptureTarget(extra.element ?? null);
   await settleFrames();
@@ -38,7 +58,9 @@ export function startSelection(jobId: string, kind: SelectKind, forRecording: bo
     const dispose = startElementSession({
       forRecording,
       onConfirm: (target, selector, element, warnings) => {
-        void confirm(jobId, target, { selector, element, warnings }).catch(() => undefined);
+        void confirm(jobId, target, { selector, element, warnings, forRecording }).catch(
+          () => undefined,
+        );
       },
       onCancel: () => {
         active = null;
@@ -52,7 +74,7 @@ export function startSelection(jobId: string, kind: SelectKind, forRecording: bo
     forRecording,
     onConfirm: (target, overlay) => {
       overlay.dispose();
-      void confirm(jobId, target).catch(() => undefined);
+      void confirm(jobId, target, { forRecording }).catch(() => undefined);
     },
     onCancel: () => {
       active = null;

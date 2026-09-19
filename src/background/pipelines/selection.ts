@@ -7,6 +7,8 @@ import { ensureContentScript } from '../access';
 import { activeTargetTab, finishCapture, outputFormat } from '../finish';
 import { endJob, getJob, recordError, transitionJob } from '../jobs';
 import { stitchCapture } from '../stitch';
+import { normalizeCrop } from '@/core/crop';
+import { beginRecording } from './recording';
 
 /**
  * 영역·요소 선택이 필요한 모드의 흐름 (docs/architecture.md 5·8절).
@@ -47,8 +49,19 @@ export async function onSelectionDone(
   if (!job || job.id !== jobId || job.phase !== 'selecting') return;
   await guarded(job, async () => {
     if (isRecordMode(job.mode)) {
-      // 영역·요소 녹화는 #12에서 연결한다
-      throw new CliptError('UNKNOWN', 'recording selection is not implemented yet');
+      // 녹화는 시작 시점 화면 좌표로 고정한다(요소 추적은 #21)
+      const normalized = normalizeCrop(target, page.viewport, page.scroll.y);
+      if (!normalized) throw new CliptError('CAPTURE_FAILED', 'selection is outside the viewport');
+      await transitionJob(job.id, 'countdown', {
+        target: { x: target.x, y: target.y, w: target.w, h: target.h, unit: 'css' },
+      });
+      await beginRecording(job, {
+        crop: normalized.crop,
+        warnings: [...(warnings ?? []), ...(normalized.clipped ? ['clipped'] : [])].filter(
+          (w, i, all) => all.indexOf(w) === i,
+        ),
+      });
+      return;
     }
     const settings = await loadSettings();
     const tab = await activeTargetTab(job);

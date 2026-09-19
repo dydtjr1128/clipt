@@ -67,7 +67,7 @@ src/
 │   └── rec-indicator.ts         # 녹화 중 표시 (옵션)
 ├── offscreen/
 │   ├── recorder.ts              # MediaRecorder + chunk 저장
-│   ├── frame-cropper.ts         # 영역·요소 녹화용 캔버스 크롭
+│   ├── frame-cropper.ts         # 영역·요소 녹화용 프레임 크롭(MediaStreamTrackProcessor)
 │   ├── audio-mixer.ts           # 탭·마이크 오디오 합성, 탭 소리 재생 유지
 │   └── clipboard.ts
 ├── shared/
@@ -180,6 +180,7 @@ type Job = {
 | `select:start {jobId, kind, forRecording}` / `select:cancel` | SW → CS | 선택 UI 열기(즉시 응답) / 팝업 취소 시 닫기 |
 | `select:done {jobId, target, page, selector?}` | CS → SW | 사용자가 확정. 오버레이를 지우고 2프레임 뒤 측정한 페이지 상태와 대상(x는 뷰포트, y는 문서 기준)을 보냄. SW가 이어서 캡처 |
 | `select:cancelled {jobId}` | CS → SW | 선택 UI에서 Esc·취소 |
+| `page:resized {jobId}` | CS → SW | 영역·요소 녹화 중 뷰포트 크기 변경 (9.2절) |
 | `offscreen:ping` | SW·페이지 → OS | 오프스크린 응답 확인 |
 
 기능 이슈에서 추가할 메시지:
@@ -290,11 +291,23 @@ SW: recording 전이(startedAt) → 배지 REC
 - **다운로드**: 서비스 워커에는 `URL.createObjectURL`이 없어 오프스크린이 만든 Blob URL(`result:objectUrl`)로 받고, 다운로드가 끝날 때까지 오프스크린을 유지한다.
 - **E2E**: 툴바 클릭 없이 탭 캡처를 쓰도록 E2E 빌드에만 고정 `key`(scripts/e2e-key.json)로 확장 ID를 고정하고 `--allowlisted-extension-id`로 실행한다. `--use-fake-ui-for-media-stream`은 탭 캡처를 `NotFoundError`로 막아 쓰지 않으며, 확장 origin에는 마이크 권한을 줄 수 없어 마이크 합성은 단위 테스트와 수동 확인으로 검증한다.
 
-### 9.2 대상 선택
+### 9.2 대상 선택과 크롭
 
-영역 녹화·요소 녹화는 캡처와 **같은 선택 UI**를 재사용한다. 영역 녹화는 드래그 선택, 요소 녹화는 호버·고정·패널 조정 후 "녹화 시작". 선택 UI는 `forRecording` 플래그로 문구와 주 버튼만 바뀐다.
+영역 녹화·요소 녹화는 캡처와 **같은 선택 UI**를 재사용한다(`forRecording`이면 문구와 주 버튼만 `● 녹화 시작`). 녹화는 보이는 화면만 담을 수 있어 녹화용 영역 선택은 현재 뷰포트 안으로 제한하고 가장자리 자동 스크롤을 끈다. 요소가 뷰포트 밖으로 걸치면 보이는 부분만 녹화하고 결과에 `clipped`를 남긴다.
 
-크롭 좌표는 **녹화 시작 시점의 `Rect<'device'>`로 고정**한다. 스크롤·레이아웃 변화에 따라 요소를 따라가는 추적은 후속 이슈(콘텐츠가 주기적으로 rect를 보내고 크로퍼가 보간)로 남긴다. 스트림 해상도가 바뀌면(창 리사이즈, 개발자 도구) 비율로 재계산하고, 비율이 달라지면 녹화를 중지하고 안내한다.
+```text
+select:done(target: x 뷰포트, y 문서) → core/crop.ts normalizeCrop: 녹화 시작 시점 뷰포트 대비 비율(0~1)
+→ selecting → countdown → beginRecording({crop}) → OS: cropTrack
+   MediaStreamTrackProcessor(탭 트랙) → VideoFrame(visibleRect = 비율 × 실제 프레임 크기, 짝수 정렬)
+   → MediaStreamTrackGenerator → MediaRecorder
+```
+
+- **캔버스 대신 프레임 단위 처리**: 오프스크린 문서는 화면에 보이지 않아 `requestAnimationFrame`이 돌지 않는다. `MediaStreamTrackProcessor`·`VideoFrame`·`MediaStreamTrackGenerator`는 렌더링과 무관하게 프레임마다 동작하고 복사 없이 잘라낸다.
+- **비율 크롭**: 탭 캡처 프레임 크기가 요청과 조금 달라도 같은 영역을 자르도록 크롭을 비율로 넘긴다. I420 프레임은 짝수 정렬이 필요해 위치·크기를 짝수로 맞춘다.
+- **시작 프레임 버림**: 탭 캡처가 시작할 때 선택 UI·카운트다운을 지우기 전 화면을 첫 프레임으로 보낼 수 있어, 모든 녹화 모드가 이 프레임 경로를 거치며 시작 후 250ms 동안의 프레임을 버린다(탭 녹화는 자르지 않고 통과).
+- **좌표 고정**: 크롭은 녹화 시작 시점 화면 좌표로 고정한다. 스크롤해도 영역은 그대로이며, 요소 추적은 [#21](https://github.com/dydtjr1128/clipt/issues/21).
+- **레이아웃 변경**: 영역·요소 녹화 중 대상 페이지가 이동하거나(`tabs.onUpdated` loading) 뷰포트 크기가 바뀌면(콘텐츠 `resize` → `page:resized`) 그때까지 저장하고 결과 `warnings: ['layout-changed']`. 탭 캡처는 요청 크기에 맞춰 프레임을 늘리거나 줄여 보내므로 프레임 크기만으로는 창 크기 변화를 알 수 없어 페이지에서 감지한다. 프레임 비율 변화도 보조로 감지한다. 탭 녹화는 이동·크기 변경에도 계속한다.
+- **성능**: 크롭 단계는 받은 프레임을 그대로 내보낸다(E2E에서 1080p 절반 영역, 손실 없음 확인). 헤드리스 테스트 환경의 탭 캡처 자체는 약 21fps로 제한돼 30fps 유지는 실제 Chrome에서 확인한다.
 
 ### 9.3 미디어 프로파일 (`core/media-profile.ts`)
 

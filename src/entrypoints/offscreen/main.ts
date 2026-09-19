@@ -27,7 +27,7 @@ listen('offscreen', {
     resumeRecording();
     return null;
   },
-  'rec:stop': () => stopRecording(),
+  'rec:stop': (payload) => stopRecording(payload ?? {}),
   'rec:discard': async () => {
     await discardRecording();
     return null;

@@ -1,3 +1,4 @@
+import { browser } from 'wxt/browser';
 import { isMode } from '@/core/job';
 import { CliptError } from '@/core/errors';
 import { listen } from '@/shared/messages';
@@ -9,6 +10,8 @@ import { onSelectionCancelled, onSelectionDone } from '@/background/pipelines/se
 import {
   cancelRecording,
   finishRecording,
+  onPageResized,
+  onTabNavigating,
   pauseRecording,
   resumeRecording,
   stopTabRecording,
@@ -71,10 +74,19 @@ export default defineBackground(() => {
       void onSelectionDone(jobId, target, page, { selector, warnings });
       return null;
     },
+    'page:resized': async ({ jobId }) => {
+      await onPageResized(jobId);
+      return null;
+    },
     'select:cancelled': async ({ jobId }) => {
       await onSelectionCancelled(jobId);
       return null;
     },
+  });
+
+  // 영역·요소 녹화 중 페이지 이동을 감지한다(탭 녹화는 계속)
+  browser.tabs.onUpdated.addListener((tabId, info) => {
+    if (info.status === 'loading') void onTabNavigating(tabId);
   });
 
   void restoreJob();
