@@ -4,6 +4,7 @@ import type { Job, Mode } from '@/core/job';
 import type { TabAccess } from '@/core/restricted';
 import type { PageProbe } from '@/core/page';
 import type { RecordFormat } from '@/core/media-profile';
+import type { NormalizedRect } from '@/core/crop';
 import type { Settings } from '@/core/settings';
 
 /** 선택 UI 종류 */
@@ -49,6 +50,8 @@ export interface Protocol {
     }) => null;
     /** 사용자가 선택 UI에서 Esc·취소를 누름 */
     'select:cancelled': (payload: { jobId: string }) => null;
+    /** 영역·요소 녹화 중 대상 페이지 뷰포트 크기가 바뀜 */
+    'page:resized': (payload: { jobId: string }) => null;
   };
   offscreen: {
     'offscreen:ping': (payload: null) => 'pong';
@@ -62,6 +65,8 @@ export interface Protocol {
       fps: Settings['record']['fps'];
       bitrate: Settings['record']['bitrate'];
       size: { width: number; height: number };
+      crop?: NormalizedRect;
+      warnings?: string[];
     }) => {
       mime: string;
       fallbackFrom?: RecordFormat;
@@ -73,12 +78,15 @@ export interface Protocol {
     'rec:pause': (payload: null) => null;
     'rec:resume': (payload: null) => null;
     /** 녹화 종료·결과 저장 */
-    'rec:stop': (payload: null) => { resultId: string };
+    'rec:stop': (payload: { warning?: string } | null) => { resultId: string };
     /** 녹화 버림(취소) */
     'rec:discard': (payload: null) => null;
-    'rec:status': (
-      payload: null,
-    ) => { jobId: string; state: 'recording' | 'paused'; chunks: number } | null;
+    'rec:status': (payload: null) => {
+      jobId: string;
+      state: 'recording' | 'paused';
+      chunks: number;
+      frames?: { in: number; out: number };
+    } | null;
     /** 결과 Blob의 object URL (서비스 워커 다운로드용) */
     'result:objectUrl': (payload: { resultId: string }) => string;
   };

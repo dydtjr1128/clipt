@@ -11,14 +11,27 @@ import { openResultPage } from '../emit';
 import { endJob, getJob, patchJob, recordError, transitionJob } from '../jobs';
 import { closeOffscreen, ensureOffscreen } from '../offscreen';
 import { waitForPopupClosed } from './visible';
+import { isRecordMode } from '@/core/job';
+import type { NormalizedRect } from '@/core/crop';
 
 /**
  * 탭 녹화 (docs/architecture.md 9절). 서비스 워커는 streamId를 얻어 오프스크린에 넘기고,
  * 스트림·MediaRecorder·chunk 저장은 오프스크린이 맡는다. 서비스 워커가 잠들어도 녹화는 계속된다.
  */
-export async function runTabRecording(job: Job): Promise<void> {
+export function runTabRecording(job: Job): Promise<void> {
+  return beginRecording(job, {});
+}
+
+/**
+ * 녹화 시작 공통: 탭·영역·요소. 영역·요소는 crop(뷰포트 비율)을 넘긴다.
+ * 작업은 countdown 단계여야 한다.
+ */
+export async function beginRecording(
+  job: Job,
+  options: { crop?: NormalizedRect; warnings?: string[] },
+): Promise<void> {
   const settings = await loadSettings();
-  await waitForPopupClosed();
+  if (!options.crop) await waitForPopupClosed();
 
   const streamId = await browser.tabCapture
     .getMediaStreamId({ targetTabId: job.tabId })
@@ -37,6 +50,8 @@ export async function runTabRecording(job: Job): Promise<void> {
     fps: settings.record.fps,
     bitrate: settings.record.bitrate,
     size,
+    ...(options.crop ? { crop: options.crop } : {}),
+    ...(options.warnings?.length ? { warnings: options.warnings } : {}),
   });
   const current = await getJob();
   if (current?.id !== job.id) {
@@ -111,8 +126,8 @@ function waitForDownload(id: number): Promise<void> {
   });
 }
 
-/** 녹화를 끝내고 결과를 저장·배출한다(팝업 중지·단축키) */
-export async function stopTabRecording(jobId?: string): Promise<void> {
+/** 녹화를 끝내고 결과를 저장·배출한다(팝업 중지·단축키). warning은 결과 메타에 남긴다 */
+export async function stopTabRecording(jobId?: string, warning?: string): Promise<void> {
   const job = await getJob();
   if (!job || (jobId !== undefined && job.id !== jobId)) return;
   if (job.phase !== 'recording') {
@@ -122,7 +137,7 @@ export async function stopTabRecording(jobId?: string): Promise<void> {
   await transitionJob(job.id, 'finalizing');
   let resultId: string;
   try {
-    ({ resultId } = await send('offscreen', 'rec:stop', null));
+    ({ resultId } = await send('offscreen', 'rec:stop', warning ? { warning } : null));
   } catch (error) {
     // 오프스크린이 사라졌거나 저장에 실패하면 작업을 끝내고 사유를 남긴다
     await endJob(job.id);
@@ -165,4 +180,22 @@ export async function resumeRecording(jobId?: string, now = Date.now()): Promise
     pausedAt: undefined,
     pausedTotal: (job.pausedTotal ?? 0) + (now - job.pausedAt),
   });
+}
+
+/**
+ * 영역·요소 녹화 중 대상 탭이 다른 페이지로 이동하면 레이아웃이 바뀌어 같은 영역을 녹화할 수 없다.
+ * 그때까지 저장하고 결과에 layout-changed를 남긴다. 탭 녹화는 이동해도 계속한다.
+ */
+/** 영역·요소 녹화 중 뷰포트 크기가 바뀜: 그때까지 저장하고 layout-changed를 남긴다 */
+export async function onPageResized(jobId: string): Promise<void> {
+  const job = await getJob();
+  if (!job || job.id !== jobId || job.phase !== 'recording' || job.mode === 'rec-tab') return;
+  await stopTabRecording(job.id, 'layout-changed');
+}
+
+export async function onTabNavigating(tabId: number): Promise<void> {
+  const job = await getJob();
+  if (!job || job.tabId !== tabId || !isRecordMode(job.mode) || job.mode === 'rec-tab') return;
+  if (job.phase !== 'recording') return;
+  await stopTabRecording(job.id, 'layout-changed');
 }

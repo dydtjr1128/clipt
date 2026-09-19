@@ -5,6 +5,8 @@ import { chooseMime, containerOf, videoBitrate, type RecordFormat } from '@/core
 import type { Settings } from '@/core/settings';
 import { appendChunk, deleteChunks, readChunks, saveResult } from '@/shared/db';
 import { mixAudio, type AudioMix } from './audio-mixer';
+import { cropTrack, type CroppedTrack } from './frame-cropper';
+import type { NormalizedRect } from '@/core/crop';
 
 /**
  * 오프스크린 문서의 녹화 세션 (docs/architecture.md 9절).
@@ -21,6 +23,10 @@ export interface StartOptions {
   bitrate: Settings['record']['bitrate'];
   /** 캡처 해상도(device px). 지정하지 않으면 탭 캡처가 낮은 기본 해상도로 잡힌다 */
   size: { width: number; height: number };
+  /** 영역·요소 녹화: 뷰포트 대비 비율 크롭 */
+  crop?: NormalizedRect;
+  /** 결과에 남길 주의 사항(예: clipped) */
+  warnings?: string[];
 }
 
 export interface StartInfo {
@@ -39,6 +45,7 @@ interface Session {
   recorder: MediaRecorder;
   streams: MediaStream[];
   audio: AudioMix;
+  cropped: CroppedTrack;
   mime: string;
   fallbackFrom?: RecordFormat;
   width: number;
@@ -88,7 +95,7 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
   if (session) throw new CliptError('JOB_ACTIVE', 'already recording');
   const wantsTab = options.audio === 'tab' || options.audio === 'tab+mic';
   const wantsMic = options.audio === 'mic' || options.audio === 'tab+mic';
-  const warnings: string[] = [];
+  const warnings: string[] = [...(options.warnings ?? [])];
 
   const tab = await navigator.mediaDevices
     .getUserMedia({
@@ -111,23 +118,46 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
 
   const video = tab.getVideoTracks()[0];
   if (!video) throw new CliptError('CAPTURE_FAILED', 'no video track');
+  // 영역·요소 녹화는 프레임을 잘라 새 트랙으로 만든다. 화면 비율이 바뀌면 멈춘다
+  let current: Session | null = null;
+  // 모든 모드가 프레임 처리 경로를 거친다: 시작 직후 프레임을 버리고, 영역·요소는 자른다
+  const cropped = cropTrack(
+    video,
+    options.crop ?? null,
+    options.crop
+      ? () => {
+          if (session === current && current) stopForLayoutChange(current);
+        }
+      : null,
+  );
+  const recordedVideo = cropped.track;
   const audio = mixAudio(tab, mic);
-  const output = new MediaStream([video, ...(audio.track ? [audio.track] : [])]);
+  const output = new MediaStream([recordedVideo, ...(audio.track ? [audio.track] : [])]);
 
   const choice = chooseMime(options.format, (mime) => MediaRecorder.isTypeSupported(mime));
   if (!choice) throw new CliptError('UNSUPPORTED_FORMAT');
-  const { width = 0, height = 0 } = video.getSettings();
+  const fallbackSize = {
+    width: video.getSettings().width ?? 0,
+    height: video.getSettings().height ?? 0,
+  };
+  const { width, height } = await Promise.race([
+    cropped.size,
+    new Promise<{ width: number; height: number }>((resolve) =>
+      setTimeout(() => resolve(fallbackSize), 3000),
+    ),
+  ]);
   const recorder = new MediaRecorder(output, {
     mimeType: choice.mime,
     videoBitsPerSecond: videoBitrate(width, height, options.fps, options.bitrate),
     audioBitsPerSecond: 128_000,
   });
 
-  const current: Session = {
+  current = {
     options,
     recorder,
     streams: [tab, ...(mic ? [mic] : [])],
     audio,
+    cropped,
     mime: choice.mime,
     fallbackFrom: choice.fallbackFrom,
     width,
@@ -144,20 +174,21 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
       recorder.addEventListener('stop', () => resolve(), { once: true }),
     ),
   };
+  const live = current;
   recorder.ondataavailable = (event) => {
     if (event.data.size === 0) return;
-    const seq = current.seq++;
-    current.writes = current.writes.then(() => appendChunk(options.jobId, seq, event.data));
+    const seq = live.seq++;
+    live.writes = live.writes.then(() => appendChunk(options.jobId, seq, event.data));
   };
   // 탭이 닫히거나 캡처가 끊기면 그때까지의 영상을 저장한다
   video.addEventListener('ended', () => {
-    if (session !== current) return;
+    if (session !== live) return;
     void stopRecording()
       .then(({ resultId }) => onEnded?.(options.jobId, resultId))
       .catch(() => onEnded?.(options.jobId, null));
   });
 
-  session = current;
+  session = live;
   recorder.start(TIMESLICE_MS);
   return {
     mime: choice.mime,
@@ -183,22 +214,45 @@ export function resumeRecording(): void {
   session.state = 'recording';
 }
 
-export function recordingStatus(): { jobId: string; state: State; chunks: number } | null {
-  return session
-    ? { jobId: session.options.jobId, state: session.state, chunks: session.seq }
-    : null;
+export function recordingStatus(): {
+  jobId: string;
+  state: State;
+  chunks: number;
+  /** 크롭 녹화에서 받은·내보낸 프레임 수 */
+  frames?: { in: number; out: number };
+} | null {
+  if (!session) return null;
+  return {
+    jobId: session.options.jobId,
+    state: session.state,
+    chunks: session.seq,
+    frames: session.cropped.frames(),
+  };
+}
+
+/** 화면 비율이 바뀌면 그때까지 저장하고 서비스 워커에 알린다 */
+function stopForLayoutChange(current: Session): void {
+  void stopRecording({ warning: 'layout-changed' })
+    .then(({ resultId }) => onEnded?.(current.options.jobId, resultId))
+    .catch(() => onEnded?.(current.options.jobId, null));
 }
 
 function release(current: Session): Promise<void> {
+  current.cropped.stop();
   for (const stream of current.streams) for (const track of stream.getTracks()) track.stop();
   return current.audio.close();
 }
 
 /** 녹화를 끝내고 결과를 저장한다 */
-export async function stopRecording(): Promise<{ resultId: string }> {
+export async function stopRecording(
+  options: { warning?: string } = {},
+): Promise<{ resultId: string }> {
   const current = session;
   if (!current) throw new CliptError('NO_JOB', 'not recording');
   session = null;
+  if (options.warning && !current.warnings.includes(options.warning)) {
+    current.warnings.push(options.warning);
+  }
   if (current.state === 'recording') current.activeMs += performance.now() - current.segmentStart;
 
   if (current.recorder.state !== 'inactive') current.recorder.stop();
