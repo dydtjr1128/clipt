@@ -5,6 +5,8 @@ import { pruneResults } from '@/shared/db';
 import { endJob, readJob, restoreJob, startJob } from '@/background/jobs';
 import { checkTab } from '@/background/access';
 import { runPipeline } from '@/background/pipelines';
+import { onSelectionCancelled, onSelectionDone } from '@/background/pipelines/selection';
+import { sendToTab } from '@/shared/messages';
 
 // 서비스 워커: 작업 조정자 (docs/architecture.md 4절)
 // 리스너는 서비스 워커가 깨어날 때마다 동기적으로 먼저 등록해야 이벤트를 놓치지 않는다.
@@ -18,7 +20,11 @@ export default defineBackground(() => {
       return job;
     },
     'job:cancel': async ({ jobId }) => {
-      await endJob(jobId);
+      const ended = await endJob(jobId);
+      // 선택 중이었다면 페이지의 선택 UI도 닫는다
+      if (ended?.phase === 'selecting') {
+        await sendToTab(ended.tabId, 'select:cancel', null).catch(() => undefined);
+      }
       return null;
     },
     'job:stop': async ({ jobId }) => {
@@ -28,6 +34,15 @@ export default defineBackground(() => {
     },
     'job:get': () => readJob(),
     'tab:status': ({ tabId }) => checkTab(tabId),
+    'select:done': ({ jobId, target, page, selector }) => {
+      // 캡처는 시간이 걸리므로 응답을 먼저 돌려준다
+      void onSelectionDone(jobId, target, page, selector);
+      return null;
+    },
+    'select:cancelled': async ({ jobId }) => {
+      await onSelectionCancelled(jobId);
+      return null;
+    },
   });
 
   void restoreJob();

@@ -170,13 +170,15 @@ type Job = {
 | `page:probe` | SW → CS | 뷰포트·스크롤·`scrollHeight`·DPR·내부 스크롤 여부 |
 | `page:prepare {hideScrollbar}` / `page:hideFixed` / `page:restore` | SW → CS | 캡처 전후 페이지 조정과 원상 복구 (8.1절) |
 | `page:scrollTo {y, lazyWaitMs}` | SW → CS | 스크롤 후 렌더·지연 이미지 대기, 실제 scrollY 응답 |
+| `select:start {jobId, kind, forRecording}` / `select:cancel` | SW → CS | 선택 UI 열기(즉시 응답) / 팝업 취소 시 닫기 |
+| `select:done {jobId, target, page, selector?}` | CS → SW | 사용자가 확정. 오버레이를 지우고 2프레임 뒤 측정한 페이지 상태와 대상(x는 뷰포트, y는 문서 기준)을 보냄. SW가 이어서 캡처 |
+| `select:cancelled {jobId}` | CS → SW | 선택 UI에서 Esc·취소 |
 | `offscreen:ping` | SW·페이지 → OS | 오프스크린 응답 확인 |
 
 기능 이슈에서 추가할 메시지:
 
 | 이름 | 방향 | 용도 |
 | --- | --- | --- |
-| `select:region` / `select:element {forRecording}` | SW → CS | 선택 UI 시작, 응답 `Rect<'css'>` + 선택자 경로 |
 | `rec:start {streamId, crop?, profile}` / `rec:pause` / `rec:resume` / `rec:stop` | SW → OS | 녹화 제어 |
 | `rec:tick {elapsed}` | OS → SW → popup | 1초 타이머 |
 | `indicator:show {kind}` / `indicator:hide` | SW → CS | 녹화 중 표시(옵션) |

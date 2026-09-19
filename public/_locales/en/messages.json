@@ -158,5 +158,21 @@
   "errorGeneric": {
     "message": "Something went wrong. Please try again.",
     "description": "일반 오류"
+  },
+  "panelCapture": {
+    "message": "Capture",
+    "description": "선택 확정 버튼(캡처)"
+  },
+  "panelRecord": {
+    "message": "Start recording",
+    "description": "선택 확정 버튼(녹화)"
+  },
+  "hintDragRegion": {
+    "message": "Drag to select a region to capture",
+    "description": "영역 선택 안내"
+  },
+  "hintDragRegionRec": {
+    "message": "Drag to select a region to record",
+    "description": "영역 녹화 선택 안내"
   }
 }
