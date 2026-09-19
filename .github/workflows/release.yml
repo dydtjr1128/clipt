@@ -1,0 +1,38 @@
+name: Release
+
+# vX.Y.Z 태그를 푸시하면 검사 후 스토어 업로드용 zip을 GitHub Release에 올린다
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 태그와 package.json 버전 일치 확인
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::태그 $GITHUB_REF_NAME 와 package.json 버전 $version 이 다릅니다"
+            exit 1
+          fi
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run zip
+      - name: 배포 zip 검사
+        run: node scripts/check-release.mjs
+      - name: GitHub Release 생성
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" .output/clipt-*.zip --title "$GITHUB_REF_NAME" --generate-notes

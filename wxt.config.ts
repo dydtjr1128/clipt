@@ -30,6 +30,8 @@ export default defineConfig({
   srcDir: 'src',
   publicDir: 'public',
   manifestVersion: 3,
+  // 스토어 업로드용 zip 이름: .output/clipt-<version>.zip
+  zip: { artifactTemplate: 'clipt-{{version}}.zip' },
   outDirTemplate: e2e
     ? '{{browser}}-mv{{manifestVersion}}-e2e'
     : '{{browser}}-mv{{manifestVersion}}',
@@ -39,7 +41,8 @@ export default defineConfig({
   manifest: {
     name: '__MSG_appName__',
     description: '__MSG_appDesc__',
-    default_locale: 'ko',
+    // ko·en 외 언어 사용자에게는 영어로 보이도록 기본 로케일은 en
+    default_locale: 'en',
     minimum_chrome_version: '116',
     permissions: [
       'activeTab',

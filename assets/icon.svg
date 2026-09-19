@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Clipt 아이콘: 캡처 영역을 뜻하는 네 모서리 괄호와 녹화를 뜻하는 가운데 점 -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8B7CFF" />
+      <stop offset="1" stop-color="#5A47E8" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#bg)" />
+  <g fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 54 V42 a8 8 0 0 1 8 -8 H54" />
+    <path d="M74 34 H86 a8 8 0 0 1 8 8 V54" />
+    <path d="M94 74 V86 a8 8 0 0 1 -8 8 H74" />
+    <path d="M54 94 H42 a8 8 0 0 1 -8 -8 V74" />
+  </g>
+  <circle cx="64" cy="64" r="11" fill="#FF6369" />
+</svg>

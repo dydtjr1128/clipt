@@ -7,6 +7,7 @@
 | [media-support.md](media-support.md) | 녹화 포맷별 mimeType 후보와 브라우저 지원 확인 결과, 폴백 순서, 품질 옵션 적용 방식 |
 | [testing.md](testing.md) | 정적 검사·단위·E2E·수동 확인의 역할 분담, 테스트 사이트와 E2E 전용 빌드, 알려진 한계 |
 | [manual-checklist.md](manual-checklist.md) | 자동화할 수 없는 항목의 수동 확인 체크리스트 |
+| [store/listing.md](store/listing.md) | 웹스토어 등록 문안(ko·en), 개인정보 보호 관행 답변, 이미지 규격, 제출 절차 |
 | [store/permissions.md](store/permissions.md) | 웹스토어 제출용 권한 사용 사유 |
 
 동작이나 구조가 바뀌면 해당 문서를 함께 갱신한다.

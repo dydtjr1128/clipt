@@ -28,6 +28,7 @@ export default tseslint.config(
     // Node에서 실행하는 빌드 스크립트
     files: ['scripts/**/*.mjs'],
     languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
+    rules: { 'no-console': 'off' },
   },
   {
     rules: {
