@@ -182,5 +182,49 @@
   "hintPickElementRec": {
     "message": "녹화할 요소를 클릭하세요",
     "description": "요소 녹화 선택 안내"
+  },
+  "panelTitle": {
+    "message": "요소 선택",
+    "description": "선택 패널 제목"
+  },
+  "panelTitleRec": {
+    "message": "녹화할 요소 선택",
+    "description": "녹화용 선택 패널 제목"
+  },
+  "panelPath": {
+    "message": "경로",
+    "description": "선택 패널 경로 제목"
+  },
+  "panelDepth": {
+    "message": "범위",
+    "description": "선택 패널 깊이 슬라이더 이름"
+  },
+  "panelParent": {
+    "message": "상위",
+    "description": "슬라이더 왼쪽 끝 설명"
+  },
+  "panelChild": {
+    "message": "하위",
+    "description": "슬라이더 오른쪽 끝 설명"
+  },
+  "panelDepthValue": {
+    "message": "깊이 $1 / $2, $3",
+    "description": "슬라이더 접근성 값. $1 현재 깊이, $2 전체, $3 요소 이름"
+  },
+  "panelReselect": {
+    "message": "다시 선택",
+    "description": "다시 선택 버튼"
+  },
+  "panelSibling": {
+    "message": "형제",
+    "description": "키 안내: 좌우 형제 이동"
+  },
+  "panelBack": {
+    "message": "뒤로",
+    "description": "키 안내: Esc"
+  },
+  "panelMove": {
+    "message": "패널 옮기기",
+    "description": "패널 드래그 핸들 접근성 이름"
   }
 }

@@ -1,7 +1,7 @@
 import { send, type SelectKind } from '@/shared/messages';
 import { probe, settleFrames } from './page';
 import { startRegionSelector, type RegionTarget } from './region-selector';
-import { startElementPicker } from './element-picker';
+import { startElementSession } from './element-session';
 
 /**
  * 선택 UI 수명 관리. 한 번에 하나만 띄우고, 확정·취소를 서비스 워커에 알린다.
@@ -28,17 +28,17 @@ async function confirm(jobId: string, target: RegionTarget, selector?: string): 
 export function startSelection(jobId: string, kind: SelectKind, forRecording: boolean): void {
   cancelSelection();
   if (kind === 'element') {
-    // 3단계 선택 패널·키보드 조정·확정은 #9·#10에서 onLock 이후에 붙인다
-    const picker = startElementPicker({
+    const dispose = startElementSession({
       forRecording,
-      onLock: () => undefined,
-      onUnlock: () => undefined,
+      onConfirm: (target, selector) => {
+        void confirm(jobId, target, selector).catch(() => undefined);
+      },
       onCancel: () => {
         active = null;
         void send('background', 'select:cancelled', { jobId }).catch(() => undefined);
       },
     });
-    active = { jobId, dispose: () => picker.dispose() };
+    active = { jobId, dispose };
     return;
   }
   const dispose = startRegionSelector({
