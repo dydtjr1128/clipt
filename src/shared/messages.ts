@@ -75,6 +75,7 @@ export interface Protocol {
       width: number;
       height: number;
       audioTracks: number;
+      frameRate: number;
       warnings: string[];
     };
     'rec:pause': (payload: null) => null;

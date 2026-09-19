@@ -474,5 +474,37 @@
   "afterClipboard": {
     "message": "클립보드에 복사",
     "description": "캡처 후 동작"
+  },
+  "noticeFallback": {
+    "message": "$1을(를) 지원하지 않는 환경이라 $2(으)로 저장했어요.",
+    "description": "포맷 폴백 안내. $1 요청 포맷, $2 저장 포맷"
+  },
+  "noticeScaled": {
+    "message": "페이지가 길어 $1%로 축소해 캡처했어요.",
+    "description": "축소 캡처 안내"
+  },
+  "noticeLayoutChanged": {
+    "message": "페이지가 바뀌어 녹화를 마쳤어요.",
+    "description": "레이아웃 변경 안내"
+  },
+  "noticeMaxLength": {
+    "message": "최대 길이에 도달해 녹화를 마쳤어요.",
+    "description": "최대 길이 안내"
+  },
+  "noticeMicUnavailable": {
+    "message": "마이크를 쓸 수 없어 마이크 없이 녹화했어요.",
+    "description": "마이크 없음 안내"
+  },
+  "noticeInternalScroll": {
+    "message": "페이지 안쪽 영역이 스크롤되는 구조라 일부만 캡처됐을 수 있어요.",
+    "description": "내부 스크롤 안내"
+  },
+  "noticeClipped": {
+    "message": "가려진 부분은 빼고 보이는 부분만 담았어요.",
+    "description": "잘림 안내"
+  },
+  "noticeRecovered": {
+    "message": "저장되지 못한 녹화를 복구했어요. 길이가 정확하지 않을 수 있어요.",
+    "description": "복구 안내"
   }
 }
