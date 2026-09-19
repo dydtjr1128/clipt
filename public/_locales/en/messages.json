@@ -506,5 +506,109 @@
   "noticeRecovered": {
     "message": "Recovered an unsaved recording. Its length may be inexact.",
     "description": "복구 안내"
+  },
+  "resultKindImage": {
+    "message": "capture",
+    "description": "결과 종류: 이미지"
+  },
+  "resultKindVideo": {
+    "message": "recording",
+    "description": "결과 종류: 영상"
+  },
+  "resultFilename": {
+    "message": "File name",
+    "description": "파일명 입력 접근성 이름"
+  },
+  "resultCopy": {
+    "message": "Copy",
+    "description": "복사 버튼"
+  },
+  "resultCopied": {
+    "message": "Copied",
+    "description": "복사 완료"
+  },
+  "resultDownload": {
+    "message": "Download",
+    "description": "다운로드 버튼"
+  },
+  "resultSaved": {
+    "message": "Saved",
+    "description": "저장 완료"
+  },
+  "resultCopyAsPng": {
+    "message": "Copied as PNG",
+    "description": "JPEG 결과 복사 안내"
+  },
+  "resultCopyVideo": {
+    "message": "Videos cannot be copied to the clipboard",
+    "description": "영상 복사 불가 안내"
+  },
+  "resultCopyFailed": {
+    "message": "Could not copy. Click this tab and try again.",
+    "description": "복사 실패"
+  },
+  "resultDownloadFailed": {
+    "message": "Could not download.",
+    "description": "다운로드 실패"
+  },
+  "resultInfo": {
+    "message": "Info",
+    "description": "정보 패널 제목"
+  },
+  "resultSaveAs": {
+    "message": "Save as another format",
+    "description": "포맷 변환 저장"
+  },
+  "resultNewCapture": {
+    "message": "Start a new capture from the Clipt toolbar icon.",
+    "description": "새 캡처 안내"
+  },
+  "resultZoom": {
+    "message": "Zoom",
+    "description": "확대 도구 모음 이름"
+  },
+  "zoomFit": {
+    "message": "Fit",
+    "description": "화면 맞춤"
+  },
+  "zoomIn": {
+    "message": "Zoom in",
+    "description": "확대"
+  },
+  "zoomOut": {
+    "message": "Zoom out",
+    "description": "축소"
+  },
+  "infoSize": {
+    "message": "Size",
+    "description": "정보: 이미지 크기"
+  },
+  "infoFormat": {
+    "message": "Format",
+    "description": "정보: 포맷"
+  },
+  "infoDuration": {
+    "message": "Length",
+    "description": "정보: 영상 길이"
+  },
+  "infoResolution": {
+    "message": "Resolution",
+    "description": "정보: 해상도"
+  },
+  "infoBytes": {
+    "message": "File size",
+    "description": "정보: 용량"
+  },
+  "infoPage": {
+    "message": "Page",
+    "description": "정보: 원본 페이지"
+  },
+  "infoTime": {
+    "message": "Time",
+    "description": "정보: 캡처 시각"
+  },
+  "infoSelector": {
+    "message": "Selector",
+    "description": "정보: 요소 선택자"
   }
 }
