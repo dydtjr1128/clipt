@@ -610,5 +610,37 @@
   "infoSelector": {
     "message": "Selector",
     "description": "정보: 요소 선택자"
+  },
+  "cmd_capture_visible": {
+    "message": "Capture visible area",
+    "description": "단축키 설명"
+  },
+  "cmd_capture_fullpage": {
+    "message": "Capture full page",
+    "description": "단축키 설명"
+  },
+  "cmd_capture_element": {
+    "message": "Capture element",
+    "description": "단축키 설명"
+  },
+  "cmd_capture_region": {
+    "message": "Capture region",
+    "description": "단축키 설명"
+  },
+  "cmd_toggle_recording": {
+    "message": "Start or stop tab recording",
+    "description": "단축키 설명"
+  },
+  "cmd_record_region": {
+    "message": "Record region",
+    "description": "단축키 설명"
+  },
+  "cmd_record_element": {
+    "message": "Record element",
+    "description": "단축키 설명"
+  },
+  "shortcutUnassigned": {
+    "message": "No shortcut yet. Set one from the ⌨ button above.",
+    "description": "미할당 단축키 안내"
   }
 }

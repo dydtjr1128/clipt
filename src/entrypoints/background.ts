@@ -5,6 +5,9 @@ import { listen } from '@/shared/messages';
 import { pruneResults } from '@/shared/db';
 import { endJob, readJob, restoreJob, startJob } from '@/background/jobs';
 import { checkTab } from '@/background/access';
+import { flashBadge } from '@/background/badge';
+import { handleCommand } from '@/background/commands';
+import { recordError } from '@/background/jobs';
 import { runPipeline } from '@/background/pipelines';
 import { onSelectionCancelled, onSelectionDone } from '@/background/pipelines/selection';
 import {
@@ -82,6 +85,30 @@ export default defineBackground(() => {
       await onSelectionCancelled(jobId);
       return null;
     },
+  });
+
+  // 단축키: 팝업 클릭과 같은 흐름으로 시작·중지·취소한다
+  browser.commands.onCommand.addListener((command, tab) => {
+    void handleCommand(command, tab?.id, {
+      getJob: readJob,
+      start: async (mode, tabId) => {
+        const job = await startJob(mode, tabId);
+        void runPipeline(job);
+      },
+      stop: (jobId) => stopTabRecording(jobId),
+      cancel: async (job) => {
+        if (isRecordMode(job.mode) && job.phase !== 'selecting') {
+          await cancelRecording(job);
+          return;
+        }
+        await endJob(job.id);
+        await sendToTab(job.tabId, 'select:cancel', null).catch(() => undefined);
+      },
+      reportError: async (error, mode) => {
+        await recordError(error, mode);
+        await flashBadge('!', 2000, 'warn');
+      },
+    });
   });
 
   // 영역·요소 녹화 중 페이지 이동을 감지한다(탭 녹화는 계속)

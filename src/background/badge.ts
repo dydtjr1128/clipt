@@ -20,8 +20,14 @@ export async function applyBadge(job: Job | null): Promise<void> {
 }
 
 /** 완료 피드백: 배지를 잠시 표시했다가 지운다 */
-export async function flashBadge(text: string, ms = 2000): Promise<void> {
-  await browser.action.setBadgeBackgroundColor({ color: SUCCESS_COLOR });
+export async function flashBadge(
+  text: string,
+  ms = 2000,
+  tone: 'success' | 'warn' = 'success',
+): Promise<void> {
+  await browser.action.setBadgeBackgroundColor({
+    color: tone === 'warn' ? PAUSE_COLOR : SUCCESS_COLOR,
+  });
   await browser.action.setBadgeText({ text });
   setTimeout(() => {
     void browser.action.getBadgeText({}).then((current) => {

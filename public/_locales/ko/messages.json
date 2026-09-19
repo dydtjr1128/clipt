@@ -610,5 +610,37 @@
   "infoSelector": {
     "message": "선택자",
     "description": "정보: 요소 선택자"
+  },
+  "cmd_capture_visible": {
+    "message": "보이는 화면 캡처",
+    "description": "단축키 설명"
+  },
+  "cmd_capture_fullpage": {
+    "message": "전체 페이지 캡처",
+    "description": "단축키 설명"
+  },
+  "cmd_capture_element": {
+    "message": "요소 캡처",
+    "description": "단축키 설명"
+  },
+  "cmd_capture_region": {
+    "message": "영역 캡처",
+    "description": "단축키 설명"
+  },
+  "cmd_toggle_recording": {
+    "message": "탭 녹화 시작/중지",
+    "description": "단축키 설명"
+  },
+  "cmd_record_region": {
+    "message": "영역 녹화",
+    "description": "단축키 설명"
+  },
+  "cmd_record_element": {
+    "message": "요소 녹화",
+    "description": "단축키 설명"
+  },
+  "shortcutUnassigned": {
+    "message": "단축키가 없어요. 위 ⌨ 버튼에서 지정할 수 있어요.",
+    "description": "미할당 단축키 안내"
   }
 }

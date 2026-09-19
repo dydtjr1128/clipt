@@ -35,3 +35,21 @@ export function shortcutMap(
   }
   return map;
 }
+
+/** 단축키 명령 이름에 해당하는 모드. 모르는 명령이면 null */
+export function modeOfCommand(command: string): Mode | null {
+  return (
+    [...SCREENSHOT_MENU, ...RECORDING_MENU].find((item) => item.command === command)?.mode ?? null
+  );
+}
+
+/**
+ * manifest에 기본 단축키를 제안하는 명령(Chrome은 4개까지만 허용).
+ * 나머지는 사용자가 chrome://extensions/shortcuts에서 지정한다.
+ */
+export const SUGGESTED_KEYS: Record<string, string> = {
+  'capture-visible': 'Alt+Shift+1',
+  'capture-region': 'Alt+Shift+2',
+  'capture-element': 'Alt+Shift+3',
+  'toggle-recording': 'Alt+Shift+4',
+};
