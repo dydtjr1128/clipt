@@ -29,7 +29,7 @@ export function runTabRecording(job: Job): Promise<void> {
  */
 export async function beginRecording(
   job: Job,
-  options: { crop?: NormalizedRect; warnings?: string[] },
+  options: { crop?: NormalizedRect; warnings?: string[]; follow?: boolean },
 ): Promise<void> {
   const settings = await loadSettings();
   if (!options.crop) await waitForPopupClosed();
@@ -52,6 +52,11 @@ export async function beginRecording(
       throw new CliptError('PERMISSION_DENIED', String(error));
     });
   const size = await tabCaptureSize(job.tabId, settings.record.scale);
+  // 요소 따라가기: 콘텐츠 스크립트가 지금 위치를 돌려주고 이후 변화를 오프스크린에 바로 보낸다.
+  // 요소를 찾지 못하면 고정 좌표 녹화로 이어간다
+  const track = options.follow
+    ? await sendToTab(job.tabId, 'track:start', { jobId: job.id }).catch(() => null)
+    : null;
   await ensureOffscreen(['USER_MEDIA', 'BLOBS'], 'Record the tab with MediaRecorder');
   const info = await send('offscreen', 'rec:start', {
     jobId: job.id,
@@ -63,6 +68,7 @@ export async function beginRecording(
     bitrate: settings.record.bitrate,
     size,
     ...(options.crop ? { crop: options.crop } : {}),
+    ...(track ? { track } : {}),
     ...(options.warnings?.length ? { warnings: options.warnings } : {}),
     maxMs: settings.record.maxMinutes * 60_000,
   });
@@ -102,8 +108,10 @@ export async function beginRecording(
   }
 }
 
-function hideIndicator(job: Job): Promise<unknown> {
-  return sendToTab(job.tabId, 'indicator:hide', null).catch(() => undefined);
+/** 녹화가 끝나면 페이지에 남은 것(녹화 중 표시, 요소 추적)을 정리한다 */
+async function hideIndicator(job: Job): Promise<void> {
+  await sendToTab(job.tabId, 'indicator:hide', null).catch(() => undefined);
+  await sendToTab(job.tabId, 'track:stop', null).catch(() => undefined);
 }
 
 async function syncIndicator(jobId: string): Promise<void> {

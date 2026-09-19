@@ -2,6 +2,7 @@ import { send, type SelectKind } from '@/shared/messages';
 import { probe, setCaptureTarget, settleFrames } from './page';
 import { startRegionSelector, type RegionTarget } from './region-selector';
 import { startElementSession } from './element-session';
+import { setTrackedElement } from './tracker';
 
 /**
  * 선택 UI 수명 관리. 한 번에 하나만 띄우고, 확정·취소를 서비스 워커에 알린다.
@@ -24,6 +25,7 @@ function watchResize(jobId: string): void {
 }
 
 export function cancelSelection(): void {
+  setTrackedElement(null);
   active?.dispose();
   active = null;
 }
@@ -36,10 +38,13 @@ async function confirm(
     element?: Element;
     warnings?: string[];
     forRecording?: boolean;
+    follow?: boolean;
   } = {},
 ): Promise<void> {
   active = null;
   if (extra.forRecording) watchResize(jobId);
+  const follow = Boolean(extra.forRecording && extra.follow && extra.element);
+  setTrackedElement(follow ? extra.element! : null);
   // 요소 캡처면 고정 요소를 숨길 때 대상 요소는 남긴다
   setCaptureTarget(extra.element ?? null);
   await settleFrames();
@@ -48,6 +53,7 @@ async function confirm(
     target,
     page: probe(),
     ...(extra.selector ? { selector: extra.selector } : {}),
+    ...(follow ? { follow: true } : {}),
     ...(extra.warnings?.length ? { warnings: extra.warnings } : {}),
   });
 }
@@ -57,8 +63,8 @@ export function startSelection(jobId: string, kind: SelectKind, forRecording: bo
   if (kind === 'element') {
     const dispose = startElementSession({
       forRecording,
-      onConfirm: (target, selector, element, warnings) => {
-        void confirm(jobId, target, { selector, element, warnings, forRecording }).catch(
+      onConfirm: (target, selector, element, warnings, follow) => {
+        void confirm(jobId, target, { selector, element, warnings, forRecording, follow }).catch(
           () => undefined,
         );
       },

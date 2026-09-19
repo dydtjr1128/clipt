@@ -634,5 +634,17 @@
   "shortcutUnassigned": {
     "message": "단축키가 없어요. 위 ⌨ 버튼에서 지정할 수 있어요.",
     "description": "미할당 단축키 안내"
+  },
+  "panelFollow": {
+    "message": "요소 따라가기",
+    "description": "요소 녹화 선택 패널 토글"
+  },
+  "panelFollowOn": {
+    "message": "스크롤하거나 요소가 움직여도 따라가요",
+    "description": "요소 따라가기 켬 설명"
+  },
+  "panelFollowOff": {
+    "message": "지금 화면 위치를 그대로 녹화해요",
+    "description": "요소 따라가기 끔 설명"
   }
 }

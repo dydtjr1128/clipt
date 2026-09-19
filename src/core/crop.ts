@@ -69,3 +69,82 @@ export function aspectChanged(
   const b = next.width / next.height;
   return Math.abs(a - b) / a > tolerance;
 }
+
+/** 뷰포트 밖으로 나갈 수 있는, 자르지 않은 요소 범위(뷰포트 대비 비율) */
+export function normalizeRect(
+  rect: { left: number; top: number; width: number; height: number },
+  viewport: { w: number; h: number },
+): NormalizedRect {
+  return {
+    x: rect.left / viewport.w,
+    y: rect.top / viewport.h,
+    w: rect.width / viewport.w,
+    h: rect.height / viewport.h,
+  };
+}
+
+export interface TrackedDraw {
+  /** 프레임에서 읽을 영역(px) */
+  src: PixelRect;
+  /** 출력 캔버스에 그릴 영역(px) */
+  dst: PixelRect;
+}
+
+/** 한 축의 촬영 구간. 요소가 화면보다 크면 그 축은 화면 전체를 찍는다 */
+function subjectSpan(
+  start: number,
+  length: number,
+  frame: number,
+): { start: number; length: number } {
+  return length > frame ? { start: 0, length: frame } : { start, length };
+}
+
+/** 추적 녹화의 고정 출력 크기(px, 짝수). 시작 시점 요소 크기이며 화면보다 클 수 없다 */
+export function trackedCanvasSize(
+  rect: NormalizedRect,
+  frame: { width: number; height: number },
+): { width: number; height: number } {
+  const even = (n: number) => Math.max(2, Math.floor(n / 2) * 2);
+  return {
+    width: even(Math.min(rect.w * frame.width, frame.width)),
+    height: even(Math.min(rect.h * frame.height, frame.height)),
+  };
+}
+
+/**
+ * 요소 추적 녹화의 한 프레임 그리기 계산. 출력 크기는 고정이고(canvas),
+ * 요소가 커지면 비율을 유지해 줄이고 작아지면 그대로 가운데에 둔다(레터박스, 확대하지 않음).
+ * 요소가 화면 밖으로 일부 나가면 보이는 부분만 제자리에 그린다. 전혀 보이지 않으면 null(직전 화면 유지).
+ */
+export function trackedDraw(
+  rect: NormalizedRect,
+  frame: { width: number; height: number },
+  canvas: { width: number; height: number },
+): TrackedDraw | null {
+  const ex = rect.x * frame.width;
+  const ey = rect.y * frame.height;
+  const ew = rect.w * frame.width;
+  const eh = rect.h * frame.height;
+  if (ew < 1 || eh < 1) return null;
+
+  const vx0 = Math.max(0, ex);
+  const vy0 = Math.max(0, ey);
+  const vx1 = Math.min(frame.width, ex + ew);
+  const vy1 = Math.min(frame.height, ey + eh);
+  if (vx1 - vx0 < 1 || vy1 - vy0 < 1) return null;
+
+  const sx = subjectSpan(ex, ew, frame.width);
+  const sy = subjectSpan(ey, eh, frame.height);
+  const scale = Math.min(1, canvas.width / sx.length, canvas.height / sy.length);
+  const padX = (canvas.width - sx.length * scale) / 2;
+  const padY = (canvas.height - sy.length * scale) / 2;
+  return {
+    src: { x: vx0, y: vy0, width: vx1 - vx0, height: vy1 - vy0 },
+    dst: {
+      x: padX + (vx0 - sx.start) * scale,
+      y: padY + (vy0 - sy.start) * scale,
+      width: (vx1 - vx0) * scale,
+      height: (vy1 - vy0) * scale,
+    },
+  };
+}

@@ -25,6 +25,8 @@ export interface StartOptions {
   size: { width: number; height: number };
   /** 영역·요소 녹화: 뷰포트 대비 비율 크롭 */
   crop?: NormalizedRect;
+  /** 요소 추적 녹화: 시작 시점 요소 위치(자르지 않은 뷰포트 비율). 이후 위치는 updateTrackedRect로 받는다 */
+  track?: NormalizedRect;
   /** 결과에 남길 주의 사항(예: clipped) */
   warnings?: string[];
   /** 최대 녹화 길이(ms) */
@@ -67,6 +69,12 @@ interface Session {
 
 const TIMESLICE_MS = 1000;
 let session: Session | null = null;
+/** 요소 추적의 최신 요소 위치. 녹화 준비 중에 먼저 도착할 수 있어 세션과 따로 둔다 */
+let tracked: { jobId: string; rect: NormalizedRect } | null = null;
+
+export function updateTrackedRect(jobId: string, rect: NormalizedRect): void {
+  tracked = { jobId, rect };
+}
 
 /** 대상 탭이 닫히는 등으로 스트림이 끝났을 때 호출 */
 let onEnded: ((jobId: string, resultId: string | null) => void) | null = null;
@@ -125,6 +133,7 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
   // 영역·요소 녹화는 프레임을 잘라 새 트랙으로 만든다. 화면 비율이 바뀌면 멈춘다
   let current: Session | null = null;
   // 모든 모드가 프레임 처리 경로를 거친다: 시작 직후 프레임을 버리고, 영역·요소는 자른다
+  if (tracked?.jobId !== options.jobId) tracked = null;
   const cropped = cropTrack(
     video,
     options.crop ?? null,
@@ -133,6 +142,8 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
           if (session === current && current) stopForLayoutChange(current);
         }
       : null,
+    undefined,
+    options.track ? () => tracked?.rect ?? options.track! : null,
   );
   const recordedVideo = cropped.track;
   const audio = mixAudio(tab, mic);

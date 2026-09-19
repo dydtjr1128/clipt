@@ -3,6 +3,7 @@ import { hideFixed, isCapturing, prepare, probe, restore, scrollToY } from '@/co
 import { cancelSelection, startSelection } from '@/content/selection';
 import { cancelCountdown, runCountdown } from '@/content/countdown';
 import { hideIndicator, showIndicator, updateIndicator } from '@/content/rec-indicator';
+import { startTracking, stopTracking } from '@/content/tracker';
 
 declare global {
   interface Window {
@@ -54,6 +55,11 @@ export default defineContentScript({
       },
       'indicator:hide': () => {
         hideIndicator();
+        return null;
+      },
+      'track:start': ({ jobId }) => startTracking(jobId),
+      'track:stop': () => {
+        stopTracking();
         return null;
       },
     });
