@@ -5,6 +5,8 @@
 | [architecture.md](architecture.md) | 기술 스택, 컨텍스트 구조, 작업 상태 머신, 메시지 프로토콜, 좌표 체계, 캡처·녹화 파이프라인, 저장소, 설정 스키마, 오류 분류, 설계 결정 기록, 마일스톤 |
 | [ux-design.md](ux-design.md) | 디자인 원칙, 토큰, 팝업·오버레이·선택 패널·영역 선택·결과 페이지 와이어프레임, 피드백 규칙, 접근성, 마이크로카피 |
 | [media-support.md](media-support.md) | 녹화 포맷별 mimeType 후보와 브라우저 지원 확인 결과, 폴백 순서, 품질 옵션 적용 방식 |
+| [testing.md](testing.md) | 정적 검사·단위·E2E·수동 확인의 역할 분담, 테스트 사이트와 E2E 전용 빌드, 알려진 한계 |
+| [manual-checklist.md](manual-checklist.md) | 자동화할 수 없는 항목의 수동 확인 체크리스트 |
 | [store/permissions.md](store/permissions.md) | 웹스토어 제출용 권한 사용 사유 |
 
 동작이나 구조가 바뀌면 해당 문서를 함께 갱신한다.

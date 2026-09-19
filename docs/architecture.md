@@ -23,7 +23,7 @@
 | 상태 | signals(컨텍스트 내) + `chrome.storage.session`(작업) + `chrome.storage.sync`(설정) | 컨텍스트 경계가 명확해 전역 스토어 라이브러리 불필요 |
 | 저장 | IndexedDB (`idb` 래퍼) | 결과 Blob·녹화 chunk는 메시지로 전달 불가 |
 | 영상 후처리 | `fix-webm-duration`(webm 메타 보정), GIF는 후속(WebCodecs 기반 인코더) | 용량이 큰 ffmpeg.wasm은 채택하지 않음 |
-| 테스트 | Vitest (단위) + Playwright (확장 로드 E2E) | [#19](https://github.com/dydtjr1128/clipt/issues/19) |
+| 테스트 | Vitest (단위) + Playwright (확장 로드 E2E) + GitHub Actions | [testing.md](testing.md) |
 | 린트 | ESLint + Prettier, 사용자 노출 문자열 리터럴 금지 규칙 | i18n 강제 |
 
 ## 3. 디렉터리 구조
