@@ -24,6 +24,9 @@ export interface PanelProps {
   depth: number;
   info: PanelInfo;
   position: { left: number; top: number };
+  /** 요소 녹화: 요소 따라가기 토글 */
+  follow: boolean;
+  onFollow: (follow: boolean) => void;
   onDepth: (depth: number) => void;
   onPreview: (depth: number | null) => void;
   onConfirm: () => void;
@@ -136,6 +139,22 @@ export function SelectionPanel(props: PanelProps) {
         </div>
         {meta && <div class="info-meta">{meta}</div>}
       </div>
+
+      {forRecording && (
+        <label class="panel-row panel-follow">
+          <input
+            type="checkbox"
+            class="switch"
+            role="switch"
+            checked={props.follow}
+            onChange={(e) => props.onFollow((e.target as HTMLInputElement).checked)}
+          />
+          <span class="follow-text">
+            <span class="follow-title">{t('panelFollow')}</span>
+            <span class="follow-hint">{t(props.follow ? 'panelFollowOn' : 'panelFollowOff')}</span>
+          </span>
+        </label>
+      )}
 
       <div class="panel-actions">
         <button

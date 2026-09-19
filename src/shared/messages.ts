@@ -45,6 +45,8 @@ export interface Protocol {
       target: SelectionTarget;
       page: PageProbe;
       selector?: string;
+      /** 요소 녹화: 요소 따라가기를 켰는지 */
+      follow?: boolean;
       /** 결과에 알릴 주의 사항 (예: clipped) */
       warnings?: string[];
     }) => null;
@@ -66,6 +68,8 @@ export interface Protocol {
       bitrate: Settings['record']['bitrate'];
       size: { width: number; height: number };
       crop?: NormalizedRect;
+      /** 요소 추적: 시작 시점 요소 위치(자르지 않은 뷰포트 비율) */
+      track?: NormalizedRect;
       warnings?: string[];
       /** 최대 녹화 길이(ms). 넘으면 자동으로 끝낸다 */
       maxMs?: number;
@@ -78,6 +82,8 @@ export interface Protocol {
       frameRate: number;
       warnings: string[];
     };
+    /** 요소 추적: 콘텐츠 스크립트가 달라진 요소 위치를 바로 보낸다 */
+    'rec:track': (payload: { jobId: string; rect: NormalizedRect }) => null;
     'rec:pause': (payload: null) => null;
     'rec:resume': (payload: null) => null;
     /** 녹화 종료·결과 저장 */
@@ -116,6 +122,9 @@ export interface Protocol {
       pausedTotal?: number;
     }) => null;
     'indicator:hide': (payload: null) => null;
+    /** 요소 추적 시작. 지금 요소 위치를 돌려준다. 기억한 요소가 없으면 null */
+    'track:start': (payload: { jobId: string }) => NormalizedRect | null;
+    'track:stop': (payload: null) => null;
     /** 뷰포트·스크롤·DPR 측정 */
     'page:probe': (payload: null) => PageProbe;
     /** 캡처 전 준비: 스크롤 위치 기억, 부드러운 스크롤·스크롤바 끄기 */

@@ -42,14 +42,14 @@ export async function onSelectionDone(
   jobId: string,
   target: SelectionTarget,
   page: PageProbe,
-  extra: { selector?: string; warnings?: string[] } = {},
+  extra: { selector?: string; warnings?: string[]; follow?: boolean } = {},
 ): Promise<void> {
-  const { selector, warnings } = extra;
+  const { selector, warnings, follow } = extra;
   const job = await getJob();
   if (!job || job.id !== jobId || job.phase !== 'selecting') return;
   await guarded(job, async () => {
     if (isRecordMode(job.mode)) {
-      // 녹화는 시작 시점 화면 좌표로 고정한다(요소 추적은 #21)
+      // 녹화는 시작 시점 화면 좌표로 자른다. 요소 따라가기를 켜면 녹화 중 요소 위치를 따라간다(9.6절)
       const normalized = normalizeCrop(target, page.viewport, page.scroll.y);
       if (!normalized) throw new CliptError('CAPTURE_FAILED', 'selection is outside the viewport');
       await transitionJob(job.id, 'countdown', {
@@ -57,6 +57,7 @@ export async function onSelectionDone(
       });
       await beginRecording(job, {
         crop: normalized.crop,
+        ...(follow && job.mode === 'rec-element' ? { follow: true } : {}),
         warnings: [...(warnings ?? []), ...(normalized.clipped ? ['clipped'] : [])].filter(
           (w, i, all) => all.indexOf(w) === i,
         ),

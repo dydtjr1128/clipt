@@ -41,3 +41,51 @@ describe('aspectChanged', () => {
     expect(aspectChanged({ width: 1000, height: 800 }, { width: 1000, height: 600 })).toBe(true);
   });
 });
+
+describe('trackedDraw', () => {
+  const frame = { width: 1000, height: 800 };
+  const canvas = { width: 240, height: 120 };
+
+  it('요소가 화면 안에 있으면 요소 전체를 캔버스 전체에 그린다', async () => {
+    const { trackedDraw } = await import('@/core/crop');
+    expect(trackedDraw({ x: 0.2, y: 0.1, w: 0.24, h: 0.15 }, frame, canvas)).toEqual({
+      src: { x: 200, y: 80, width: 240, height: 120 },
+      dst: { x: 0, y: 0, width: 240, height: 120 },
+    });
+  });
+
+  it('위로 일부 나가면 보이는 부분만 캔버스의 제자리에 그린다', async () => {
+    const { trackedDraw } = await import('@/core/crop');
+    const draw = trackedDraw({ x: 0.2, y: -0.05, w: 0.24, h: 0.15 }, frame, canvas)!;
+    expect(draw.src).toEqual({ x: 200, y: 0, width: 240, height: 80 });
+    expect(draw.dst).toEqual({ x: 0, y: 40, width: 240, height: 80 });
+  });
+
+  it('요소 크기가 바뀌면 비율을 지켜 가운데에 맞춘다', async () => {
+    const { trackedDraw } = await import('@/core/crop');
+    const draw = trackedDraw({ x: 0.2, y: 0.1, w: 0.12, h: 0.15 }, frame, canvas)!;
+    expect(draw.dst).toEqual({ x: 60, y: 0, width: 120, height: 120 });
+  });
+
+  it('요소가 커지면 비율을 지켜 줄인다', async () => {
+    const { trackedDraw } = await import('@/core/crop');
+    const draw = trackedDraw({ x: 0.2, y: 0.1, w: 0.48, h: 0.15 }, frame, canvas)!;
+    expect(draw.dst).toEqual({ x: 0, y: 30, width: 240, height: 60 });
+  });
+
+  it('화면보다 큰 요소는 그 축에서 화면에 보이는 위치 그대로 그린다', async () => {
+    const { trackedCanvasSize, trackedDraw } = await import('@/core/crop');
+    const tall = { x: 0.2, y: -0.5, w: 0.24, h: 3 };
+    const size = trackedCanvasSize(tall, frame);
+    expect(size).toEqual({ width: 240, height: 800 });
+    expect(trackedDraw(tall, frame, size)).toEqual({
+      src: { x: 200, y: 0, width: 240, height: 800 },
+      dst: { x: 0, y: 0, width: 240, height: 800 },
+    });
+  });
+
+  it('전혀 보이지 않으면 null', async () => {
+    const { trackedDraw } = await import('@/core/crop');
+    expect(trackedDraw({ x: 0.2, y: -0.5, w: 0.24, h: 0.15 }, frame, canvas)).toBeNull();
+  });
+});

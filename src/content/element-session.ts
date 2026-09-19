@@ -5,6 +5,7 @@ import { startElementPicker } from './element-picker';
 import { el } from './overlay/host';
 import { SelectionPanel } from './panel/SelectionPanel';
 import type { RegionTarget } from './region-selector';
+import { loadSettings, saveSetting } from '@/shared/settings';
 
 /**
  * 요소 선택 전체 흐름: 호버·고정(element-picker) + 선택 패널 + 키보드 조정 (docs/ux-design.md 5절).
@@ -12,7 +13,14 @@ import type { RegionTarget } from './region-selector';
  */
 export interface ElementSessionOptions {
   forRecording: boolean;
-  onConfirm: (target: RegionTarget, selector: string, element: Element, warnings: string[]) => void;
+  onConfirm: (
+    target: RegionTarget,
+    selector: string,
+    element: Element,
+    warnings: string[],
+    /** 요소 녹화: 요소 따라가기 */
+    follow: boolean,
+  ) => void;
   onCancel: () => void;
 }
 
@@ -75,6 +83,16 @@ export function startElementSession(options: ElementSessionOptions): () => void 
   let position: { left: number; top: number } | null = null;
   let userMoved = false;
   let disposed = false;
+  // 요소 따라가기: 마지막 선택을 설정에 기억한다. 읽기 전에는 기본값(켬)
+  let follow = true;
+  if (options.forRecording) {
+    void loadSettings()
+      .then((settings) => {
+        follow = settings.record.followElement;
+        if (selection) renderPanel(current(selection));
+      })
+      .catch(() => undefined);
+  }
 
   const picker = startElementPicker({
     forRecording: options.forRecording,
@@ -126,6 +144,18 @@ export function startElementSession(options: ElementSessionOptions): () => void 
     }
     position = clampPosition(position, panelSize());
     renderPanel(target);
+    // 첫 렌더 전에는 패널 크기를 어림값으로 잡는다. 실제 크기로 다시 맞춰 화면 밖으로 나가지 않게 한다
+    const measured = panelSize();
+    const fitted = clampPosition(
+      userMoved
+        ? position
+        : placePanel(target.getBoundingClientRect(), measured, { w: innerWidth, h: innerHeight }),
+      measured,
+    );
+    if (fitted.left !== position.left || fitted.top !== position.top) {
+      position = fitted;
+      renderPanel(target);
+    }
   }
 
   function renderPanel(target: Element): void {
@@ -144,6 +174,12 @@ export function startElementSession(options: ElementSessionOptions): () => void 
           clipped: visibleRectOf(target).clipped,
         },
         position,
+        follow,
+        onFollow: (next) => {
+          follow = next;
+          void saveSetting('record.followElement', next).catch(() => undefined);
+          renderPanel(target);
+        },
         onDepth: (depth) => setSelection(withDepth(sel, depth)),
         onPreview: showPreview,
         onConfirm: confirm,
@@ -241,7 +277,7 @@ export function startElementSession(options: ElementSessionOptions): () => void 
       .map((node) => labelOf(node))
       .join(' > ');
     finish();
-    options.onConfirm(measured, selector, target, warnings);
+    options.onConfirm(measured, selector, target, warnings, options.forRecording && follow);
   }
 
   const onResize = () => update();

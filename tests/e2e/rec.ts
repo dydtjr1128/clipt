@@ -51,32 +51,39 @@ export function waitResult(context: BrowserContext, timeout = 30_000): Promise<P
   });
 }
 
-/** 결과 영상의 길이·크기와 첫 프레임 픽셀(비율 좌표) */
-export async function readVideo(result: Page, points: [number, number][] = []) {
+/** 결과 영상의 길이·크기와 프레임 픽셀(비율 좌표). at이 'end'면 끝나기 직전 프레임, 기본은 첫 프레임 */
+export async function readVideo(
+  result: Page,
+  points: [number, number][] = [],
+  at: 'start' | 'end' = 'start',
+) {
   const video = result.locator('video.result-media');
   await expect
     .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState), { timeout: 15_000 })
     .toBeGreaterThanOrEqual(1);
-  return video.evaluate(async (v: HTMLVideoElement, points) => {
-    v.muted = true;
-    await new Promise<void>((resolve) => {
-      v.addEventListener('seeked', () => resolve(), { once: true });
-      v.currentTime = 0.01;
-    });
-    const c = new OffscreenCanvas(v.videoWidth, v.videoHeight);
-    const ctx = c.getContext('2d')!;
-    ctx.drawImage(v, 0, 0);
-    return {
-      duration: v.duration,
-      width: v.videoWidth,
-      height: v.videoHeight,
-      pixels: points.map(([x, y]) => [
-        ...ctx
-          .getImageData(Math.round(x * v.videoWidth), Math.round(y * v.videoHeight), 1, 1)
-          .data.slice(0, 3),
-      ]),
-    };
-  }, points);
+  return video.evaluate(
+    async (v: HTMLVideoElement, { points, at }) => {
+      v.muted = true;
+      await new Promise<void>((resolve) => {
+        v.addEventListener('seeked', () => resolve(), { once: true });
+        v.currentTime = at === 'end' ? Math.max(0.01, v.duration - 0.15) : 0.01;
+      });
+      const c = new OffscreenCanvas(v.videoWidth, v.videoHeight);
+      const ctx = c.getContext('2d')!;
+      ctx.drawImage(v, 0, 0);
+      return {
+        duration: v.duration,
+        width: v.videoWidth,
+        height: v.videoHeight,
+        pixels: points.map(([x, y]) => [
+          ...ctx
+            .getImageData(Math.round(x * v.videoWidth), Math.round(y * v.videoHeight), 1, 1)
+            .data.slice(0, 3),
+        ]),
+      };
+    },
+    { points, at },
+  );
 }
 
 /** 결과 페이지가 보여주는 결과의 메타 */

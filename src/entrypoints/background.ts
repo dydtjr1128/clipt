@@ -72,9 +72,9 @@ export default defineBackground(() => {
     },
     'job:get': () => readJob(),
     'tab:status': ({ tabId }) => checkTab(tabId),
-    'select:done': ({ jobId, target, page, selector, warnings }) => {
+    'select:done': ({ jobId, target, page, selector, warnings, follow }) => {
       // 캡처는 시간이 걸리므로 응답을 먼저 돌려준다
-      void onSelectionDone(jobId, target, page, { selector, warnings });
+      void onSelectionDone(jobId, target, page, { selector, warnings, follow });
       return null;
     },
     'page:resized': async ({ jobId }) => {

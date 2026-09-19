@@ -17,6 +17,8 @@ export interface Settings {
     maxMinutes: number;
     countdownSeconds: 0 | 3 | 5;
     indicator: 'none' | 'border' | 'widget';
+    /** 요소 녹화에서 요소 따라가기. 선택 패널의 토글이 마지막 선택을 기억한다 */
+    followElement: boolean;
   };
   afterCapture: 'result' | 'download' | 'clipboard';
   afterRecord: 'result' | 'download';
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
     maxMinutes: 30,
     countdownSeconds: 3,
     indicator: 'none',
+    followElement: true,
   },
   afterCapture: 'result',
   afterRecord: 'result',

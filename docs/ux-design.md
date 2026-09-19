@@ -208,6 +208,7 @@
 - **슬라이더**: 눈금 = 경로 길이. `input[type=range]`를 감싸고 접근성 라벨 "선택 범위 깊이" 제공. 값 변경마다 하이라이트·정보·칩 즉시 갱신.
 - **형제 이동(←/→)**: 이동 후 경로가 재계산되어 칩 목록이 바뀐다. 바뀌는 순간 칩 영역이 짧게 깜빡여 변경을 알린다.
 - **녹화 모드**: 제목 "녹화할 요소 선택", 주 버튼 `● 녹화 시작`(`--c-rec`), 푸터 힌트 "Enter 녹화 시작". 버튼 위에 현재 프로파일 한 줄(`WebM VP9 · 30fps · 탭 소리`).
+- **요소 따라가기(녹화 모드만)**: 버튼 줄 위에 스위치 한 줄. 제목 "요소 따라가기" 아래에 지금 상태가 무엇을 하는지 한 줄로 설명한다(켬 "스크롤하거나 요소가 움직여도 따라가요", 끔 "지금 화면 위치를 그대로 녹화해요"). 기본 켬, 마지막 선택을 기억한다. `role="switch"`, 줄 전체가 클릭 영역.
 - **다시 선택**: 고정 해제 → 호버 단계. 패널은 닫힌다.
 - 패널이 요소를 가리면 요소 라벨 옆에 "패널을 끌어 옮길 수 있어요" 힌트를 한 번 보여준다.
 
@@ -358,6 +359,9 @@
 | `panel.depth` | 범위 | Scope |
 | `panel.capture` | 캡처 | Capture |
 | `panel.record` | 녹화 시작 | Start recording |
+| `panel.follow` | 요소 따라가기 | Follow element |
+| `panel.followOn` | 스크롤하거나 요소가 움직여도 따라가요 | Keeps the element in frame as you scroll |
+| `panel.followOff` | 지금 화면 위치를 그대로 녹화해요 | Records this spot on the screen as is |
 | `panel.reselect` | 다시 선택 | Reselect |
 | `common.cancel` | 취소 | Cancel |
 | `rec.stop` | 녹화 중지 | Stop recording |

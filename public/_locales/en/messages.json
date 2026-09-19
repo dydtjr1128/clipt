@@ -634,5 +634,17 @@
   "shortcutUnassigned": {
     "message": "No shortcut yet. Set one from the ⌨ button above.",
     "description": "미할당 단축키 안내"
+  },
+  "panelFollow": {
+    "message": "Follow element",
+    "description": "Toggle in the element recording panel"
+  },
+  "panelFollowOn": {
+    "message": "Keeps the element in frame as you scroll",
+    "description": "Follow element on"
+  },
+  "panelFollowOff": {
+    "message": "Records this spot on the screen as is",
+    "description": "Follow element off"
   }
 }

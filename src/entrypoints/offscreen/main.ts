@@ -9,6 +9,7 @@ import {
   setEndedHandler,
   startRecording,
   stopRecording,
+  updateTrackedRect,
 } from '@/offscreen/recorder';
 
 // 오프스크린 문서: 캔버스·MediaRecorder·클립보드 처리 담당 (docs/architecture.md 4절)
@@ -19,6 +20,10 @@ setEndedHandler((jobId, resultId) => {
 listen('offscreen', {
   'offscreen:ping': () => 'pong' as const,
   'rec:start': (options) => startRecording(options),
+  'rec:track': ({ jobId, rect }) => {
+    updateTrackedRect(jobId, rect);
+    return null;
+  },
   'rec:pause': () => {
     pauseRecording();
     return null;

@@ -1,4 +1,10 @@
-import { aspectChanged, cropPixels, type NormalizedRect } from '@/core/crop';
+import {
+  aspectChanged,
+  cropPixels,
+  trackedCanvasSize,
+  trackedDraw,
+  type NormalizedRect,
+} from '@/core/crop';
 
 /**
  * 녹화 프레임 처리 (docs/architecture.md 9.1·9.2절).
@@ -8,6 +14,8 @@ import { aspectChanged, cropPixels, type NormalizedRect } from '@/core/crop';
  *
  * 시작 직후 warmupMs 동안의 프레임은 버린다. 탭 캡처가 시작할 때 선택 UI·카운트다운을
  * 지우기 전 화면을 첫 프레임으로 보낼 수 있기 때문이다.
+ *
+ * 요소 추적(9.6절)은 출력 크기를 고정해야 하므로 visibleRect 대신 OffscreenCanvas에 그려 새 프레임을 만든다.
  */
 interface ProcessorCtor {
   new (init: { track: MediaStreamTrack }): { readable: ReadableStream<VideoFrame> };
@@ -34,6 +42,8 @@ export function cropTrack(
   /** 화면 비율이 바뀌면 한 번 호출(영역·요소 녹화) */
   onLayoutChange: (() => void) | null,
   warmupMs = WARMUP_MS,
+  /** 요소 추적: 프레임마다 최신 요소 위치(자르지 않은 뷰포트 비율)를 읽는다. crop 대신 쓴다 */
+  track: (() => NormalizedRect) | null = null,
 ): CroppedTrack {
   const g = globalThis as unknown as {
     MediaStreamTrackProcessor: ProcessorCtor;
@@ -46,6 +56,7 @@ export function cropTrack(
   let framesIn = 0;
   let framesOut = 0;
   let firstTimestamp: number | null = null;
+  let canvas: OffscreenCanvas | null = null;
   let resolveSize!: (size: { width: number; height: number }) => void;
   const size = new Promise<{ width: number; height: number }>((resolve) => (resolveSize = resolve));
 
@@ -68,7 +79,44 @@ export function cropTrack(
       }
       let output: VideoFrame | null;
       let outSize = { width: frame.displayWidth, height: frame.displayHeight };
-      if (crop) {
+      if (track) {
+        canvas ??= (() => {
+          const fixed = trackedCanvasSize(track(), frameSize);
+          const created = new OffscreenCanvas(fixed.width, fixed.height);
+          const ctx = created.getContext('2d', { alpha: false })!;
+          ctx.fillStyle = '#000';
+          ctx.fillRect(0, 0, fixed.width, fixed.height);
+          return created;
+        })();
+        outSize = { width: canvas.width, height: canvas.height };
+        try {
+          const draw = trackedDraw(track(), frameSize, outSize);
+          // 요소가 화면 밖이면 그리지 않아 직전 화면이 남는다
+          if (draw) {
+            const ctx = canvas.getContext('2d', { alpha: false })!;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(
+              frame,
+              draw.src.x,
+              draw.src.y,
+              draw.src.width,
+              draw.src.height,
+              draw.dst.x,
+              draw.dst.y,
+              draw.dst.width,
+              draw.dst.height,
+            );
+          }
+          output = new VideoFrame(canvas, {
+            timestamp: frame.timestamp,
+            ...(frame.duration ? { duration: frame.duration } : {}),
+          });
+        } catch {
+          output = null;
+        } finally {
+          frame.close();
+        }
+      } else if (crop) {
         const rect = cropPixels(crop, frameSize);
         outSize = { width: rect.width, height: rect.height };
         try {

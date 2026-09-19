@@ -1,4 +1,5 @@
 import type { NormalizedRect } from '@/core/crop';
+import { watchTrackedBox } from './tracker';
 import { recordedMs } from '@/core/job';
 import { formatElapsed } from '@/core/time';
 import { t } from '@/shared/i18n';
@@ -27,6 +28,8 @@ export interface IndicatorOptions {
 /** 크롭 경계와 테두리 사이 간격(px). 짝수 정렬 반올림으로 테두리가 영상에 들어가지 않게 한다 */
 const GAP = 3;
 const BORDER = 2;
+/** 요소가 멈춘 뒤 테두리를 다시 보이기까지(ms) */
+const MOVE_SETTLE_MS = 250;
 const WIDGET = { w: 190, h: 40, margin: 12 };
 
 let current: {
@@ -73,7 +76,7 @@ export function showIndicator(options: IndicatorOptions): void {
   hideIndicator();
   const overlay = createOverlay('indicator');
   let state = options.state;
-  const crop = options.crop
+  let crop = options.crop
     ? {
         left: options.crop.x * innerWidth,
         top: options.crop.y * innerHeight,
@@ -83,17 +86,21 @@ export function showIndicator(options: IndicatorOptions): void {
     : null;
 
   const border = el('div', 'rec-border');
-  if (crop) {
-    Object.assign(border.style, {
-      left: `${crop.left - GAP - BORDER}px`,
-      top: `${crop.top - GAP - BORDER}px`,
-      width: `${crop.right - crop.left + 2 * (GAP + BORDER)}px`,
-      height: `${crop.bottom - crop.top + 2 * (GAP + BORDER)}px`,
-    });
-  } else {
-    Object.assign(border.style, { inset: '0' });
-  }
+  const placeBorder = () => {
+    if (crop) {
+      Object.assign(border.style, {
+        left: `${crop.left - GAP - BORDER}px`,
+        top: `${crop.top - GAP - BORDER}px`,
+        width: `${crop.right - crop.left + 2 * (GAP + BORDER)}px`,
+        height: `${crop.bottom - crop.top + 2 * (GAP + BORDER)}px`,
+      });
+    } else {
+      Object.assign(border.style, { inset: '0' });
+    }
+  };
+  placeBorder();
   if (options.kind === 'border') overlay.layer.append(border);
+  let widgetBox: HTMLElement | null = null;
 
   let timer = 0;
   let render = () => undefined as void;
@@ -111,6 +118,7 @@ export function showIndicator(options: IndicatorOptions): void {
     const pos = placeWidget(crop, { w: innerWidth, h: innerHeight });
     Object.assign(widget.style, { left: `${pos.left}px`, top: `${pos.top}px` });
     overlay.layer.append(widget);
+    widgetBox = widget;
 
     pause.addEventListener('click', () => {
       const type = state.pausedAt ? 'job:resume' : 'job:pause';
@@ -152,6 +160,32 @@ export function showIndicator(options: IndicatorOptions): void {
     timer = window.setInterval(render, 500);
   }
 
+  // 요소 따라가기: 테두리는 요소를 따라가고, 위젯은 요소와 겹치게 되면 빈 모서리로 옮긴다.
+  // 스크롤은 테두리 위치 갱신보다 먼저 화면에 반영될 수 있어, 움직이는 동안에는 테두리를 숨겨 영상에 찍히지 않게 한다
+  let moving = 0;
+  let first = true;
+  watchTrackedBox((box) => {
+    crop = box;
+    placeBorder();
+    if (!first) {
+      border.style.visibility = 'hidden';
+      clearTimeout(moving);
+      moving = window.setTimeout(() => (border.style.visibility = ''), MOVE_SETTLE_MS);
+    }
+    first = false;
+    if (!widgetBox) return;
+    const w = widgetBox.getBoundingClientRect();
+    const pad = GAP + BORDER + 2;
+    const overlaps =
+      w.right > box.left - pad &&
+      w.left < box.right + pad &&
+      w.bottom > box.top - pad &&
+      w.top < box.bottom + pad;
+    if (!overlaps) return;
+    const pos = placeWidget(box, { w: innerWidth, h: innerHeight });
+    Object.assign(widgetBox.style, { left: `${pos.left}px`, top: `${pos.top}px` });
+  });
+
   const update = (next: IndicatorState) => {
     state = next;
     border.classList.toggle('is-paused', next.pausedAt !== undefined);
@@ -164,6 +198,7 @@ export function showIndicator(options: IndicatorOptions): void {
     update,
     stop: () => {
       clearInterval(timer);
+      clearTimeout(moving);
       overlay.dispose();
     },
   };
