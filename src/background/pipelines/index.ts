@@ -1,5 +1,6 @@
 import type { Job, Mode } from '@/core/job';
 import { runFullPageCapture } from './fullpage';
+import { runTabRecording } from './recording';
 import { guarded, startSelectionUi } from './selection';
 import { runVisibleCapture } from './visible';
 
@@ -13,6 +14,7 @@ const PIPELINES: Partial<Record<Mode, (job: Job) => Promise<void>>> = {
   fullpage: runFullPageCapture,
   region: startSelectionUi,
   element: startSelectionUi,
+  'rec-tab': runTabRecording,
 };
 
 /** 작업 시작 직후 비동기로 실행한다. 실패하면 오류를 남기고 작업을 정리한다 */

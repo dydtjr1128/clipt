@@ -173,3 +173,17 @@ describe('제한 페이지', () => {
     });
   });
 });
+
+describe('patchJob', () => {
+  it('undefined로 준 필드는 저장값에서 지운다', async () => {
+    const { patchJob } = await import('@/background/jobs');
+    const tab = await openTab();
+    const job = await startJob('rec-tab', tab.id);
+    await patchJob(job.id, { pausedAt: 5 });
+    expect((await getJob())?.pausedAt).toBe(5);
+    await patchJob(job.id, { pausedAt: undefined, pausedTotal: 10 });
+    const stored = (await fakeBrowser.storage.session.get(JOB_KEY))[JOB_KEY] as Job;
+    expect('pausedAt' in stored).toBe(false);
+    expect(stored.pausedTotal).toBe(10);
+  });
+});

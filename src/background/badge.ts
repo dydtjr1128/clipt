@@ -4,11 +4,12 @@ import type { Job } from '@/core/job';
 /** 작업 상태를 툴바 배지로 표시한다 (docs/ux-design.md 7절) */
 const REC_COLOR = '#E5484D';
 const SUCCESS_COLOR = '#22A06B';
+const PAUSE_COLOR = '#D97706';
 
 export async function applyBadge(job: Job | null): Promise<void> {
   if (job?.phase === 'recording') {
-    await browser.action.setBadgeBackgroundColor({ color: REC_COLOR });
-    await browser.action.setBadgeText({ text: 'REC' });
+    await browser.action.setBadgeBackgroundColor({ color: job.pausedAt ? PAUSE_COLOR : REC_COLOR });
+    await browser.action.setBadgeText({ text: job.pausedAt ? '❚❚' : 'REC' });
     return;
   }
   if (job?.progress && job.progress.total > 1) {

@@ -7,6 +7,7 @@ import {
 } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import type { browser } from 'wxt/browser';
 import { handleSite } from './site';
 
@@ -14,6 +15,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 /** E2E 전용 빌드(host 권한 포함). 배포 빌드 경로는 productionPath */
 export const extensionPath = path.join(root, '.output/chrome-mv3-e2e');
 export const productionPath = path.join(root, '.output/chrome-mv3');
+/** E2E 빌드의 고정 확장 ID (scripts/e2e-key.json) */
+export const E2E_EXTENSION_ID = (
+  JSON.parse(readFileSync(path.join(root, 'scripts/e2e-key.json'), 'utf8')) as { id: string }
+).id;
 
 /** 테스트 사이트 origin. 네트워크 없이 context.route로 응답한다 */
 export const SITE = 'https://clipt.test';
@@ -54,6 +59,11 @@ export const test = base.extend<Fixtures & Options>({
         `--load-extension=${extensionPath}`,
         `--force-device-scale-factor=${scaleFactor}`,
         `--window-size=${windowSize[0]},${windowSize[1]}`,
+        // 툴바 클릭 없이도 탭 캡처를 허용한다(테스트 전용 플래그)
+        `--allowlisted-extension-id=${E2E_EXTENSION_ID}`,
+        // 주의: --use-fake-ui-for-media-stream은 탭 캡처(getUserMedia)를 NotFoundError로 막는다.
+        // 확장 origin에는 마이크 권한도 줄 수 없어 E2E는 마이크 없는 경로만 확인한다
+        '--autoplay-policy=no-user-gesture-required',
       ],
     });
     await context.route(`${SITE}/**`, handleSite);

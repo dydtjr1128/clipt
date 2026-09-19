@@ -24,6 +24,22 @@ export interface Job {
   /** 영역·요소 모드에서 확정된 범위 */
   target?: Rect<'css'>;
   progress?: { done: number; total: number };
+  /** 일시정지 시작 시각. 재개하면 지운다 */
+  pausedAt?: number;
+  /** 지금까지 일시정지한 총 시간(ms) */
+  pausedTotal?: number;
+  /** 녹화 중인 미디어 정보(팝업 표시용) */
+  media?: { mime: string; width: number; height: number; audio: string; audioTracks: number };
+}
+
+/** 녹화 경과 시간(ms). 일시정지 구간은 뺀다 */
+export function recordedMs(
+  job: Pick<Job, 'startedAt' | 'pausedAt' | 'pausedTotal'>,
+  now: number,
+): number {
+  if (job.startedAt === undefined) return 0;
+  const end = job.pausedAt ?? now;
+  return Math.max(0, end - job.startedAt - (job.pausedTotal ?? 0));
 }
 
 export function isMode(value: unknown): value is Mode {

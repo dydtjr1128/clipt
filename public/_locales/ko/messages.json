@@ -230,5 +230,57 @@
   "panelClipped": {
     "message": "일부 잘림",
     "description": "요소가 스크롤 영역에 가려 일부만 캡처됨"
+  },
+  "recPause": {
+    "message": "일시정지",
+    "description": "녹화 일시정지 버튼"
+  },
+  "recResume": {
+    "message": "재개",
+    "description": "녹화 재개 버튼"
+  },
+  "recPaused": {
+    "message": "일시정지됨",
+    "description": "녹화 일시정지 상태"
+  },
+  "audioNone": {
+    "message": "소리 없음",
+    "description": "녹화 소리: 없음"
+  },
+  "audioTab": {
+    "message": "탭 소리",
+    "description": "녹화 소리: 탭"
+  },
+  "audioMic": {
+    "message": "마이크",
+    "description": "녹화 소리: 마이크"
+  },
+  "audioTabMic": {
+    "message": "탭 소리 + 마이크",
+    "description": "녹화 소리: 탭과 마이크"
+  },
+  "permTitle": {
+    "message": "마이크 사용 권한",
+    "description": "권한 페이지 제목"
+  },
+  "permBody": {
+    "message": "녹화에 마이크 소리를 넣으려면 브라우저 권한이 한 번 필요해요.",
+    "description": "권한 페이지 설명"
+  },
+  "permAllow": {
+    "message": "권한 허용",
+    "description": "권한 요청 버튼"
+  },
+  "permAutoClose": {
+    "message": "허용하면 이 탭은 자동으로 닫혀요.",
+    "description": "권한 페이지 안내"
+  },
+  "permDone": {
+    "message": "허용됐어요. 이 탭은 곧 닫혀요.",
+    "description": "권한 허용 완료"
+  },
+  "permDenied": {
+    "message": "권한이 거부됐어요. 주소창의 사이트 정보 아이콘에서 다시 허용할 수 있어요.",
+    "description": "권한 거부 안내"
   }
 }

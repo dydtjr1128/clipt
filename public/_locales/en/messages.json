@@ -230,5 +230,57 @@
   "panelClipped": {
     "message": "Partly hidden",
     "description": "요소가 스크롤 영역에 가려 일부만 캡처됨"
+  },
+  "recPause": {
+    "message": "Pause",
+    "description": "녹화 일시정지 버튼"
+  },
+  "recResume": {
+    "message": "Resume",
+    "description": "녹화 재개 버튼"
+  },
+  "recPaused": {
+    "message": "Paused",
+    "description": "녹화 일시정지 상태"
+  },
+  "audioNone": {
+    "message": "No audio",
+    "description": "녹화 소리: 없음"
+  },
+  "audioTab": {
+    "message": "Tab audio",
+    "description": "녹화 소리: 탭"
+  },
+  "audioMic": {
+    "message": "Microphone",
+    "description": "녹화 소리: 마이크"
+  },
+  "audioTabMic": {
+    "message": "Tab audio + mic",
+    "description": "녹화 소리: 탭과 마이크"
+  },
+  "permTitle": {
+    "message": "Microphone permission",
+    "description": "권한 페이지 제목"
+  },
+  "permBody": {
+    "message": "Clipt needs one-time browser permission to include your microphone in recordings.",
+    "description": "권한 페이지 설명"
+  },
+  "permAllow": {
+    "message": "Allow",
+    "description": "권한 요청 버튼"
+  },
+  "permAutoClose": {
+    "message": "This tab closes automatically once allowed.",
+    "description": "권한 페이지 안내"
+  },
+  "permDone": {
+    "message": "Allowed. This tab will close shortly.",
+    "description": "권한 허용 완료"
+  },
+  "permDenied": {
+    "message": "Permission was denied. You can allow it again from the site info icon in the address bar.",
+    "description": "권한 거부 안내"
   }
 }

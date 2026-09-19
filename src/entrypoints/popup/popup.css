@@ -220,3 +220,30 @@ body {
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
+
+.rec-timer.is-paused {
+  color: var(--c-warn);
+}
+
+.rec-paused {
+  margin: 0;
+  color: var(--c-warn);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+.rec-media {
+  margin: 0;
+  color: var(--c-fg-2);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+.rec-actions {
+  gap: var(--sp-2);
+}
+
+.rec-actions .button-rec {
+  flex: 1;
+  width: auto;
+}

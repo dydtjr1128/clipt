@@ -64,7 +64,7 @@
 | `npm run lint` | ESLint |
 | `npm run format` / `npm run format:check` | Prettier 적용 / 검사 (md·yml 제외) |
 | `npm test` | Vitest 단위 테스트(`tests/unit`) |
-| `npm run build:e2e` | E2E 전용 빌드(`.output/chrome-mv3-e2e`). Playwright가 activeTab을 부여할 수 없어 `<all_urls>` host 권한을 더한다. 배포에 쓰지 않는다 |
+| `npm run build:e2e` | E2E 전용 빌드(`.output/chrome-mv3-e2e`). Playwright가 activeTab을 부여할 수 없어 `<all_urls>` host 권한과 고정 `key`(확장 ID 고정, 탭 캡처 허용 플래그용)를 더한다. 배포에 쓰지 않는다 |
 | `npm run test:e2e` | 배포·E2E 빌드 후 Playwright로 E2E 빌드를 로드해 테스트(`tests/e2e`). 배포 빌드 manifest에 host 권한이 없는지도 확인한다. 최초 1회 `node node_modules/@playwright/test/cli.js install chromium` 필요 |
 
 - 변경 후 최소 `typecheck`, `lint`, `test`를 통과시킨다. 확장 동작이 바뀌면 `test:e2e`도 실행한다.

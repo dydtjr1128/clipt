@@ -1,4 +1,5 @@
 import { mount } from '@/components/mount';
-import { Placeholder } from '@/components/Placeholder';
+import { PermissionPage } from './PermissionPage';
+import './permission.css';
 
-mount(<Placeholder />);
+mount(<PermissionPage />);
