@@ -11,10 +11,6 @@
     "message": "웹페이지를 원하는 범위만큼 캡처하거나 녹화해요.",
     "description": "확장 프로그램 설명"
   },
-  "placeholderComingSoon": {
-    "message": "준비 중인 화면이에요.",
-    "description": "아직 구현되지 않은 페이지의 임시 문구"
-  },
   "resultLoading": {
     "message": "결과를 불러오는 중이에요.",
     "description": "결과 페이지 로딩 문구"
@@ -222,10 +218,6 @@
   "panelBack": {
     "message": "뒤로",
     "description": "키 안내: Esc"
-  },
-  "panelMove": {
-    "message": "패널 옮기기",
-    "description": "패널 드래그 핸들 접근성 이름"
   },
   "panelClipped": {
     "message": "일부 잘림",
