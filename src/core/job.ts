@@ -29,7 +29,15 @@ export interface Job {
   /** 지금까지 일시정지한 총 시간(ms) */
   pausedTotal?: number;
   /** 녹화 중인 미디어 정보(팝업 표시용) */
-  media?: { mime: string; width: number; height: number; audio: string; audioTracks: number };
+  media?: {
+    mime: string;
+    width: number;
+    height: number;
+    audio: string;
+    audioTracks: number;
+    /** 최대 녹화 길이(ms) */
+    maxMs?: number;
+  };
 }
 
 /** 녹화 경과 시간(ms). 일시정지 구간은 뺀다 */

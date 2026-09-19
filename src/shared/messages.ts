@@ -67,6 +67,8 @@ export interface Protocol {
       size: { width: number; height: number };
       crop?: NormalizedRect;
       warnings?: string[];
+      /** 최대 녹화 길이(ms). 넘으면 자동으로 끝낸다 */
+      maxMs?: number;
     }) => {
       mime: string;
       fallbackFrom?: RecordFormat;
@@ -97,6 +99,22 @@ export interface Protocol {
     'select:start': (payload: { jobId: string; kind: SelectKind; forRecording: boolean }) => null;
     /** 팝업 취소 등으로 선택 UI를 닫는다 */
     'select:cancel': (payload: null) => null;
+    /** 녹화 전 카운트다운. true면 완료, false면 사용자가 Esc로 취소 */
+    'countdown:start': (payload: { seconds: number; mode: Mode }) => boolean;
+    'countdown:cancel': (payload: null) => null;
+    /** 녹화 중 표시(설정 옵션) */
+    'indicator:show': (payload: {
+      kind: 'border' | 'widget';
+      jobId: string;
+      crop?: NormalizedRect;
+      state: { startedAt: number; pausedAt?: number; pausedTotal?: number };
+    }) => null;
+    'indicator:state': (payload: {
+      startedAt: number;
+      pausedAt?: number;
+      pausedTotal?: number;
+    }) => null;
+    'indicator:hide': (payload: null) => null;
     /** 뷰포트·스크롤·DPR 측정 */
     'page:probe': (payload: null) => PageProbe;
     /** 캡처 전 준비: 스크롤 위치 기억, 부드러운 스크롤·스크롤바 끄기 */

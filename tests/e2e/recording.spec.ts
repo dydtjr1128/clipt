@@ -158,7 +158,9 @@ test('탭+마이크 설정에서 마이크를 못 쓰면 탭 소리 한 트랙�
     tabId: both.tabId,
   });
   expect(started.ok).toBe(true);
-  await expect.poll(async () => (await job(both.control))?.phase).toBe('recording');
+  await expect
+    .poll(async () => (await job(both.control))?.phase, { timeout: 15_000 })
+    .toBe('recording');
   expect((await job(both.control))?.media).toMatchObject({ audio: 'none', audioTracks: 0 });
   await sendToBackground(both.control, 'job:cancel', {});
 });

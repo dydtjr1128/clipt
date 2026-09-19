@@ -27,6 +27,8 @@ export interface StartOptions {
   crop?: NormalizedRect;
   /** 결과에 남길 주의 사항(예: clipped) */
   warnings?: string[];
+  /** 최대 녹화 길이(ms) */
+  maxMs?: number;
 }
 
 export interface StartInfo {
@@ -179,6 +181,10 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
     if (event.data.size === 0) return;
     const seq = live.seq++;
     live.writes = live.writes.then(() => appendChunk(options.jobId, seq, event.data));
+    // 최대 길이에 도달하면 그때까지 저장하고 끝낸다
+    if (options.maxMs && session === live && activeMsOf(live) >= options.maxMs) {
+      stopWithWarning(live, 'max-length');
+    }
   };
   // 탭이 닫히거나 캡처가 끊기면 그때까지의 영상을 저장한다
   video.addEventListener('ended', () => {
@@ -230,9 +236,21 @@ export function recordingStatus(): {
   };
 }
 
+/** 일시정지 구간을 뺀 지금까지의 녹화 시간 */
+function activeMsOf(current: Session): number {
+  return (
+    current.activeMs +
+    (current.state === 'recording' ? performance.now() - current.segmentStart : 0)
+  );
+}
+
 /** 화면 비율이 바뀌면 그때까지 저장하고 서비스 워커에 알린다 */
 function stopForLayoutChange(current: Session): void {
-  void stopRecording({ warning: 'layout-changed' })
+  stopWithWarning(current, 'layout-changed');
+}
+
+function stopWithWarning(current: Session, warning: string): void {
+  void stopRecording({ warning })
     .then(({ resultId }) => onEnded?.(current.options.jobId, resultId))
     .catch(() => onEnded?.(current.options.jobId, null));
 }

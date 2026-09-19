@@ -282,5 +282,37 @@
   "permDenied": {
     "message": "권한이 거부됐어요. 주소창의 사이트 정보 아이콘에서 다시 허용할 수 있어요.",
     "description": "권한 거부 안내"
+  },
+  "countdownTab": {
+    "message": "탭 녹화 시작",
+    "description": "카운트다운 안내"
+  },
+  "countdownRegion": {
+    "message": "영역 녹화 시작",
+    "description": "카운트다운 안내"
+  },
+  "countdownElement": {
+    "message": "요소 녹화 시작",
+    "description": "카운트다운 안내"
+  },
+  "recordingShort": {
+    "message": "녹화 중",
+    "description": "녹화 위젯 접근성 이름"
+  },
+  "recMaxSoon": {
+    "message": "최대 $1에 자동으로 중지돼요",
+    "description": "최대 길이 임박 안내. $1은 최대 시간"
+  },
+  "recoverMessage": {
+    "message": "지난 녹화가 저장되지 않았어요.",
+    "description": "복구 배너"
+  },
+  "recoverAction": {
+    "message": "복구",
+    "description": "복구 버튼"
+  },
+  "recoverDiscard": {
+    "message": "삭제",
+    "description": "복구 대상 삭제 버튼"
   }
 }

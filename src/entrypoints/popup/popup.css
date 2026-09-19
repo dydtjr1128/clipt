@@ -247,3 +247,10 @@ body {
   flex: 1;
   width: auto;
 }
+
+.rec-max {
+  margin: 0;
+  color: var(--c-warn);
+  font-size: var(--fs-sm);
+  text-align: center;
+}

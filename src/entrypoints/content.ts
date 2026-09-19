@@ -1,6 +1,8 @@
 import { listen, send } from '@/shared/messages';
 import { hideFixed, isCapturing, prepare, probe, restore, scrollToY } from '@/content/page';
 import { cancelSelection, startSelection } from '@/content/selection';
+import { cancelCountdown, runCountdown } from '@/content/countdown';
+import { hideIndicator, showIndicator, updateIndicator } from '@/content/rec-indicator';
 
 declare global {
   interface Window {
@@ -37,6 +39,23 @@ export default defineContentScript({
         cancelSelection();
         return null;
       },
+      'countdown:start': ({ seconds, mode }) => runCountdown(seconds, mode),
+      'countdown:cancel': () => {
+        cancelCountdown();
+        return null;
+      },
+      'indicator:show': (options) => {
+        showIndicator(options);
+        return null;
+      },
+      'indicator:state': (state) => {
+        updateIndicator(state);
+        return null;
+      },
+      'indicator:hide': () => {
+        hideIndicator();
+        return null;
+      },
     });
 
     // 전체 페이지 캡처 도중 Esc로 중단한다. 복원은 서비스 워커의 stitch finally에서 한다
@@ -54,6 +73,8 @@ export default defineContentScript({
     // 페이지를 떠날 때 캡처 도중 바꾼 스타일이 남지 않게 한다
     addEventListener('pagehide', () => {
       cancelSelection();
+      cancelCountdown();
+      hideIndicator();
       restore();
     });
   },

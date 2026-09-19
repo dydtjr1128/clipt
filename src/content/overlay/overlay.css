@@ -553,3 +553,135 @@ kbd {
   font-family: var(--font);
   font-size: var(--fs-xs);
 }
+
+/* 카운트다운 (docs/ux-design.md 7절) */
+.countdown {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  transform: translate(-50%, -50%);
+}
+
+.countdown-label {
+  padding: var(--sp-1) var(--sp-4);
+  border-radius: 999px;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-panel);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+.countdown-number {
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 72px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.countdown-number.is-tick {
+  animation: clipt-tick 900ms ease-out;
+}
+
+@keyframes clipt-tick {
+  from {
+    opacity: 0.35;
+    transform: scale(1.18);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown-number.is-tick {
+    animation: none;
+  }
+}
+
+/* 녹화 중 표시 (docs/architecture.md 9.4절) */
+.rec-border {
+  position: fixed;
+  border: 2px solid var(--c-rec);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.rec-border.is-paused {
+  border-color: var(--c-warn);
+}
+
+.rec-widget {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 40px;
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  border-radius: 999px;
+  background: var(--c-bg);
+  box-shadow: var(--shadow-panel);
+  opacity: 0.6;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: opacity var(--motion);
+}
+
+.rec-widget:hover,
+.rec-widget:focus-within {
+  opacity: 1;
+}
+
+.rec-widget-dot {
+  color: var(--c-rec);
+}
+
+.rec-widget.is-paused .rec-widget-dot,
+.rec-widget.is-paused .rec-widget-time {
+  color: var(--c-warn);
+}
+
+.rec-widget-time {
+  min-width: 46px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-widget-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--c-bg-2);
+  color: var(--c-fg);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.rec-widget-btn.is-stop {
+  background: var(--c-rec);
+  color: #fff;
+}
+
+.rec-widget-btn:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
