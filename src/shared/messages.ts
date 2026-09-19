@@ -37,6 +37,8 @@ export interface Protocol {
       target: SelectionTarget;
       page: PageProbe;
       selector?: string;
+      /** 결과에 알릴 주의 사항 (예: clipped) */
+      warnings?: string[];
     }) => null;
     /** 사용자가 선택 UI에서 Esc·취소를 누름 */
     'select:cancelled': (payload: { jobId: string }) => null;

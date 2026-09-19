@@ -1,6 +1,6 @@
 import { h, render } from 'preact';
 import { current, moveSibling, selectionOf, withDepth, type Selection } from '@/core/element-path';
-import { domTree, labelOf, sizeOf } from './dom-tree';
+import { domTree, labelOf, sizeOf, visibleRectOf } from './dom-tree';
 import { startElementPicker } from './element-picker';
 import { el } from './overlay/host';
 import { SelectionPanel } from './panel/SelectionPanel';
@@ -12,7 +12,7 @@ import type { RegionTarget } from './region-selector';
  */
 export interface ElementSessionOptions {
   forRecording: boolean;
-  onConfirm: (target: RegionTarget, selector: string) => void;
+  onConfirm: (target: RegionTarget, selector: string, element: Element, warnings: string[]) => void;
   onCancel: () => void;
 }
 
@@ -52,9 +52,12 @@ function clampPosition(
   };
 }
 
-/** 확정 대상: x는 뷰포트, y는 문서 기준. 가로는 화면 안으로 자른다(스티칭은 세로만) */
+/**
+ * 확정 대상: x는 뷰포트, y는 문서 기준. overflow 조상에 잘린 부분은 빼고,
+ * 가로는 화면 안으로 자른다(스티칭은 세로만).
+ */
 export function targetOf(element: Element): RegionTarget {
-  const r = element.getBoundingClientRect();
+  const r = visibleRectOf(element).rect;
   const left = Math.max(0, r.left);
   const right = Math.min(innerWidth, r.right);
   const top = Math.max(0, r.top + scrollY);
@@ -138,6 +141,7 @@ export function startElementSession(options: ElementSessionOptions): () => void 
           id: target.id,
           classes: [...target.classList].slice(0, 6),
           size: sizeOf(target),
+          clipped: visibleRectOf(target).clipped,
         },
         position,
         onDepth: (depth) => setSelection(withDepth(sel, depth)),
@@ -231,12 +235,13 @@ export function startElementSession(options: ElementSessionOptions): () => void 
     if (!selection || disposed) return;
     const target = current(selection);
     const measured = targetOf(target);
+    const warnings = visibleRectOf(target).clipped ? ['clipped'] : [];
     const selector = selection.path
       .slice(0, selection.depth + 1)
       .map((node) => labelOf(node))
       .join(' > ');
     finish();
-    options.onConfirm(measured, selector);
+    options.onConfirm(measured, selector, target, warnings);
   }
 
   const onResize = () => update();

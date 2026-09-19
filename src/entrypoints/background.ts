@@ -34,9 +34,9 @@ export default defineBackground(() => {
     },
     'job:get': () => readJob(),
     'tab:status': ({ tabId }) => checkTab(tabId),
-    'select:done': ({ jobId, target, page, selector }) => {
+    'select:done': ({ jobId, target, page, selector, warnings }) => {
       // 캡처는 시간이 걸리므로 응답을 먼저 돌려준다
-      void onSelectionDone(jobId, target, page, selector);
+      void onSelectionDone(jobId, target, page, { selector, warnings });
       return null;
     },
     'select:cancelled': async ({ jobId }) => {

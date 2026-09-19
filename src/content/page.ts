@@ -31,6 +31,12 @@ function restoreStyle(el: HTMLElement, prop: string, saved: SavedStyle): void {
 const SCROLLBAR_CLASS = 'clipt-hide-scrollbar';
 
 let savedScroll: { x: number; y: number } | null = null;
+/** 요소 캡처 대상. 고정 요소를 숨길 때 이 요소와 조상·자손은 남긴다 */
+let captureTarget: Element | null = null;
+
+export function setCaptureTarget(target: Element | null): void {
+  captureTarget = target;
+}
 const hiddenFixed = new Map<HTMLElement, SavedStyle>();
 let savedScrollBehavior: SavedStyle | null = null;
 let scrollbarStyle: HTMLStyleElement | null = null;
@@ -89,7 +95,7 @@ export function prepare(options: { hideScrollbar: boolean }): void {
  * position: fixed·sticky 요소를 숨긴다(레이아웃은 유지). 첫 조각 이후 호출해
  * 고정 헤더가 조각마다 반복되지 않게 한다. keep 안에 있거나 keep을 감싸는 요소는 숨기지 않는다.
  */
-export function hideFixed(keep?: Element | null): number {
+export function hideFixed(keep: Element | null = captureTarget): number {
   for (const el of document.body?.querySelectorAll<HTMLElement>('*') ?? []) {
     if (hiddenFixed.has(el)) continue;
     const position = getComputedStyle(el).position;
@@ -143,6 +149,7 @@ export async function scrollToY(y: number, lazyWaitMs: number): Promise<number> 
 
 /** 캡처가 끝나거나 취소되면 바꾼 것을 모두 되돌린다 */
 export function restore(): void {
+  captureTarget = null;
   for (const [el, saved] of hiddenFixed) restoreStyle(el, 'visibility', saved);
   hiddenFixed.clear();
   const html = document.documentElement;

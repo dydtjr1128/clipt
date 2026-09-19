@@ -14,6 +14,8 @@ export interface PanelInfo {
   id: string;
   classes: string[];
   size: string;
+  /** overflow 조상에 가려 일부만 보임 */
+  clipped: boolean;
 }
 
 export interface PanelProps {
@@ -127,7 +129,10 @@ export function SelectionPanel(props: PanelProps) {
       <div class="panel-row panel-info">
         <div class="info-main">
           <span class="info-tag">{current}</span>
-          <span class="info-size">{info.size}</span>
+          <span class="info-size">
+            {info.clipped && <span class="info-clipped">{t('panelClipped')}</span>}
+            {info.size}
+          </span>
         </div>
         {meta && <div class="info-meta">{meta}</div>}
       </div>

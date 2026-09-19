@@ -40,8 +40,9 @@ export async function onSelectionDone(
   jobId: string,
   target: SelectionTarget,
   page: PageProbe,
-  selector?: string,
+  extra: { selector?: string; warnings?: string[] } = {},
 ): Promise<void> {
+  const { selector, warnings } = extra;
   const job = await getJob();
   if (!job || job.id !== jobId || job.phase !== 'selecting') return;
   await guarded(job, async () => {
@@ -55,14 +56,20 @@ export async function onSelectionDone(
       target: { x: target.x, y: target.y, w: target.w, h: target.h, unit: 'css' },
     });
     await transitionJob(job.id, 'capturing');
-    const image = await stitchCapture(job, tab.windowId, page, target, {
-      ...settings,
-      image: { ...settings.image, format: outputFormat(settings) },
-    });
+    const image = await stitchCapture(
+      job,
+      tab.windowId,
+      page,
+      target,
+      { ...settings, image: { ...settings.image, format: outputFormat(settings) } },
+      // 요소는 첫 조각부터 고정 요소를 숨겨 요소 위를 덮지 않게 하고, 영역은 보이던 대로 둔다
+      { hideFixedFrom: job.mode === 'element' ? 0 : 1 },
+    );
     await finishCapture(job, tab, image, settings, {
       page,
       ...(image.scale < 1 ? { scaled: image.scale } : {}),
       ...(selector ? { selector } : {}),
+      ...(warnings?.length ? { warnings } : {}),
     });
   });
 }
