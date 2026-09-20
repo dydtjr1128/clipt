@@ -8,6 +8,7 @@ on:
     paths:
       - 'package.json'
       - 'releases/**'
+      - 'CHANGELOG.md'
       - 'scripts/release-assets.mjs'
       - 'scripts/check-release.mjs'
       - '.github/workflows/release.yml'

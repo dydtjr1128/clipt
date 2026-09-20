@@ -3,6 +3,7 @@
 //   clipt-<version>.zip  같은 내용의 버전 표기 파일
 //   SHA256SUMS.txt       두 zip의 체크섬
 //   RELEASE_NOTES.md     releases/<version>.md
+// CHANGELOG.md 맨 위 행의 버전이 package.json과 같은지도 확인한다.
 // 태그 빌드(GITHUB_REF_TYPE=tag)에서는 태그가 v<version>인지, 커밋이 origin/main에 속하는지도 확인한다.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -41,6 +42,13 @@ if (tag) {
 const notesFile = path.join('releases', `${version}.md`);
 const notes = existsSync(notesFile) ? readFileSync(notesFile, 'utf8').trim() : '';
 if (!notes) fail(`릴리스 노트 ${notesFile} 없음`);
+
+// CHANGELOG 맨 위 행의 버전이 이번 릴리스 버전이어야 한다(행을 빠뜨린 채 릴리스하지 않도록)
+const changelog = readFileSync('CHANGELOG.md', 'utf8');
+const topRow = changelog.split('\n').find((line) => /^\| \d+\.\d+\.\d+ \|/.test(line));
+const topVersion = topRow?.split('|')[1]?.trim();
+if (topVersion !== version)
+  fail(`CHANGELOG.md 맨 위 행의 버전 ${topVersion ?? '(없음)'} ≠ package.json 버전 ${version}`);
 
 const zip = path.join('.output', `clipt-${version}.zip`);
 if (!existsSync(zip)) fail(`${zip} 없음. 먼저 npm run zip 실행`);

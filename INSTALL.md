@@ -12,7 +12,6 @@
 - **Source code (zip):** 개발 소스 · 설치 ZIP과 구분
 - ZIP 파일 자체가 아닌 압축을 푼 폴더 선택
 - 설치 후 폴더 삭제·이동 금지
-- 설치 전에 열려 있던 탭은 새로고침 후 사용
 - [Chrome 공식 설치 안내](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)
 
 ## 업데이트
