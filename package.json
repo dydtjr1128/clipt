@@ -18,7 +18,7 @@
     "test:e2e": "node node_modules/wxt/bin/wxt.mjs build && node scripts/build-e2e.mjs && node node_modules/@playwright/test/cli.js test",
     "build:e2e": "node scripts/build-e2e.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "check:release": "node node_modules/wxt/bin/wxt.mjs zip && node scripts/check-release.mjs --zip"
+    "check:release": "node node_modules/wxt/bin/wxt.mjs zip && node scripts/check-release.mjs --zip && node scripts/release-assets.mjs"
   },
   "dependencies": {
     "@preact/signals": "^2.11.2",

@@ -4,6 +4,8 @@
 
 웹페이지를 원하는 범위만큼 캡처하거나 녹화하는 Chrome 확장 프로그램 (Manifest V3)
 
+**[설치 ZIP 다운로드](https://github.com/dydtjr1128/clipt/releases/latest/download/clipt.zip)** · [설치·업데이트 안내](INSTALL.md) · [변경 내역](https://github.com/dydtjr1128/clipt/releases/latest)
+
 ## 사용 흐름
 
 툴바 아이콘 클릭 → 메뉴 목록 표시 → 기능 선택 → 범위 지정 → 결과 확인 및 저장

@@ -96,6 +96,6 @@ Capture or record exactly the part of a page you need.
 
 1. `package.json`의 `version`을 올린다(manifest 버전은 WXT가 여기서 가져온다).
 2. [manual-checklist.md](../manual-checklist.md)를 확인한다.
-3. `vX.Y.Z` 태그를 푸시하면 릴리스 워크플로가 검사 후 `clipt-X.Y.Z.zip`을 GitHub Release에 올린다. 로컬에서는 `npm run zip` → `.output/clipt-X.Y.Z.zip`.
+3. `releases/X.Y.Z.md`에 릴리스 노트를 쓰고 main에 머지한 뒤 `vX.Y.Z` 태그를 푸시하면 릴리스 워크플로가 검사 후 `clipt.zip`·`clipt-X.Y.Z.zip`·`SHA256SUMS.txt`를 GitHub Release에 올린다. 로컬에서는 `npm run check:release` → `.output/release/`.
 4. 대시보드에 zip 업로드 → 위 문안·이미지 입력 → 개인정보 처리방침 URL 등록 → 제출.
 5. 심사 중 권한 질문이 오면 [permissions.md](permissions.md)의 문안으로 답한다.

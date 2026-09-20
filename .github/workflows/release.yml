@@ -1,38 +1,90 @@
 name: Release
 
-# vX.Y.Z 태그를 푸시하면 검사 후 스토어 업로드용 zip을 GitHub Release에 올린다
+# vX.Y.Z 태그를 푸시하면 검사 후 설치용 zip을 GitHub Release에 올린다.
+# PR에서는 릴리스 파일이 만들어지는지만 확인한다(게시하지 않음).
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'releases/**'
+      - 'scripts/release-assets.mjs'
+      - 'scripts/check-release.mjs'
+      - '.github/workflows/release.yml'
   push:
     tags: ['v*.*.*']
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  release:
+  package:
+    name: 검사와 패키징
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      version: ${{ steps.assets.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: 태그와 package.json 버전 일치 확인
-        run: |
-          version=$(node -p "require('./package.json').version")
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::태그 $GITHUB_REF_NAME 와 package.json 버전 $version 이 다릅니다"
-            exit 1
-          fi
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
       - run: npm run zip
       - name: 배포 zip 검사
         run: node scripts/check-release.mjs
-      - name: GitHub Release 생성
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" .output/clipt-*.zip --title "$GITHUB_REF_NAME" --generate-notes
+      - name: 릴리스 파일 준비(버전·태그·릴리스 노트 확인)
+        id: assets
+        run: node scripts/release-assets.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-package
+          path: .output/release/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: GitHub Release 게시
+    needs: package
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_VERSION: ${{ needs.package.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-package
+          path: release
+      - name: 받은 파일 확인
+        working-directory: release
+        run: |
+          sha256sum --check SHA256SUMS.txt
+          cmp clipt.zip "clipt-${RELEASE_VERSION}.zip"
+      - name: Release 생성과 게시
+        run: |
+          gh release create "$RELEASE_TAG" \
+            release/clipt.zip \
+            "release/clipt-${RELEASE_VERSION}.zip" \
+            release/SHA256SUMS.txt \
+            --verify-tag --draft \
+            --title "Clipt ${RELEASE_VERSION}" \
+            --notes-file release/RELEASE_NOTES.md
+          gh release edit "$RELEASE_TAG" --draft=false
