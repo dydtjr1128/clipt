@@ -99,11 +99,15 @@ function subjectSpan(
   return length > frame ? { start: 0, length: frame } : { start, length };
 }
 
-/** 추적 녹화의 고정 출력 크기(px, 짝수). 시작 시점 요소 크기이며 화면보다 클 수 없다 */
+/**
+ * 추적 녹화의 고정 출력 크기(px, 짝수). 시작 시점 요소 크기이며 화면보다 클 수 없다.
+ * 요소가 숨겨져 있거나(0 크기) 2px보다 작으면 null — 유효한 크기가 잡힐 때까지 기다린다
+ */
 export function trackedCanvasSize(
   rect: NormalizedRect,
   frame: { width: number; height: number },
-): { width: number; height: number } {
+): { width: number; height: number } | null {
+  if (rect.w * frame.width < 2 || rect.h * frame.height < 2) return null;
   const even = (n: number) => Math.max(2, Math.floor(n / 2) * 2);
   return {
     width: even(Math.min(rect.w * frame.width, frame.width)),

@@ -78,10 +78,17 @@ describe('trackedDraw', () => {
     const tall = { x: 0.2, y: -0.5, w: 0.24, h: 3 };
     const size = trackedCanvasSize(tall, frame);
     expect(size).toEqual({ width: 240, height: 800 });
-    expect(trackedDraw(tall, frame, size)).toEqual({
+    expect(trackedDraw(tall, frame, size!)).toEqual({
       src: { x: 200, y: 0, width: 240, height: 800 },
       dst: { x: 0, y: 0, width: 240, height: 800 },
     });
+  });
+
+  it('요소가 숨겨져 있으면 캔버스 크기를 정하지 않는다', async () => {
+    const { trackedCanvasSize } = await import('@/core/crop');
+    expect(trackedCanvasSize({ x: 0, y: 0, w: 0, h: 0 }, frame)).toBeNull();
+    expect(trackedCanvasSize({ x: 0.2, y: 0.1, w: 0.001, h: 0.15 }, frame)).toBeNull();
+    expect(trackedCanvasSize({ x: 0.2, y: 0.1, w: 0.24, h: 0.15 }, frame)).toEqual(canvas);
   });
 
   it('전혀 보이지 않으면 null', async () => {
