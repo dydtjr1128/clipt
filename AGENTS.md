@@ -44,7 +44,7 @@
 - 확장 프로그램 로컬 확인은 `chrome://extensions`에서 개발자 모드를 켜고 빌드 결과 폴더(`.output/chrome-mv3`)를 `압축해제된 확장 프로그램을 로드합니다`로 불러온다.
 - 오버레이(호버 박스, 라벨, 선택 패널)는 캡처·녹화 결과에 포함되지 않아야 한다. 관련 변경은 실제 캡처 결과로 확인한다.
 - 캡처·녹화 결과물(이미지·영상)과 테스트 산출물은 커밋하지 않는다.
-- 버전은 `package.json`의 `version` 한 곳에서 관리한다(manifest는 WXT가 가져온다). `vX.Y.Z` 태그를 푸시하면 `.github/workflows/release.yml`이 검사 후 zip을 GitHub Release에 올린다. 스토어 제출 절차는 [docs/store/listing.md](docs/store/listing.md).
+- 버전은 `package.json`의 `version` 한 곳에서 관리한다(manifest는 WXT가 가져온다). 릴리스는 버전을 올리고 `releases/X.Y.Z.md`(릴리스 노트, 없으면 실패)를 추가해 main에 머지한 뒤 `vX.Y.Z` 태그를 푸시한다. `.github/workflows/release.yml`이 검사 후 `clipt.zip`(최신 다운로드 링크용 고정 이름)·`clipt-X.Y.Z.zip`·`SHA256SUMS.txt`를 GitHub Release에 올린다. 사용자 설치 절차는 [INSTALL.md](INSTALL.md). 스토어 제출 절차는 [docs/store/listing.md](docs/store/listing.md).
 - 구조·파이프라인·설정 스키마는 [docs/architecture.md](docs/architecture.md), 화면·상호작용·문구는 [docs/ux-design.md](docs/ux-design.md)를 기준으로 한다. 두 문서와 다른 구현을 할 때는 문서를 먼저 고친다.
 
 ### 기술 스택
@@ -62,7 +62,7 @@
 | `npm run dev` | 개발 모드(HMR). WXT가 확장을 로드한 브라우저를 띄운다 |
 | `npm run build` | `.output/chrome-mv3`에 프로덕션 빌드 |
 | `npm run zip` | 스토어 업로드용 `.output/clipt-<version>.zip` 생성 |
-| `npm run check:release` | zip 생성 후 배포 빌드 검사(버전 일치, 아이콘, 로케일 글자 수, host 권한·E2E key·소스맵 없음) |
+| `npm run check:release` | zip 생성 후 배포 빌드 검사(버전 일치, 아이콘, 로케일 글자 수, host 권한·E2E key·소스맵 없음)와 릴리스 파일 준비(`.output/release/`, 릴리스 노트 확인) |
 | `npm run icons` | `assets/icon.svg` → `public/icon/*.png` (아이콘을 바꿨을 때만) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
