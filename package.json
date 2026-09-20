@@ -2,7 +2,7 @@
   "name": "clipt",
   "description": "Clip anything on the web. Chrome extension for screenshot & screen recording",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "node node_modules/wxt/bin/wxt.mjs",

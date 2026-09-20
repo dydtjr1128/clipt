@@ -4,7 +4,7 @@
 
 웹페이지를 원하는 범위만큼 캡처하거나 녹화하는 Chrome 확장 프로그램 (Manifest V3)
 
-**[설치 ZIP 다운로드](https://github.com/dydtjr1128/clipt/releases/latest/download/clipt.zip)** · [설치·업데이트 안내](INSTALL.md) · [변경 내역](https://github.com/dydtjr1128/clipt/releases/latest)
+**[설치 ZIP 다운로드](https://github.com/dydtjr1128/clipt/releases/latest/download/clipt.zip)** · [설치·업데이트 안내](INSTALL.md) · [릴리스 노트](https://github.com/dydtjr1128/clipt/releases/latest) · [변경기록](CHANGELOG.md)
 
 ## 사용 흐름
 
@@ -85,11 +85,3 @@
 - 결과 페이지에서 미리보기, 다운로드, 클립보드 복사
 - 단축키 지원
 - Esc로 언제든 취소
-
-## 개인정보
-
-- Clipt는 어떤 데이터도 수집하거나 외부로 보내지 않는다. 자세한 내용은 [PRIVACY.md](PRIVACY.md).
-
-## 기여
-
-- 이슈와 PR 작성 규칙은 [AGENTS.md](AGENTS.md)와 `.github/` 템플릿을 따른다.

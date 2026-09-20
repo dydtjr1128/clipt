@@ -2,6 +2,8 @@
 
 ## 다운로드와 설치
 
+Chrome 116 이상 필요 · 낮은 버전에서는 로드가 거부되므로 Chrome을 업데이트한 뒤 진행
+
 1. [최신 설치 ZIP](https://github.com/dydtjr1128/clipt/releases/latest/download/clipt.zip) 다운로드
 2. 계속 사용할 폴더에 압축 해제 · 폴더 바로 안에 `manifest.json` 위치
 3. Chrome의 `chrome://extensions` → **개발자 모드** ON
@@ -12,7 +14,6 @@
 - **Source code (zip):** 개발 소스 · 설치 ZIP과 구분
 - ZIP 파일 자체가 아닌 압축을 푼 폴더 선택
 - 설치 후 폴더 삭제·이동 금지
-- 설치 전에 열려 있던 탭은 새로고침 후 사용
 - [Chrome 공식 설치 안내](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)
 
 ## 업데이트
@@ -45,4 +46,4 @@ sha256sum clipt.zip
 
 ## 개인정보
 
-캡처·녹화 결과와 설정은 기기 안에만 저장 · 외부 전송 없음 · [PRIVACY.md](PRIVACY.md)
+캡처·녹화 결과는 브라우저 안에만 저장 · 어떤 서버로도 전송하지 않음 · 설정은 Chrome 동기화를 켠 경우 다른 기기와 동기화될 수 있음 · [PRIVACY.md](PRIVACY.md)

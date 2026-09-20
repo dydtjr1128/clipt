@@ -80,14 +80,18 @@ export function cropTrack(
       let output: VideoFrame | null;
       let outSize = { width: frame.displayWidth, height: frame.displayHeight };
       if (track) {
-        canvas ??= (() => {
+        if (!canvas) {
+          // 요소가 아직 보이지 않으면(숨김·0 크기) 크기를 정할 수 없어 보일 때까지 프레임을 버린다
           const fixed = trackedCanvasSize(track(), frameSize);
-          const created = new OffscreenCanvas(fixed.width, fixed.height);
-          const ctx = created.getContext('2d', { alpha: false })!;
+          if (!fixed) {
+            frame.close();
+            return;
+          }
+          canvas = new OffscreenCanvas(fixed.width, fixed.height);
+          const ctx = canvas.getContext('2d', { alpha: false })!;
           ctx.fillStyle = '#000';
           ctx.fillRect(0, 0, fixed.width, fixed.height);
-          return created;
-        })();
+        }
         outSize = { width: canvas.width, height: canvas.height };
         try {
           const draw = trackedDraw(track(), frameSize, outSize);

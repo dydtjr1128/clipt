@@ -8,6 +8,7 @@ on:
     paths:
       - 'package.json'
       - 'releases/**'
+      - 'CHANGELOG.md'
       - 'scripts/release-assets.mjs'
       - 'scripts/check-release.mjs'
       - '.github/workflows/release.yml'
@@ -79,7 +80,16 @@ jobs:
           sha256sum --check SHA256SUMS.txt
           cmp clipt.zip "clipt-${RELEASE_VERSION}.zip"
       - name: Release 생성과 게시
+        # 이전 실행이 draft를 남겼으면 지우고 다시 만든다. 이미 게시된 릴리스는 덮어쓰지 않는다
         run: |
+          if state=$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [ "$state" = "true" ]; then
+              gh release delete "$RELEASE_TAG" --yes
+            else
+              echo "::error::$RELEASE_TAG 는 이미 게시된 릴리스입니다. 새 버전으로 태그를 만드세요"
+              exit 1
+            fi
+          fi
           gh release create "$RELEASE_TAG" \
             release/clipt.zip \
             "release/clipt-${RELEASE_VERSION}.zip" \

@@ -51,7 +51,7 @@ export function updateIndicator(state: IndicatorState): void {
 export function placeWidget(
   crop: { left: number; top: number; right: number; bottom: number } | null,
   viewport: { w: number; h: number },
-): { left: number; top: number } {
+): { left: number; top: number } | null {
   const right = viewport.w - WIDGET.w - WIDGET.margin;
   const bottom = viewport.h - WIDGET.h - WIDGET.margin;
   const corners = [
@@ -69,7 +69,8 @@ export function placeWidget(
       c.top + WIDGET.h < crop.top - pad ||
       c.top > crop.bottom + pad,
   );
-  return free ?? corners[0]!;
+  // 빈 모서리가 없으면 null — 위젯을 숨겨 영상에 찍히지 않게 하고 팝업·단축키로 제어한다
+  return free ?? null;
 }
 
 export function showIndicator(options: IndicatorOptions): void {
@@ -116,7 +117,8 @@ export function showIndicator(options: IndicatorOptions): void {
     stop.setAttribute('aria-label', t('recStop'));
     widget.append(dot, time, pause, stop);
     const pos = placeWidget(crop, { w: innerWidth, h: innerHeight });
-    Object.assign(widget.style, { left: `${pos.left}px`, top: `${pos.top}px` });
+    if (pos) Object.assign(widget.style, { left: `${pos.left}px`, top: `${pos.top}px` });
+    else widget.hidden = true;
     overlay.layer.append(widget);
     widgetBox = widget;
 
@@ -181,9 +183,10 @@ export function showIndicator(options: IndicatorOptions): void {
       w.left < box.right + pad &&
       w.bottom > box.top - pad &&
       w.top < box.bottom + pad;
-    if (!overlaps) return;
+    if (!overlaps && !widgetBox.hidden) return;
     const pos = placeWidget(box, { w: innerWidth, h: innerHeight });
-    Object.assign(widgetBox.style, { left: `${pos.left}px`, top: `${pos.top}px` });
+    widgetBox.hidden = !pos;
+    if (pos) Object.assign(widgetBox.style, { left: `${pos.left}px`, top: `${pos.top}px` });
   });
 
   const update = (next: IndicatorState) => {
