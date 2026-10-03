@@ -23,6 +23,8 @@ build/
 !src/**/*.png
 !public/**/*.png
 !assets/**/*.png
+# README 화면 캡처(npm run screenshots로 생성)
+!docs/images/*.png
 
 # 로그·OS·IDE
 *.log

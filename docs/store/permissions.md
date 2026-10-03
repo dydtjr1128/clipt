@@ -13,7 +13,7 @@ Chrome 웹스토어 제출 시 "권한 정당성" 항목에 그대로 쓰는 문
 | `activeTab` | 사용자가 툴바 아이콘이나 단축키로 기능을 실행한 탭에만 임시로 접근해 화면을 캡처하고 선택 UI를 띄운다. 상시 사이트 접근 권한을 요청하지 않기 위해 사용한다. | Grants temporary access only to the tab where the user invokes Clipt from the toolbar or a keyboard shortcut, so we can capture it without requesting permanent host access. |
 | `scripting` | 캡처 대상 탭에 요소 선택·영역 선택 오버레이와 페이지 측정 스크립트를 필요할 때만 주입한다. | Injects the element/region selection overlay and page measurement script into the invoked tab only when needed. |
 | `tabCapture` | 탭 녹화와 영역·요소 녹화를 위해 현재 탭의 화면과 소리를 스트림으로 받는다. | Captures the current tab's video and audio stream for tab, region and element recording. |
-| `offscreen` | 서비스 워커가 할 수 없는 영상 녹화(MediaRecorder), 이미지 이어붙이기(Canvas), 클립보드 복사를 보이지 않는 문서에서 처리한다. | Runs MediaRecorder, canvas stitching and clipboard writes in an offscreen document, which the service worker cannot do. |
+| `offscreen` | 서비스 워커가 할 수 없는 탭 화면·소리 녹화(MediaRecorder), 영역·요소 녹화의 프레임 자르기, 탭 소리·마이크 합성(AudioContext), 녹화 파일 다운로드용 Blob URL 생성을 보이지 않는 문서에서 처리한다. | Runs tab recording (MediaRecorder), frame cropping for region/element recording, tab/microphone audio mixing (AudioContext) and Blob URLs for downloading recordings in an offscreen document, which the service worker cannot do. |
 | `storage` | 사용자 설정과 진행 중인 캡처·녹화 상태를 저장한다. | Stores user settings and the state of an in-progress capture or recording. |
 | `downloads` | "바로 다운로드" 설정과 결과 페이지의 다운로드 버튼으로 결과 파일을 저장한다. | Saves captured images and recordings when the user chooses to download them. |
 | `clipboardWrite` | "클립보드에 복사" 설정과 결과 페이지의 복사 버튼으로 캡처 이미지를 클립보드에 넣는다. | Copies captured images to the clipboard when the user chooses to. |
