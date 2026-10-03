@@ -249,7 +249,7 @@
 
 | 상황 | 페이지 | 배지 | 팝업 |
 | --- | --- | --- | --- |
-| 전체 페이지 캡처 중 | 상단 토스트 "전체 페이지 캡처 중 3 / 12 · Esc 중단" + 얇은 진행 바 | `3/12` | 진행 화면 |
+| 전체 페이지 캡처 중 | 표시하지 않음(결과에 찍히므로). Esc로 중단 | `3/12` | 진행 화면(진행 바) |
 | 카운트다운 | 중앙 원형 안 숫자 3→2→1(각 1초, 페이드), 위에 "영역 녹화 시작 · Esc 취소" | – | – |
 | 녹화 중 (`indicator: none`) | 없음 | `REC` 빨강 고정(깜빡임 없음) | 3.4 화면 |
 | 녹화 중 (`border`) | 녹화 영역 테두리 2px `--c-rec`. 영역·요소 모드는 크롭 경계 바깥에 그려 결과에 미포함 | `REC` | 3.4 화면 |
@@ -372,7 +372,6 @@
 | `rec.paused` | 일시정지됨 | Paused |
 | `settings.indicatorWarn` | 탭 녹화에서는 결과에 함께 찍혀요 | Will appear in tab recordings |
 | `settings.micNeedsPermission` | 마이크는 처음 한 번 권한이 필요해요 | Microphone needs a one-time permission |
-| `toast.stitching` | 전체 페이지 캡처 중 {done} / {total} | Capturing full page {done} / {total} |
 | `toast.scaled` | 페이지가 길어 {pct}%로 축소해 캡처했어요 | Page was too long, captured at {pct}% |
 | `toast.layoutChanged` | 페이지가 바뀌어 녹화를 마쳤어요 | Page changed, recording stopped |
 | `error.restricted` | 이 페이지에서는 사용할 수 없어요 | Not available on this page |

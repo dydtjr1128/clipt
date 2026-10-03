@@ -12,7 +12,7 @@
 | 실행·배포 환경과 지원 런타임 | Chrome 116 이상([INSTALL.md](INSTALL.md)). CI는 Node 22([ci.yml](.github/workflows/ci.yml)), `engines` 고정 없음 |
 | 주요 소스·테스트 위치 | 아래 `디렉터리` 절. 테스트 역할 분담은 [docs/testing.md](docs/testing.md) |
 | 구조·동작 규칙의 담당 문서 | [docs/architecture.md](docs/architecture.md)(구조·파이프라인·설정 스키마), [docs/ux-design.md](docs/ux-design.md)(화면·상호작용·문구) |
-| 생성 파일·사용자 데이터 위치와 편집 제한 | `.output/`·`.wxt/`·`test-results/`는 생성물로 직접 편집·커밋하지 않음. 캡처·녹화 결과물과 테스트 산출물은 커밋하지 않음 |
+| 생성 파일·사용자 데이터 위치와 편집 제한 | `.output/`·`.wxt/`·`test-results/`는 생성물로 직접 편집·커밋하지 않음. 캡처·녹화 결과물과 테스트 산출물은 커밋하지 않음(README 화면 캡처 `docs/images/*.png`만 예외) |
 | 외부 연동·권한·민감 정보 경계 | activeTab 기반이며 배포 빌드에 host 권한 없음. 권한 사유는 [docs/store/permissions.md](docs/store/permissions.md), 처리방침은 [PRIVACY.md](PRIVACY.md) |
 | 기본 브랜치·머지 방식·필수 검사 | `main`, merge commit. PR마다 [CI](.github/workflows/ci.yml)의 검사와 E2E 통과 |
 | 버전·변경 이력·릴리스 기준 | 아래 `버전과 변경기록` 절, [CHANGELOG.md](CHANGELOG.md), `releases/X.Y.Z.md` |
@@ -98,7 +98,7 @@
 - 기능 범위와 사용 흐름, 요소 선택 방식은 [README.md](README.md)를 기준으로 한다. 동작이 바뀌면 README도 함께 갱신한다.
 - 확장 프로그램 로컬 확인은 `chrome://extensions`에서 개발자 모드를 켜고 빌드 결과 폴더(`.output/chrome-mv3`)를 `압축해제된 확장 프로그램을 로드합니다`로 불러온다.
 - 오버레이(호버 박스, 라벨, 선택 패널)는 캡처·녹화 결과에 포함되지 않아야 한다. 관련 변경은 실제 캡처 결과로 확인한다.
-- 캡처·녹화 결과물(이미지·영상)과 테스트 산출물은 커밋하지 않는다.
+- 캡처·녹화 결과물(이미지·영상)과 테스트 산출물은 커밋하지 않는다. 예외는 README 화면 캡처로, `npm run screenshots`가 만든 `docs/images/*.png`만 커밋하고 UI·문구가 바뀌면 다시 만든다.
 - 버전은 `package.json`의 `version` 한 곳에서 관리한다(manifest는 WXT가 가져온다). 릴리스는 위 버전과 변경기록 절에 따라 버전을 올리고 `releases/X.Y.Z.md`(릴리스 노트, 없으면 실패)를 추가해 main에 머지한 뒤 `vX.Y.Z` 태그를 푸시한다. `.github/workflows/release.yml`이 검사하고 태그 커밋의 CI(main 푸시, E2E 포함) 성공을 확인한 뒤(`scripts/ci-gate.mjs`, 실행 중이면 대기) `clipt.zip`(최신 다운로드 링크용 고정 이름)·`clipt-X.Y.Z.zip`·`SHA256SUMS.txt`를 GitHub Release에 올린다. 태그는 CI가 돈 main 머지 커밋에 붙인다. 사용자 설치 절차는 [INSTALL.md](INSTALL.md). 스토어 제출 절차는 [docs/store/listing.md](docs/store/listing.md).
 - 구조·파이프라인·설정 스키마는 [docs/architecture.md](docs/architecture.md), 화면·상호작용·문구는 [docs/ux-design.md](docs/ux-design.md)를 기준으로 한다. 두 문서와 다른 구현을 할 때는 문서를 먼저 고친다.
 
@@ -121,6 +121,7 @@
 | `npm run zip` | 스토어 업로드용 `.output/clipt-<version>.zip` 생성 |
 | `npm run check:release` | zip 생성 후 배포 빌드 검사(버전 일치, 아이콘, 로케일 글자 수, host 권한·E2E key·소스맵 없음)와 릴리스 파일 준비(`.output/release/`, 릴리스 노트 확인) |
 | `npm run icons` | `assets/icon.svg` → `public/icon/*.png` (아이콘을 바꿨을 때만) |
+| `npm run screenshots` | E2E 빌드로 README 화면 캡처(`docs/images`, ko)와 스토어 이미지(`.output/store/{ko,en}`, 1280×800·프로모션 타일 440×280) 생성 |
 | `npm run measure:recording -- fps` / `-- memory [1~59분]` | 녹화 실측(1080p 절반 영역 프레임레이트, 장시간 녹화 메모리). E2E 빌드 필요, CI에서는 돌리지 않음 |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |

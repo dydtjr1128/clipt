@@ -87,10 +87,10 @@ Capture or record exactly the part of a page you need.
 | 자료 | 규격 | 상태 |
 | --- | --- | --- |
 | 아이콘 | 128×128 PNG | `public/icon/128.png` (원본 `assets/icon.svg`, `npm run icons`) |
-| 스크린샷 1~5장 | 1280×800 또는 640×400 | 준비 필요: 팝업 메뉴, 요소 선택 패널, 영역 선택, 결과 페이지, 설정 |
-| 작은 프로모션 타일 | 440×280 | 준비 필요 |
+| 스크린샷 1~5장 | 1280×800 | `npm run screenshots` → `.output/store/{ko,en}/1-popup.png`~`5-settings.png`(팝업 메뉴, 요소 선택 패널, 영역 선택, 결과 페이지, 설정). README용 ko는 `docs/images/` |
+| 작은 프로모션 타일 | 440×280 | `npm run screenshots` → `.output/store/{ko,en}/promo-440x280.png` |
 
-스크린샷은 실제 사이트 위에서 찍는다. 저작권·개인정보가 있는 화면은 피한다.
+스크린샷은 스크립트가 직접 만든 데모 페이지(저작권·개인정보 없는 자체 콘텐츠) 위의 실제 확장 UI로 만든다. 툴바 팝업은 브라우저 UI라 팝업 페이지를 찍어 데모 화면 오른쪽 위에 겹친다. 먼저 `npm run build:e2e`.
 
 ## 제출 절차
 
