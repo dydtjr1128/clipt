@@ -81,10 +81,7 @@ export default defineBackground(() => {
       void onSelectionDone(jobId, target, page, { selector, warnings, follow });
       return null;
     },
-    'page:resized': async ({ jobId }) => {
-      await onPageResized(jobId);
-      return null;
-    },
+    'page:resized': ({ jobId }) => onPageResized(jobId),
     'select:cancelled': async ({ jobId }) => {
       await onSelectionCancelled(jobId);
       return null;

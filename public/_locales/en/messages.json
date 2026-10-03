@@ -155,6 +155,10 @@
     "message": "The previous task was interrupted. Please try again.",
     "description": "작업 중단 오류"
   },
+  "errorLayoutChanged": {
+    "message": "The window size changed, so recording didn't start. Please select again.",
+    "description": "카운트다운 중 화면 크기 변경 오류"
+  },
   "errorGeneric": {
     "message": "Something went wrong. Please try again.",
     "description": "일반 오류"

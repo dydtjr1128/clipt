@@ -33,6 +33,7 @@ const ERROR_MESSAGE: Partial<Record<ErrorCode | string, MessageKey>> = {
   RESTRICTED_PAGE: 'errorRestricted',
   TAB_CLOSED: 'errorTabClosed',
   INTERRUPTED: 'errorInterrupted',
+  LAYOUT_CHANGED: 'errorLayoutChanged',
 };
 
 const NO_SHORTCUT = '–';

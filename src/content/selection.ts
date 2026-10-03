@@ -14,14 +14,35 @@ let active: { jobId: string; dispose: () => void } | null = null;
  * 영역·요소 녹화는 시작 시점 화면 좌표로 자르므로 뷰포트 크기가 바뀌면 같은 영역을 이어 녹화할 수 없다.
  * 탭 캡처는 요청 크기에 맞춰 프레임을 늘리거나 줄여 보내 프레임만으로는 알 수 없어 페이지에서 감지한다.
  */
+let unwatchResize: (() => void) | null = null;
+
+/**
+ * 감시는 녹화가 끝날 때(track:stop)까지 유지한다. 첫 알림이 카운트다운처럼 아직 녹화 전 단계에 도착해도
+ * 이후 변화를 놓치지 않게 하고, 창을 끄는 동안 쏟아지는 resize는 250ms에 한 번만 알린다
+ */
 function watchResize(jobId: string): void {
+  stopWatchingResize();
   const start = { w: innerWidth, h: innerHeight };
+  let last = 0;
   const onResize = () => {
     if (innerWidth === start.w && innerHeight === start.h) return;
-    removeEventListener('resize', onResize);
-    void send('background', 'page:resized', { jobId }).catch(() => undefined);
+    const now = performance.now();
+    if (now - last < 250) return;
+    last = now;
+    void send('background', 'page:resized', { jobId })
+      .then((keep) => {
+        if (!keep && unwatchResize === stop) stopWatchingResize();
+      })
+      .catch(() => undefined);
   };
+  const stop = () => removeEventListener('resize', onResize);
   addEventListener('resize', onResize);
+  unwatchResize = stop;
+}
+
+export function stopWatchingResize(): void {
+  unwatchResize?.();
+  unwatchResize = null;
 }
 
 export function cancelSelection(): void {

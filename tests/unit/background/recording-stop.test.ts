@@ -26,7 +26,8 @@ vi.mock('@/background/offscreen', () => ({
 }));
 vi.mock('@/background/emit', () => ({ openResultPage: vi.fn(async () => undefined) }));
 
-const { stopTabRecording, resumeFinalizing } = await import('@/background/pipelines/recording');
+const { stopTabRecording, resumeFinalizing, onPageResized } =
+  await import('@/background/pipelines/recording');
 const jobs = await import('@/background/jobs');
 const messages = await import('@/shared/messages');
 const offscreen = await import('@/background/offscreen');
@@ -88,5 +89,32 @@ describe('stopTabRecording', () => {
     await stopTabRecording('j');
     expect(jobs.endJob).toHaveBeenCalledWith('j');
     expect(messages.send).toHaveBeenCalledWith('offscreen', 'rec:discard', null);
+  });
+});
+
+describe('onPageResized', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(messages.send).mockImplementation((async () => null) as never);
+  });
+
+  it('끝난 작업이면 감시를 그만두게 false를 돌려준다(Esc 취소·시작 실패 뒤)', async () => {
+    current = null;
+    expect(await onPageResized('j')).toBe(false);
+  });
+
+  it('카운트다운 중이면 녹화를 시작하지 않고 LAYOUT_CHANGED를 남긴다', async () => {
+    current = { ...job('countdown'), mode: 'rec-region' };
+    expect(await onPageResized('j')).toBe(false);
+    expect(current).toBeNull();
+    expect(jobs.recordError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'LAYOUT_CHANGED' }),
+      'rec-region',
+    );
+  });
+
+  it('확정 직후 아직 선택 단계면 계속 감시한다', async () => {
+    current = { ...job('selecting'), mode: 'rec-element' };
+    expect(await onPageResized('j')).toBe(true);
   });
 });

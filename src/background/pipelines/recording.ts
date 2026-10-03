@@ -303,11 +303,28 @@ export async function resumeRecording(jobId?: string, now = Date.now()): Promise
  * 영역·요소 녹화 중 대상 탭이 다른 페이지로 이동하면 레이아웃이 바뀌어 같은 영역을 녹화할 수 없다.
  * 그때까지 저장하고 결과에 layout-changed를 남긴다. 탭 녹화는 이동해도 계속한다.
  */
-/** 영역·요소 녹화 중 뷰포트 크기가 바뀜: 그때까지 저장하고 layout-changed를 남긴다 */
-export async function onPageResized(jobId: string): Promise<void> {
+/**
+ * 영역·요소 녹화의 뷰포트 크기가 바뀜. 녹화 중이면 그때까지 저장하고 layout-changed를 남기고,
+ * 아직 시작 전(카운트다운)이면 이전 화면 기준 범위로 녹화하지 않도록 시작하지 않고 끝낸다
+ */
+export async function onPageResized(jobId: string): Promise<boolean> {
   const job = await getJob();
-  if (!job || job.id !== jobId || job.phase !== 'recording' || job.mode === 'rec-tab') return;
-  await stopTabRecording(job.id, 'layout-changed');
+  // 끝난 작업이면(Esc 취소·시작 실패 등) 페이지가 감시를 그만두게 false를 돌려준다
+  if (!job || job.id !== jobId || job.mode === 'rec-tab') return false;
+  if (job.phase === 'recording') {
+    await stopTabRecording(job.id, 'layout-changed');
+    return false;
+  }
+  if (job.phase === 'countdown') {
+    await cancelRecording(job);
+    await recordError(
+      new CliptError('LAYOUT_CHANGED', 'viewport resized before recording'),
+      job.mode,
+    );
+    return false;
+  }
+  // 확정 직후 아직 선택 단계면 다음 변화도 알려야 한다
+  return true;
 }
 
 export async function onTabNavigating(tabId: number): Promise<void> {

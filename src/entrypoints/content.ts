@@ -1,6 +1,6 @@
 import { listen, send } from '@/shared/messages';
 import { hideFixed, isCapturing, prepare, probe, restore, scrollToY } from '@/content/page';
-import { cancelSelection, startSelection } from '@/content/selection';
+import { cancelSelection, startSelection, stopWatchingResize } from '@/content/selection';
 import { cancelCountdown, runCountdown } from '@/content/countdown';
 import { hideIndicator, showIndicator, updateIndicator } from '@/content/rec-indicator';
 import { startTracking, stopTracking } from '@/content/tracker';
@@ -40,7 +40,12 @@ export default defineContentScript({
         cancelSelection();
         return null;
       },
-      'countdown:start': ({ seconds, mode }) => runCountdown(seconds, mode),
+      'countdown:start': async ({ seconds, mode }) => {
+        const completed = await runCountdown(seconds, mode);
+        // Esc로 취소하면 녹화를 시작하지 않으므로 리사이즈 감시도 끝낸다
+        if (!completed) stopWatchingResize();
+        return completed;
+      },
       'countdown:cancel': () => {
         cancelCountdown();
         return null;
@@ -59,7 +64,9 @@ export default defineContentScript({
       },
       'track:start': ({ jobId }) => startTracking(jobId),
       'track:stop': () => {
+        // 녹화가 끝날 때 서비스 워커가 보낸다. 요소 추적과 리사이즈 감시를 함께 정리한다
         stopTracking();
+        stopWatchingResize();
         return null;
       },
     });
@@ -78,6 +85,7 @@ export default defineContentScript({
 
     // 페이지를 떠날 때 캡처 도중 바꾼 스타일이 남지 않게 한다
     addEventListener('pagehide', () => {
+      stopWatchingResize();
       cancelSelection();
       cancelCountdown();
       hideIndicator();
