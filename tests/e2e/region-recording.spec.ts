@@ -4,6 +4,7 @@ import { test, expect, SITE, sendToBackground, tabIdOf } from './fixtures';
 import { expectColor } from './result';
 import { PALETTE } from './site';
 import { MAX_OUTPUT_ASPECT, MIN_OUTPUT_SIDE, paddedSize } from '../../src/core/crop';
+import { readVideo } from './rec';
 
 declare const chrome: typeof browser;
 
@@ -273,11 +274,16 @@ test.describe('작은 요소·영역', () => {
   ) {
     const expected = paddedSize(content);
     expect(expected.height).toBeGreaterThan(content.height);
-    const frame = await videoFrame(result, [
-      [0.5, 0.5],
-      [0.5, 0.04],
-      [0.5, 0.96],
-    ]);
+    // 첫 프레임은 요소 따라가기의 캔버스 초기화(검정)와 겹칠 수 있어 끝 프레임으로 본다
+    const frame = await readVideo(
+      result,
+      [
+        [0.5, 0.5],
+        [0.5, 0.04],
+        [0.5, 0.96],
+      ],
+      'end',
+    );
     expect(Math.abs(frame.width - expected.width)).toBeLessThanOrEqual(2);
     expect(Math.abs(frame.height - expected.height)).toBeLessThanOrEqual(2);
     expectColor(frame.pixels[0]!, color, 24);
