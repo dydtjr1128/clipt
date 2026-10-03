@@ -58,7 +58,8 @@ export interface Protocol {
     /** 사용자가 선택 UI에서 Esc·취소를 누름 */
     'select:cancelled': (payload: { jobId: string }) => null;
     /** 영역·요소 녹화 중 대상 페이지 뷰포트 크기가 바뀜 */
-    'page:resized': (payload: { jobId: string }) => null;
+    /** 영역·요소 녹화 대상 뷰포트 크기 변경. 그 작업을 계속 감시해야 하면 true(끝난 작업이면 false) */
+    'page:resized': (payload: { jobId: string }) => boolean;
   };
   offscreen: {
     'offscreen:ping': (payload: null) => 'pong';

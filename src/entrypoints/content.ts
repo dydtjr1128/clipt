@@ -40,7 +40,12 @@ export default defineContentScript({
         cancelSelection();
         return null;
       },
-      'countdown:start': ({ seconds, mode }) => runCountdown(seconds, mode),
+      'countdown:start': async ({ seconds, mode }) => {
+        const completed = await runCountdown(seconds, mode);
+        // Esc로 취소하면 녹화를 시작하지 않으므로 리사이즈 감시도 끝낸다
+        if (!completed) stopWatchingResize();
+        return completed;
+      },
       'countdown:cancel': () => {
         cancelCountdown();
         return null;

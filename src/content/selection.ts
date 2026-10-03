@@ -29,10 +29,15 @@ function watchResize(jobId: string): void {
     const now = performance.now();
     if (now - last < 250) return;
     last = now;
-    void send('background', 'page:resized', { jobId }).catch(() => undefined);
+    void send('background', 'page:resized', { jobId })
+      .then((keep) => {
+        if (!keep && unwatchResize === stop) stopWatchingResize();
+      })
+      .catch(() => undefined);
   };
+  const stop = () => removeEventListener('resize', onResize);
   addEventListener('resize', onResize);
-  unwatchResize = () => removeEventListener('resize', onResize);
+  unwatchResize = stop;
 }
 
 export function stopWatchingResize(): void {
