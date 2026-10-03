@@ -113,6 +113,27 @@ test('마우스 없이 Enter로 화면 가운데 요소를 고정하고 키보�
   await expect((await opened).locator('.result-media')).toBeVisible();
 });
 
+test('호버하던 요소가 페이지에서 바뀌면 키보드 고정은 지금 화면의 요소를 고른다', async ({
+  context,
+  openControlWindow,
+}) => {
+  const { site } = await startElementMode(context, openControlWindow);
+  const block = (await site.locator('#block').boundingBox())!;
+  await site.mouse.move(block.x + 20, block.y + 20);
+  await expect(site.locator('clipt-overlay .hl-label')).toContainText('div#block');
+  // 페이지 스크립트가 호버하던 요소를 같은 자리의 새 요소로 바꾼다
+  await site.evaluate(() => {
+    const old = document.getElementById('block')!;
+    const next = document.createElement('div');
+    next.id = 'block-new';
+    next.style.cssText = 'position:absolute;left:200px;top:150px;width:240px;height:120px';
+    old.replaceWith(next);
+  });
+  await site.keyboard.press('Enter');
+  await expect(site.locator('clipt-overlay .panel')).toBeVisible();
+  await expect(site.locator('clipt-overlay .hl-label')).toContainText('div#block-new');
+});
+
 test('호버 중에는 ↓로 호버한 요소를 고정한다', async ({ context, openControlWindow }) => {
   const { site } = await startElementMode(context, openControlWindow);
   const block = (await site.locator('#block').boundingBox())!;
