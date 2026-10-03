@@ -99,7 +99,7 @@
 - 확장 프로그램 로컬 확인은 `chrome://extensions`에서 개발자 모드를 켜고 빌드 결과 폴더(`.output/chrome-mv3`)를 `압축해제된 확장 프로그램을 로드합니다`로 불러온다.
 - 오버레이(호버 박스, 라벨, 선택 패널)는 캡처·녹화 결과에 포함되지 않아야 한다. 관련 변경은 실제 캡처 결과로 확인한다.
 - 캡처·녹화 결과물(이미지·영상)과 테스트 산출물은 커밋하지 않는다.
-- 버전은 `package.json`의 `version` 한 곳에서 관리한다(manifest는 WXT가 가져온다). 릴리스는 위 버전과 변경기록 절에 따라 버전을 올리고 `releases/X.Y.Z.md`(릴리스 노트, 없으면 실패)를 추가해 main에 머지한 뒤 `vX.Y.Z` 태그를 푸시한다. `.github/workflows/release.yml`이 검사 후 `clipt.zip`(최신 다운로드 링크용 고정 이름)·`clipt-X.Y.Z.zip`·`SHA256SUMS.txt`를 GitHub Release에 올린다. 사용자 설치 절차는 [INSTALL.md](INSTALL.md). 스토어 제출 절차는 [docs/store/listing.md](docs/store/listing.md).
+- 버전은 `package.json`의 `version` 한 곳에서 관리한다(manifest는 WXT가 가져온다). 릴리스는 위 버전과 변경기록 절에 따라 버전을 올리고 `releases/X.Y.Z.md`(릴리스 노트, 없으면 실패)를 추가해 main에 머지한 뒤 `vX.Y.Z` 태그를 푸시한다. `.github/workflows/release.yml`이 검사하고 태그 커밋의 CI(main 푸시, E2E 포함) 성공을 확인한 뒤(`scripts/ci-gate.mjs`, 실행 중이면 대기) `clipt.zip`(최신 다운로드 링크용 고정 이름)·`clipt-X.Y.Z.zip`·`SHA256SUMS.txt`를 GitHub Release에 올린다. 태그는 CI가 돈 main 머지 커밋에 붙인다. 사용자 설치 절차는 [INSTALL.md](INSTALL.md). 스토어 제출 절차는 [docs/store/listing.md](docs/store/listing.md).
 - 구조·파이프라인·설정 스키마는 [docs/architecture.md](docs/architecture.md), 화면·상호작용·문구는 [docs/ux-design.md](docs/ux-design.md)를 기준으로 한다. 두 문서와 다른 구현을 할 때는 문서를 먼저 고친다.
 
 ### 기술 스택
