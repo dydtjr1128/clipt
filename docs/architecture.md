@@ -294,7 +294,7 @@ SW: recording 전이(startedAt) → 배지 REC
 - **일시정지**: `job:pause`·`job:resume` → 오프스크린 `MediaRecorder.pause()/resume()`. 작업에 `pausedAt`·`pausedTotal`을 기록해 팝업 타이머와 배지(`❚❚`)가 멈춘다.
 - **취소**: `job:cancel` → `rec:discard`(스트림 정지, chunk 삭제) → 오프스크린 닫기. 결과를 만들지 않는다.
 - **다운로드**: 서비스 워커에는 `URL.createObjectURL`이 없어 오프스크린이 만든 Blob URL(`result:objectUrl`)로 받고, 다운로드가 끝날 때까지 오프스크린을 유지한다.
-- **E2E**: 툴바 클릭 없이 탭 캡처를 쓰도록 E2E 빌드에만 고정 `key`(scripts/e2e-key.json)로 확장 ID를 고정하고 `--allowlisted-extension-id`로 실행한다. `--use-fake-ui-for-media-stream`은 탭 캡처를 `NotFoundError`로 막아 쓰지 않으며, 확장 origin에는 마이크 권한을 줄 수 없어 마이크 합성은 단위 테스트와 수동 확인으로 검증한다.
+- **E2E**: 툴바 클릭 없이 탭 캡처를 쓰도록 E2E 빌드에만 고정 `key`(scripts/e2e-key.json)로 확장 ID를 고정하고 `--allowlisted-extension-id`로 실행한다. `--use-fake-ui-for-media-stream`은 탭 캡처를 `NotFoundError`로 막아 쓰지 않으며, 확장 origin에는 마이크 권한을 줄 수 없어 마이크 합성은 단위 테스트와 수동 확인으로 검증한다. 배포 빌드는 `--enable-unsafe-extension-debugging`과 CDP `Extensions.triggerAction`(실제 툴바 클릭)으로 activeTab을 받아 host 권한 없이 동작하는지 따로 확인한다(`tests/e2e/toolbar.spec.ts`).
 
 ### 9.2 대상 선택과 크롭
 

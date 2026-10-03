@@ -6,6 +6,8 @@
 
 ## 1. 툴바·권한 (activeTab)
 
+툴바 클릭 → 보이는 화면·영역·요소 캡처·탭 녹화와 `chrome://extensions` 안내는 배포 빌드 E2E(`tests/e2e/toolbar.spec.ts`, Chromium)가 확인한다. 아래는 릴리스 전 실제 Chrome 설치본에서 한 번 더 본다.
+
 - [ ] 일반 사이트에서 툴바 아이콘 → 보이는 화면 → 결과 페이지가 열린다(host 권한 없이 동작)
 - [ ] 같은 탭에서 다른 사이트로 이동한 뒤 다시 아이콘을 눌러도 동작한다
 - [ ] `chrome://extensions`, Chrome 웹스토어에서 팝업 메뉴가 비활성이고 안내가 보인다

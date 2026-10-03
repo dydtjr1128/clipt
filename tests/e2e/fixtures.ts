@@ -33,6 +33,11 @@ type Options = {
   windowSize: [number, number];
   /** 브라우저 UI 언어(--lang). chrome.i18n이 이 값을 따른다 */
   lang: string;
+  /**
+   * 로드할 빌드. 'e2e'(기본)는 host 권한·고정 key가 있는 E2E 빌드, 'production'은 배포 빌드 그대로이며
+   * 툴바 클릭(`toolbar.ts` clickToolbar)으로 activeTab을 받아 동작을 확인한다
+   */
+  build: 'e2e' | 'production';
 };
 
 type Fixtures = {
@@ -53,7 +58,10 @@ export const test = base.extend<Fixtures & Options>({
   scaleFactor: [1, { option: true }],
   windowSize: [[1000, 800], { option: true }],
   lang: ['ko', { option: true }],
-  context: async ({ scaleFactor, windowSize, lang }, use) => {
+  build: ['e2e', { option: true }],
+  context: async ({ scaleFactor, windowSize, lang, build }, use) => {
+    const production = build === 'production';
+    const extension = production ? productionPath : extensionPath;
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       viewport: null,
@@ -64,13 +72,16 @@ export const test = base.extend<Fixtures & Options>({
         LANG: `${lang.replace('-', '_')}.UTF-8`,
       },
       args: [
-        `--disable-extensions-except=${extensionPath}`,
-        `--load-extension=${extensionPath}`,
+        `--disable-extensions-except=${extension}`,
+        `--load-extension=${extension}`,
         `--force-device-scale-factor=${scaleFactor}`,
         `--window-size=${windowSize[0]},${windowSize[1]}`,
         `--lang=${lang}`,
-        // 툴바 클릭 없이도 탭 캡처를 허용한다(테스트 전용 플래그)
-        `--allowlisted-extension-id=${E2E_EXTENSION_ID}`,
+        // E2E 빌드: 툴바 클릭 없이도 탭 캡처를 허용한다(테스트 전용 플래그).
+        // 배포 빌드: 대신 CDP로 실제 툴바 클릭(Extensions.triggerAction)을 쓸 수 있게 한다
+        production
+          ? '--enable-unsafe-extension-debugging'
+          : `--allowlisted-extension-id=${E2E_EXTENSION_ID}`,
         // 주의: --use-fake-ui-for-media-stream은 탭 캡처(getUserMedia)를 NotFoundError로 막는다.
         // 확장 origin에는 마이크 권한도 줄 수 없어 E2E는 마이크 없는 경로만 확인한다
         '--autoplay-policy=no-user-gesture-required',
