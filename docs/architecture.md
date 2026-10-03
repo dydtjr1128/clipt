@@ -240,9 +240,10 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 - 선택 불가: 크기 0, `visibility: hidden`, `display: contents`, 오버레이 자신, `html`. 좌표 아래 요소가 선택 불가면 선택 가능한 조상으로 올라간다.
 - 선택 중에는 창 캡처 단계에서 `pointerdown·up`, `mousedown·up`, `click`, `dblclick`, `auxclick`, `contextmenu`, `touchstart·end`를 막아 링크 이동 등 페이지 동작이 실행되지 않는다. 오버레이(패널) 안에서 시작한 이벤트만 통과한다. 종료 시 리스너와 `html` 커서 스타일을 원래대로 되돌린다.
 - **iframe**: 1차에서는 `<iframe>` 자체를 하나의 요소로 취급한다. 내부 요소 탐색은 하지 않는다(동일 출처라도). 이유: 프레임 내부 좌표 변환·스크롤·스타일 복원을 두 문서에 걸쳐 해야 해 복잡도가 크고, 캡처는 어차피 화면 픽셀 기준이라 프레임 전체 선택으로 대부분의 요구를 충족한다. 후속 이슈로 남긴다.
+- **키보드 시작**: 호버 단계에서 `Enter`·`↑`·`↓`를 누르면 호버한 요소, 없으면 화면 가운데 요소를 클릭과 같이 고정한다(단축키로 시작해 마우스 없이 끝내기, ux-design 1절 원칙 4).
 - **경로 기준선**: 클릭 시 `anchor = 클릭 요소`, `path = [body … anchor]`, 깊이 `d`는 `path[d]`.
   - ↑ / 슬라이더 좌 → `d-1`, ↓ / 슬라이더 우 → `d+1` (`path` 안에서만)
-  - ← / → → 현재 요소의 형제(선택 가능 요소만)로 이동. 이동 후 `anchor = 새 요소`, `path` 재계산, `d = path.length-1`
+  - ← / → → 현재 요소의 형제(선택 가능 요소만)로 이동. 형제는 요소가 실제로 속한 트리에서 찾는다(Shadow root 최상위 요소는 ShadowRoot의 자식, `TreeAdapter.siblings`). 이동 후 `anchor = 새 요소`, `path` 재계산, `d = path.length-1`
   - 경로 항목 클릭 → 해당 `d`
 - 결과: 대상 범위(x는 뷰포트, y는 문서 기준, 가로는 화면 안으로 자름) + 선택자 경로(`body > div#card.card > p#p2`, 결과 메타 `selector`). 요소 참조는 콘텐츠 내부에만 둔다.
 - 패널은 `element-session.ts`가 상태를 들고 Preact 컴포넌트는 그리기만 한다. 키 입력은 창 캡처 단계에서 처리하며, 확정 버튼이 아닌 버튼에 포커스가 있을 때의 Enter는 그 버튼 동작을 따른다. 패널 드래그는 헤더에 포인터 캡처를 걸어 페이지 클릭 차단과 충돌하지 않는다.

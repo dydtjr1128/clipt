@@ -51,6 +51,22 @@ describe('buildPath', () => {
 });
 
 describe('siblingOf', () => {
+  it('siblings가 있으면 parent의 children 대신 실제 형제 목록을 쓴다(Shadow root 최상위)', () => {
+    // host의 light DOM 자식에는 없고 ShadowRoot에만 있는 두 버튼
+    const a = node('a');
+    const b = node('b');
+    const host = node('host', [node('slotted')]);
+    a.parent = host;
+    b.parent = host;
+    const shadowTree: TreeAdapter<Node> = {
+      ...tree,
+      siblings: (n) => (n === a || n === b ? [a, b] : (n.parent?.children ?? [n])),
+    };
+    expect(siblingOf(a, 1, tree)).toBeNull(); // children(host)만 보면 찾지 못한다
+    expect(siblingOf(a, 1, shadowTree)?.name).toBe('b');
+    expect(siblingOf(b, -1, shadowTree)?.name).toBe('a');
+  });
+
   it('선택 가능한 형제만 오간다', () => {
     expect(siblingOf(img, 1, tree)?.name).toBe('p');
     expect(siblingOf(p, 1, tree)).toBeNull(); // 다음 형제 span은 숨김

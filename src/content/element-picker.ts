@@ -1,5 +1,5 @@
 import { t } from '@/shared/i18n';
-import { deepElementFromPoint, labelOf, sizeOf } from './dom-tree';
+import { deepElementFromPoint, isSelectable, labelOf, sizeOf } from './dom-tree';
 import { createOverlay, el, fromOverlay, type Overlay } from './overlay/host';
 
 /**
@@ -50,7 +50,7 @@ export function startElementPicker(options: PickerOptions): Picker {
   label.append(labelName, labelSize);
   const toast = el('div', 'toast', { role: 'status' });
   const toastKeys = el('span', 'keys');
-  toastKeys.textContent = '↑↓ · Esc';
+  toastKeys.textContent = 'Enter · ↑↓ · Esc';
   toast.append(t(options.forRecording ? 'hintPickElementRec' : 'hintPickElement'), toastKeys);
   overlay.layer.append(box, label, toast);
   const html = document.documentElement;
@@ -121,7 +121,30 @@ export function startElementPicker(options: PickerOptions): Picker {
     if (target) api.lock(target);
   }
 
+  /** 키보드로 고정할 요소: 호버 요소 → 포인터 아래 → 화면 가운데. 페이지가 바뀌어 분리됐거나 선택할 수 없으면 건너뛴다 */
+  function keyboardTarget(): Element | null {
+    const valid = (el: Element | null) => (el?.isConnected && isSelectable(el) ? el : null);
+    return (
+      valid(hovered) ??
+      (pointer.x >= 0 ? valid(deepElementFromPoint(pointer.x, pointer.y)) : null) ??
+      valid(deepElementFromPoint(innerWidth / 2, innerHeight / 2))
+    );
+  }
+
   function onKey(event: KeyboardEvent): void {
+    // 키보드만으로 시작: 호버 단계의 Enter·↑·↓는 호버한 요소(없으면 화면 가운데 요소)를 고정한다.
+    // 고정 뒤의 키는 선택 패널(element-session)이 맡는다
+    if (
+      !locked &&
+      (event.key === 'Enter' || event.key === 'ArrowUp' || event.key === 'ArrowDown')
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const target = keyboardTarget();
+      // 고를 수 있는 요소가 없으면(빈 화면 등) 고정하지 않는다
+      if (target) api.lock(target);
+      return;
+    }
     if (event.key !== 'Escape') return;
     event.preventDefault();
     event.stopImmediatePropagation();
