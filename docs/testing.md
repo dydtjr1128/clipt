@@ -32,8 +32,9 @@ CI(`.github/workflows/ci.yml`)는 PR과 main 푸시마다 정적 검사·단위 
 
 - 테스트 사이트는 네트워크 없이 `context.route`로 응답한다(`site.ts`): 색 띠로 된 긴 페이지, 고정 헤더, 지연 로딩 이미지, 위치가 정해진 블록·링크·Shadow DOM·스크롤 영역. 결과는 **픽셀 색**으로 검증한다(`result.ts`, `rec.ts`).
 - 확장은 E2E 전용 빌드(`npm run build:e2e`)를 쓴다. Playwright는 툴바 클릭·단축키로 activeTab을 줄 수 없어 `<all_urls>`와 고정 `key`를 더하고, `--allowlisted-extension-id`로 탭 캡처를 허용한다. 배포 빌드 manifest에 이것들이 없다는 것도 E2E가 확인한다.
+- 배포 빌드 검증(`toolbar.spec.ts`, `build: 'production'`): host 권한·고정 key·allowlist 없는 배포 빌드를 `--enable-unsafe-extension-debugging`으로 띄우고 CDP `Extensions.triggerAction`으로 실제 툴바 아이콘을 눌러 activeTab을 받는다. 툴바 팝업은 Playwright Page로 잡히지 않아 CDP 세션으로 조작한다(`toolbar.ts`). 보이는 화면·영역·요소 캡처, 탭 녹화 시작·중지, `chrome://extensions` 안내를 확인한다.
 - 옵션: `scaleFactor`(DPR), `windowSize`, `lang`. 조작용 확장 페이지는 `openControlWindow`로 별도 창에 띄워 대상 탭을 활성 상태로 둔다.
-- 알려진 한계: 브라우저 수준 키 입력(단축키는 `commands.onCommand` 이벤트를 직접 발생), 확장 origin의 마이크 권한, 실제 소리 출력, 헤드리스 탭 캡처의 프레임레이트(약 21fps).
+- 알려진 한계: 브라우저 수준 키 입력(단축키는 `commands.onCommand` 이벤트를 직접 발생), 확장 origin의 마이크 권한(가짜 UI 플래그 없이는 권한을 줄 수 없고, 그 플래그는 탭 캡처를 막음), 실제 소리 출력, 헤드리스 탭 캡처의 프레임레이트(약 21fps).
 
 ## 새 기능을 추가할 때
 
