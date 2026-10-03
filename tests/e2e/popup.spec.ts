@@ -111,6 +111,37 @@ test('녹화 중 팝업을 다시 열어도 경과 시간이 이어진다', asyn
   await expect(second.locator('.menu')).toBeVisible(); // 중지하면 메뉴로 돌아온다
 });
 
+test('녹화를 저장하는 동안 팝업은 저장 중을 알리고 중지·일시정지를 막는다', async ({
+  context,
+  openExtensionPage,
+  serviceWorker,
+}) => {
+  const site = await context.newPage();
+  await site.goto(`${SITE}/rec`);
+  const control = await openExtensionPage('options.html');
+  const tabId = await tabIdOf(control, `${SITE}/rec`);
+  await serviceWorker.evaluate(
+    (tabId) =>
+      chrome.storage.session.set({
+        job: {
+          id: 'saving-e2e',
+          mode: 'rec-tab',
+          tabId,
+          windowId: 1,
+          phase: 'finalizing',
+          createdAt: Date.now() - 10_000,
+          startedAt: Date.now() - 9_000,
+        },
+      }),
+    tabId,
+  );
+  const popup = await openPopup(openExtensionPage, tabId);
+  await expect(popup.locator('.rec-title')).toContainText('녹화를 저장하는 중이에요');
+  await expect(popup.locator('.button-rec')).toBeDisabled();
+  await expect(popup.locator('[data-action="pause"]')).toHaveCount(0);
+  await serviceWorker.evaluate(() => chrome.storage.session.remove('job'));
+});
+
 test('선택 진행 중에는 안내와 취소 버튼을 보여준다', async ({ context, openExtensionPage }) => {
   const site = await context.newPage();
   await site.goto(`${SITE}/select`);

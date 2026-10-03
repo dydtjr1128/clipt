@@ -189,6 +189,8 @@ function waitForDownload(id: number): Promise<void> {
 export async function stopTabRecording(jobId?: string, warning?: string): Promise<void> {
   const job = await getJob();
   if (!job || (jobId !== undefined && job.id !== jobId)) return;
+  // 이미 저장 중이면(중지 연타·단축키 재입력) 첫 중지가 저장을 끝내게 둔다. 취소하면 저장 중인 결과를 잃는다
+  if (job.phase === 'finalizing') return;
   if (job.phase !== 'recording') {
     await cancelRecording(job);
     return;

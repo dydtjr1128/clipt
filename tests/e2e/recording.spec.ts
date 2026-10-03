@@ -165,6 +165,26 @@ test('탭+마이크 설정에서 마이크를 못 쓰면 탭 소리 한 트랙�
   await sendToBackground(both.control, 'job:cancel', {});
 });
 
+test('중지를 연달아 보내도 저장 중인 녹화를 취소하지 않고 결과를 연다', async ({
+  context,
+  openControlWindow,
+}) => {
+  const { control } = await startRecording(context, openControlWindow);
+  await expect
+    .poll(async () => (await offscreenStatus(control)).data?.chunks ?? 0, { timeout: 15_000 })
+    .toBeGreaterThanOrEqual(2);
+  const opened = waitResult(context);
+  // 팝업 중지 더블클릭·단축키 연타와 같다. 두 번째 요청은 저장 중이거나 이미 전이된 상태를 만난다
+  await Promise.all([
+    sendToBackground(control, 'job:stop', {}),
+    sendToBackground(control, 'job:stop', {}),
+  ]);
+  const video = await readVideo(await opened);
+  expect(video.duration).toBeGreaterThan(1);
+  const lastError = await control.evaluate(() => chrome.storage.session.get('lastError'));
+  expect(lastError).toEqual({});
+});
+
 test('서비스 워커를 강제 종료해도 녹화가 계속되고 배지가 유지된다', async ({
   context,
   openControlWindow,
