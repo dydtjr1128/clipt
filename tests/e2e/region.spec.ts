@@ -133,6 +133,34 @@ test('가장자리 자동 스크롤로 뷰포트를 넘는 영역을 선택하�
   expectColor(last, lastBand);
 });
 
+test('영역을 그린 뒤 화면 밖으로 스크롤하고 확정해도 선택한 영역을 캡처한다', async ({
+  context,
+  openControlWindow,
+}) => {
+  const site = await openSite(context, '/blocks');
+  const control = await openControlWindow();
+  const tabId = await tabIdOf(control, `${SITE}/blocks`);
+  await startRegion(control, site, tabId);
+  // #block: left 200, top 150, 240×120. 그린 뒤 휠로 내려 영역을 화면 밖으로 보낸다(선택 상자는 문서 위치를 따라감)
+  await drag(site, [200, 150], [440, 270]);
+  await site.mouse.move(700, 400);
+  await site.mouse.wheel(0, 900);
+  await expect.poll(() => site.evaluate(() => scrollY)).toBeGreaterThan(500);
+  const opened = waitResult(context);
+  await site.keyboard.press('Enter');
+  const result = await opened;
+  const info = await readResult(result);
+  expect({ w: info.width, h: info.height }).toEqual({ w: 240, h: 120 });
+  const samples = await samplePixels(result, [
+    [2, 2],
+    [237, 2],
+    [2, 117],
+    [237, 117],
+    [120, 60],
+  ]);
+  for (const color of samples) expectColor(color, PALETTE.block, 24);
+});
+
 test('Esc를 누르면 즉시 취소되고 오버레이가 남지 않는다', async ({
   context,
   openControlWindow,
