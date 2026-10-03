@@ -1,7 +1,8 @@
 // 녹화 실측: 수동 체크리스트의 "1080p 절반 영역 30fps"와 "장시간 녹화 메모리"를 같은 조건으로 다시 잰다.
 // E2E 빌드(.output/chrome-mv3-e2e)를 쓰므로 먼저 `npm run build:e2e`. CI에서는 돌리지 않는다(화면·시간 필요).
 //   npm run measure:recording -- fps            헤드풀 1920×1200 창, 매 프레임 바뀌는 페이지의 왼쪽 절반 영역 10초 녹화
-//   npm run measure:recording -- memory 10      헤드리스, 탭 녹화 N분(기본 10) 동안 chunk 크기·브라우저 메모리 기록
+//   npm run measure:recording -- memory 10      헤드리스, 탭 녹화 N분(1~59, 기본 10) 동안 chunk 크기·브라우저 메모리 기록
+// 메모리는 같은 Chromium 실행 파일(macOS는 앱 번들 안 Helper 포함)의 프로세스 합계라 측정 중 다른 Playwright 브라우저를 띄우지 않는다.
 // 결과는 표로 출력한다. 소리는 내지 않는다(오디오 없음).
 // page.evaluate 안의 코드는 브라우저에서 실행된다
 /* global chrome, innerWidth, innerHeight, performance, requestAnimationFrame, indexedDB */
@@ -169,11 +170,16 @@ function browserMemoryMB(exe) {
       ]).toString();
       return Number(out.trim()) / 1048576;
     }
-    const out = execFileSync('ps', ['-eo', 'rss=,args=']).toString();
+    // macOS는 renderer·GPU가 앱 번들 안의 Helper 실행 파일로 돈다. 번들 경로로 묶어 센다
+    const marker =
+      process.platform === 'darwin' && exe.includes('.app/')
+        ? `${exe.split('.app/')[0]}.app/`
+        : exe;
+    const out = execFileSync('ps', ['-axo', 'rss=,args=']).toString();
     return (
       out
         .split('\n')
-        .filter((line) => line.includes(exe))
+        .filter((line) => line.includes(marker))
         .reduce((sum, line) => sum + Number(line.trim().split(/\s+/)[0] ?? 0), 0) / 1024
     );
   } catch {
@@ -188,6 +194,7 @@ async function measureMemory(minutes) {
   );
   try {
     const exe = chromium.executablePath();
+    // 최대 길이(60분) 자동 종료와 측정 종료가 겹치지 않게 측정 시간은 59분까지만 받는다
     await settings({
       countdownSeconds: 0,
       audio: 'none',
@@ -212,7 +219,8 @@ async function measureMemory(minutes) {
       });
     console.log('| 시점 | 저장된 chunk | 브라우저 메모리 합계 |\n| --- | ---: | ---: |');
     const t0 = Date.now();
-    const marks = [1, 2, 3, 5, 7, 10, 15, 20, 30, 45, 60].filter((m) => m <= minutes);
+    // 중간 시점과 함께 요청한 종료 시점까지 잰다
+    const marks = [...[1, 2, 3, 5, 7, 10, 15, 20, 30, 45].filter((m) => m < minutes), minutes];
     for (const m of marks) {
       await site.waitForTimeout(Math.max(0, t0 + m * 60_000 - Date.now()));
       console.log(
@@ -238,9 +246,11 @@ async function measureMemory(minutes) {
   }
 }
 
+const minutes = Number(minutesArg ?? 10);
 if (mode === 'fps') await measureFps();
-else if (mode === 'memory') await measureMemory(Number(minutesArg ?? 10));
-else {
-  console.error('사용법: npm run measure:recording -- fps | memory [분]');
+else if (mode === 'memory' && Number.isInteger(minutes) && minutes >= 1 && minutes <= 59) {
+  await measureMemory(minutes);
+} else {
+  console.error('사용법: npm run measure:recording -- fps | memory [1~59분]');
   process.exitCode = 1;
 }

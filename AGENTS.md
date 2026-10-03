@@ -121,7 +121,7 @@
 | `npm run zip` | 스토어 업로드용 `.output/clipt-<version>.zip` 생성 |
 | `npm run check:release` | zip 생성 후 배포 빌드 검사(버전 일치, 아이콘, 로케일 글자 수, host 권한·E2E key·소스맵 없음)와 릴리스 파일 준비(`.output/release/`, 릴리스 노트 확인) |
 | `npm run icons` | `assets/icon.svg` → `public/icon/*.png` (아이콘을 바꿨을 때만) |
-| `npm run measure:recording -- fps` / `-- memory [분]` | 녹화 실측(1080p 절반 영역 프레임레이트, 장시간 녹화 메모리). E2E 빌드 필요, CI에서는 돌리지 않음 |
+| `npm run measure:recording -- fps` / `-- memory [1~59분]` | 녹화 실측(1080p 절반 영역 프레임레이트, 장시간 녹화 메모리). E2E 빌드 필요, CI에서는 돌리지 않음 |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm run format` / `npm run format:check` | Prettier 적용 / 검사 (md·yml 제외) |
