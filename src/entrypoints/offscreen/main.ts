@@ -9,6 +9,7 @@ import {
   setEndedHandler,
   startRecording,
   stopRecording,
+  stopResult,
   updateTrackedRect,
 } from '@/offscreen/recorder';
 
@@ -35,6 +36,7 @@ listen('offscreen', {
     return null;
   },
   'rec:stop': (payload) => stopRecording(payload ?? {}),
+  'rec:result': ({ jobId }) => stopResult(jobId),
   'rec:discard': async () => {
     await discardRecording();
     return null;

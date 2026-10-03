@@ -211,25 +211,53 @@ export function waitForDownload(id: number, timeoutMs = 60_000): Promise<Downloa
 export async function stopTabRecording(jobId?: string, warning?: string): Promise<void> {
   const job = await getJob();
   if (!job || (jobId !== undefined && job.id !== jobId)) return;
-  // 이미 저장 중이면(중지 연타·단축키 재입력) 첫 중지가 저장을 끝내게 둔다. 취소하면 저장 중인 결과를 잃는다
-  if (job.phase === 'finalizing') return;
+  if (job.phase === 'finalizing') {
+    // 이 워커가 저장 중이면(중지 연타·단축키 재입력) 첫 중지가 끝내게 둔다. 취소하면 저장 중인 결과를 잃는다.
+    // 저장 중 서비스 워커가 재기동돼 마무리할 주체가 없으면 저장 결과를 이어 받는다
+    if (!finalizingHere.has(job.id)) await resumeFinalizing(job);
+    return;
+  }
   if (job.phase !== 'recording') {
     await cancelRecording(job);
     return;
   }
   await transitionJob(job.id, 'finalizing');
-  await hideIndicator(job);
-  let resultId: string;
+  await settle(job, () => send('offscreen', 'rec:stop', warning ? { warning } : null), true);
+}
+
+/** 이 서비스 워커 인스턴스가 저장(rec:stop 응답)을 기다리는 작업 */
+const finalizingHere = new Set<string>();
+
+/**
+ * 저장 결과를 받아 마무리한다. 오프스크린이 사라졌거나 저장에 실패하면 작업을 끝내고 사유를 남긴다
+ * (chunk가 남아 있으면 결과 페이지의 복구 배너로 되살릴 수 있다)
+ */
+async function settle(
+  job: Job,
+  save: () => Promise<{ resultId: string }>,
+  hide = false,
+): Promise<void> {
+  finalizingHere.add(job.id);
   try {
-    ({ resultId } = await send('offscreen', 'rec:stop', warning ? { warning } : null));
-  } catch (error) {
-    // 오프스크린이 사라졌거나 저장에 실패하면 작업을 끝내고 사유를 남긴다
-    await endJob(job.id);
-    await recordError(error, job.mode);
-    await closeOffscreen().catch(() => undefined);
-    return;
+    if (hide) await hideIndicator(job);
+    let resultId: string;
+    try {
+      ({ resultId } = await save());
+    } catch (error) {
+      await endJob(job.id);
+      await recordError(error, job.mode);
+      await closeOffscreen().catch(() => undefined);
+      return;
+    }
+    await finishRecording(job, resultId);
+  } finally {
+    finalizingHere.delete(job.id);
   }
-  await finishRecording(job, resultId);
+}
+
+/** 저장 중(finalizing)인데 이 워커가 기다리지 않는 작업: 서비스 워커 재기동 뒤 저장 결과를 이어 받는다 */
+export function resumeFinalizing(job: Job): Promise<void> {
+  return settle(job, () => send('offscreen', 'rec:result', { jobId: job.id }));
 }
 
 /** 결과 저장 후 공통 마무리: 작업 종료 → 배출 → 오프스크린 닫기 */

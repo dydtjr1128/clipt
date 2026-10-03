@@ -172,6 +172,7 @@ type Job = {
 | `job:pause` / `job:resume {jobId?}` | popup → SW | 녹화 일시정지·재개 (9.1절) |
 | `rec:ended {jobId, resultId, error?}` | OS → SW | 탭 닫힘·최대 길이·인코더/저장 오류 등으로 녹화가 스스로 끝남. 저장하지 못했으면 `resultId: null`과 `error` |
 | `rec:start` / `rec:pause` / `rec:resume` / `rec:stop` / `rec:discard` / `rec:status` | SW → OS | 녹화 제어 (9.1절) |
+| `rec:result {jobId}` | SW → OS | 진행 중이거나 끝난 마지막 저장의 결과. 저장 중 재기동한 서비스 워커가 이어 받는다 (9.5절) |
 | `result:objectUrl {resultId}` | SW → OS | 결과 Blob URL (다운로드용) |
 | `content:ping` | SW → CS | 콘텐츠 스크립트 주입 여부 확인 |
 | `page:probe` | SW → CS | 뷰포트·스크롤·`scrollHeight`·DPR·내부 스크롤 여부 |
@@ -361,6 +362,7 @@ select:done(target: x 뷰포트, y 문서) → core/crop.ts normalizeCrop: 녹�
 ### 9.5 종료 조건과 복구
 
 - 종료: 팝업 중지, 위젯 중지, 단축키 토글, 최대 시간 도달, 대상 탭 닫힘, 스트림 `ended`, 인코더 오류, chunk 저장 실패.
+- 저장 중 중지 재요청: 같은 서비스 워커가 저장(`rec:stop` 응답)을 기다리는 동안의 `job:stop`·녹화 토글은 무시한다. 저장 중 서비스 워커가 재기동되면 응답을 잃으므로, 새 워커는 기동 시 남은 `finalizing` 작업(오프스크린이 살아 있으면 유지)을 `rec:result`로 이어 받아 마무리한다. 이어 받을 저장이 없으면 작업을 끝내고 사유를 남긴다.
 - 탭 내비게이션: 탭 모드는 계속 녹화(탭 캡처는 문서 교체 후에도 유지). 영역·요소 모드는 레이아웃이 바뀌므로 중지 후 "페이지가 이동해 녹화를 마쳤어요" 안내.
 - 복구(`shared/recover.ts`): 진행 중인 작업이 아닌 녹화의 chunk가 남아 있으면 결과 페이지가 배너로 복구·삭제를 제안한다. 복구는 chunk를 합쳐 결과로 저장하고(길이는 chunk 수로 어림, `warnings: recovered`) 그 결과 페이지로 이동한다.
 

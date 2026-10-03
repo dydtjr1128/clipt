@@ -163,6 +163,14 @@ describe('녹화 종료', () => {
     expect(await result?.blob.text()).toBe('a');
   });
 
+  it('저장 중 재기동한 서비스 워커는 같은 작업의 저장 결과를 다시 받을 수 있다', async () => {
+    const { recorder, media } = await start('resume');
+    media.emit('a');
+    const stopped = recorder.stopRecording();
+    await expect(recorder.stopResult('resume')).resolves.toEqual(await stopped);
+    await expect(recorder.stopResult('other')).rejects.toMatchObject({ code: 'NO_JOB' });
+  });
+
   it('인코더 오류가 나면 그때까지 저장하고 결과와 함께 종료를 알린다', async () => {
     const { ended, media } = await start('encoder-error');
     media.emit('a');

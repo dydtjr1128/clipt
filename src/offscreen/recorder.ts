@@ -313,16 +313,35 @@ function release(current: Session): Promise<void> {
 }
 
 /** 녹화를 끝내고 결과를 저장한다 */
-export async function stopRecording(
-  options: { warning?: string } = {},
-): Promise<{ resultId: string }> {
+export function stopRecording(options: { warning?: string } = {}): Promise<{ resultId: string }> {
   const current = session;
-  if (!current) throw new CliptError('NO_JOB', 'not recording');
+  if (!current) return Promise.reject(new CliptError('NO_JOB', 'not recording'));
   session = null;
   if (options.warning && !current.warnings.includes(options.warning)) {
     current.warnings.push(options.warning);
   }
+  const done = finalize(current, options);
+  lastStop = { jobId: current.options.jobId, done };
+  return done;
+}
 
+/**
+ * 마지막 중지(저장)의 결과. 저장 중에 서비스 워커가 재기동되면 rec:stop 응답을 잃으므로
+ * 새 워커가 이것으로 저장 결과를 이어 받는다
+ */
+let lastStop: { jobId: string; done: Promise<{ resultId: string }> } | null = null;
+
+export function stopResult(jobId: string): Promise<{ resultId: string }> {
+  if (lastStop?.jobId !== jobId) {
+    return Promise.reject(new CliptError('NO_JOB', 'no stop in progress for this job'));
+  }
+  return lastStop.done;
+}
+
+async function finalize(
+  current: Session,
+  options: { warning?: string },
+): Promise<{ resultId: string }> {
   try {
     // 사용자가 시작 직후 중지했는데 아직 데이터가 없으면 첫 데이터까지 잠깐 더 녹화한다.
     // 자동 종료(레이아웃 변경 등)는 화면이 이미 바뀌었을 수 있어 기다리지 않는다
