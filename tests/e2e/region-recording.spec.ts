@@ -219,6 +219,32 @@ test('영역 녹화 중 창 크기가 바뀌어 화면 비율이 달라지면 �
   await expect.poll(() => job(control)).toBeNull();
 });
 
+test('카운트다운 중 창 크기가 바뀌면 녹화를 시작하지 않고 사유를 남긴다', async ({
+  context,
+  openControlWindow,
+}) => {
+  const { site, control, tabId } = await openSite(context, openControlWindow);
+  await control.evaluate(() =>
+    chrome.storage.sync.set({ settings: { record: { countdownSeconds: 5 } } }),
+  );
+  await sendToBackground(control, 'job:start', { mode: 'rec-region', tabId });
+  await dragRegion(site, [100, 100], [400, 300]);
+  await expect(site.locator('clipt-overlay [role="timer"]')).toBeVisible();
+  expect((await job(control))?.phase).toBe('countdown');
+
+  await control.evaluate(async (tabId) => {
+    const tab = await chrome.tabs.get(tabId);
+    await chrome.windows.update(tab.windowId, { width: 700, height: 800 });
+  }, tabId);
+  await expect.poll(() => job(control), { timeout: 10_000 }).toBeNull();
+  await expect(site.locator('clipt-overlay')).toHaveCount(0);
+  const stored = await control.evaluate(() => chrome.storage.session.get('lastError'));
+  expect((stored.lastError as { code: string }).code).toBe('LAYOUT_CHANGED');
+  // 녹화 결과도 만들지 않는다
+  await sleep(1000);
+  expect(context.pages().some((p) => p.url().includes('/result.html'))).toBe(false);
+});
+
 test.describe('1080p', () => {
   test.use({ windowSize: [1920, 1200] });
 

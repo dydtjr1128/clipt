@@ -5,6 +5,7 @@ import { expectColor } from './result';
 import { PALETTE } from './site';
 import {
   CORNERS,
+  chunksOf,
   jobOf,
   readVideo,
   resultMeta,
@@ -116,6 +117,36 @@ for (const indicator of ['border', 'widget'] as const) {
     await expect(site.locator('clipt-overlay')).toHaveCount(0);
   });
 }
+
+test('영역 녹화 중 위젯을 녹화 영역 위로 끌어도 영역 밖에 남아 영상에 찍히지 않는다', async ({
+  context,
+  openControlWindow,
+}) => {
+  const { site, control, tabId } = await open(context, openControlWindow, '/blocks', {
+    record: { countdownSeconds: 0, indicator: 'widget' },
+  });
+  await sendToBackground(control, 'job:start', { mode: 'rec-region', tabId });
+  await selectBlockRegion(site); // 200,150 240×120
+  await waitRecording(control, 1);
+  const widget = site.locator('clipt-overlay .rec-widget');
+  await expect(widget).toBeVisible();
+  const start = (await widget.boundingBox())!;
+  // 위젯의 시간 표시를 잡고 녹화 영역 한가운데로 끈다
+  await site.mouse.move(start.x + 40, start.y + start.height / 2);
+  await site.mouse.down();
+  await site.mouse.move(320, 210, { steps: 12 });
+  await site.mouse.up();
+  const box = (await widget.boundingBox())!;
+  const apart = box.x > 440 || box.x + box.width < 200 || box.y > 270 || box.y + box.height < 150;
+  expect(apart).toBe(true);
+
+  const before = await chunksOf(control);
+  await expect.poll(() => chunksOf(control), { timeout: 15_000 }).toBeGreaterThan(before);
+  const opened = waitResult(context);
+  await sendToBackground(control, 'job:stop', {});
+  const video = await readVideo(await opened, CORNERS, 'end', { width: 240, height: 120 });
+  for (const color of video.pixels) expectColor(color, PALETTE.block, 24);
+});
 
 test('위젯으로 일시정지·재개하면 타이머와 영상 길이가 일치한다', async ({
   context,

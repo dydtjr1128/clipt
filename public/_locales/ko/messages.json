@@ -155,6 +155,10 @@
     "message": "이전 작업이 중단됐어요. 다시 시도해 주세요.",
     "description": "작업 중단 오류"
   },
+  "errorLayoutChanged": {
+    "message": "화면 크기가 바뀌어 녹화를 시작하지 않았어요. 다시 선택해 주세요.",
+    "description": "카운트다운 중 화면 크기 변경 오류"
+  },
   "errorGeneric": {
     "message": "작업을 완료하지 못했어요. 다시 시도해 주세요.",
     "description": "일반 오류"

@@ -1,5 +1,6 @@
 import type { NormalizedRect } from '@/core/crop';
 import { watchTrackedBox } from './tracker';
+import { boxesOverlap } from '@/core/geometry';
 import { recordedMs } from '@/core/job';
 import { formatElapsed } from '@/core/time';
 import { t } from '@/shared/i18n';
@@ -139,6 +140,9 @@ export function showIndicator(options: IndicatorOptions): void {
       const move = (e: PointerEvent) => {
         const left = Math.min(Math.max(4, e.clientX - grab.x), innerWidth - rect.width - 4);
         const top = Math.min(Math.max(4, e.clientY - grab.y), innerHeight - rect.height - 4);
+        // 영역·요소 녹화에서는 녹화 범위와 겹치는 위치로 옮기지 않는다(영상에 찍힘)
+        const next = { left, top, right: left + rect.width, bottom: top + rect.height };
+        if (crop && boxesOverlap(next, crop, GAP + BORDER + 2)) return;
         Object.assign(widget.style, { left: `${left}px`, top: `${top}px` });
       };
       const up = () => {
@@ -176,13 +180,7 @@ export function showIndicator(options: IndicatorOptions): void {
     }
     first = false;
     if (!widgetBox) return;
-    const w = widgetBox.getBoundingClientRect();
-    const pad = GAP + BORDER + 2;
-    const overlaps =
-      w.right > box.left - pad &&
-      w.left < box.right + pad &&
-      w.bottom > box.top - pad &&
-      w.top < box.bottom + pad;
+    const overlaps = boxesOverlap(widgetBox.getBoundingClientRect(), box, GAP + BORDER + 2);
     if (!overlaps && !widgetBox.hidden) return;
     const pos = placeWidget(box, { w: innerWidth, h: innerHeight });
     widgetBox.hidden = !pos;

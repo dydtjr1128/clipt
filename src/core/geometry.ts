@@ -11,3 +11,21 @@ export interface Rect<U extends Unit = Unit> {
   h: number;
   unit: U;
 }
+
+/** 화면 사각형(뷰포트 CSS px, 모서리 좌표) */
+export interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** 두 사각형이 겹치는지. pad만큼 b를 넓혀 본다(테두리·반올림 여유) */
+export function boxesOverlap(a: Box, b: Box, pad = 0): boolean {
+  return (
+    a.right > b.left - pad &&
+    a.left < b.right + pad &&
+    a.bottom > b.top - pad &&
+    a.top < b.bottom + pad
+  );
+}
