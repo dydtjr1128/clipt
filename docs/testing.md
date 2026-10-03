@@ -18,7 +18,7 @@ CI(`.github/workflows/ci.yml`)는 PR과 main 푸시마다 정적 검사·단위 
 | 모듈 | 확인하는 것 |
 | --- | --- |
 | `core/stitch-plan` | 조각 합 = 대상 높이, 겹침 없음, 최대 스크롤에서 남은 부분만, 캔버스 한계 축소, 소수 DPR 이음새 |
-| `core/region`, `core/crop` | 드래그·핸들·경계 제한, 뷰포트 비율 크롭, 짝수 정렬, 화면 비율 변화 |
+| `core/region`, `core/crop` | 드래그·핸들·경계 제한, 뷰포트 비율 크롭, 짝수 정렬, 화면 비율 변화, 최소 출력 크기 여백 |
 | `core/element-path` | 경로 생성, 깊이 왕복, 형제 이동, 표시 이름 |
 | `core/job`, `background/jobs` | 단계 전이, 동시 시작 방지, 서비스 워커 재기동 복원, 제한 페이지 거부 |
 | `core/settings` | 기본값 병합, 값 검증, 버전 마이그레이션 |

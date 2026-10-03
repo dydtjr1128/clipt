@@ -157,6 +157,10 @@ body,
 video.result-media {
   max-width: 100%;
   max-height: 100%;
+  /* 가는 영상이 좁은 창에서 줄어들어도 재생 컨트롤(아래쪽 약 70px)이 가운데 내용을 덮지 않게
+     표시 높이를 최소 출력 크기(core/crop.ts MIN_OUTPUT_SIDE)만큼 두고 남는 곳은 contain 여백으로 둔다 */
+  min-height: 160px;
+  object-fit: contain;
   background: #000;
 }
 

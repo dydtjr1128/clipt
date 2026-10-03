@@ -51,18 +51,22 @@ export function waitResult(context: BrowserContext, timeout = 30_000): Promise<P
   });
 }
 
-/** 결과 영상의 길이·크기와 프레임 픽셀(비율 좌표). at이 'end'면 끝나기 직전 프레임, 기본은 첫 프레임 */
+/**
+ * 결과 영상의 길이·크기와 프레임 픽셀(비율 좌표). at이 'end'면 끝나기 직전 프레임, 기본은 첫 프레임.
+ * content(px)를 주면 비율 좌표를 영상 가운데 놓인 그 크기의 내용 영역 기준으로 읽는다(최소 출력 크기 여백)
+ */
 export async function readVideo(
   result: Page,
   points: [number, number][] = [],
   at: 'start' | 'end' = 'start',
+  content?: { width: number; height: number },
 ) {
   const video = result.locator('video.result-media');
   await expect
     .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState), { timeout: 15_000 })
     .toBeGreaterThanOrEqual(1);
   return video.evaluate(
-    async (v: HTMLVideoElement, { points, at }) => {
+    async (v: HTMLVideoElement, { points, at, content }) => {
       v.muted = true;
       await new Promise<void>((resolve) => {
         v.addEventListener('seeked', () => resolve(), { once: true });
@@ -71,18 +75,21 @@ export async function readVideo(
       const c = new OffscreenCanvas(v.videoWidth, v.videoHeight);
       const ctx = c.getContext('2d')!;
       ctx.drawImage(v, 0, 0);
+      const box = content ?? { width: v.videoWidth, height: v.videoHeight };
+      const left = (v.videoWidth - box.width) / 2;
+      const top = (v.videoHeight - box.height) / 2;
       return {
         duration: v.duration,
         width: v.videoWidth,
         height: v.videoHeight,
         pixels: points.map(([x, y]) => [
           ...ctx
-            .getImageData(Math.round(x * v.videoWidth), Math.round(y * v.videoHeight), 1, 1)
+            .getImageData(Math.round(left + x * box.width), Math.round(top + y * box.height), 1, 1)
             .data.slice(0, 3),
         ]),
       };
     },
-    { points, at },
+    { points, at, content },
   );
 }
 
