@@ -32,6 +32,13 @@ describe('handleCommand', () => {
     expect(a.start).toHaveBeenCalledWith('region', 7);
   });
 
+  it('저장 중(finalizing)에는 녹화 토글 키를 무시한다', async () => {
+    const a = setup(job('rec-tab', 'finalizing'));
+    expect(await handleCommand('toggle-recording', 1, a)).toBe('ignored');
+    expect(a.stop).not.toHaveBeenCalled();
+    expect(a.cancel).not.toHaveBeenCalled();
+  });
+
   it('녹화 중 토글 키는 저장하고 중지한다(영역·요소 녹화 포함)', async () => {
     const a = setup(job('rec-region', 'recording'));
     expect(await handleCommand('toggle-recording', 1, a)).toBe('stopped');

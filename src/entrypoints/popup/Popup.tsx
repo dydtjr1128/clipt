@@ -318,6 +318,8 @@ function mediaSummary(media: NonNullable<Job['media']>): string {
 
 function RecordingView({ job, shortcuts }: { job: Job; shortcuts: Map<string, string> }) {
   const recording = job.phase === 'recording' && job.startedAt !== undefined;
+  // 저장 중에는 중지·일시정지를 막는다(다시 누르면 저장 중인 결과를 잃을 수 있음)
+  const saving = job.phase === 'finalizing';
   const paused = recording && job.pausedAt !== undefined;
   const now = useNow(1000, recording && !paused);
   const modeLabel = t(REC_MODE_LABEL[job.mode] ?? 'modeTab');
@@ -329,7 +331,7 @@ function RecordingView({ job, shortcuts }: { job: Job; shortcuts: Map<string, st
         <span class="rec-dot" aria-hidden="true">
           {'●'}
         </span>{' '}
-        {recording ? t('recordingTitle', modeLabel) : t('countdownTitle')}
+        {saving ? t('recSaving') : recording ? t('recordingTitle', modeLabel) : t('countdownTitle')}
       </h2>
       {recording && (
         <p class={`rec-timer${paused ? ' is-paused' : ''}`} role="timer" aria-live="off">
@@ -362,6 +364,7 @@ function RecordingView({ job, shortcuts }: { job: Job; shortcuts: Map<string, st
         <button
           type="button"
           class="button button-rec"
+          disabled={saving}
           onClick={() => void send('background', 'job:stop', { jobId: job.id })}
         >
           <span aria-hidden="true">{'■'}</span> {t('recStop')}

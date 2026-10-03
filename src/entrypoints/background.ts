@@ -13,6 +13,7 @@ import { onSelectionCancelled, onSelectionDone } from '@/background/pipelines/se
 import {
   cancelRecording,
   finishRecording,
+  resumeFinalizing,
   onPageResized,
   onTabNavigating,
   pauseRecording,
@@ -119,6 +120,9 @@ export default defineBackground(() => {
     if (info.status === 'loading') void onTabNavigating(tabId);
   });
 
-  void restoreJob();
+  // 저장 중에 재기동했으면 오프스크린의 저장 결과를 이어 받아 마무리한다
+  void restoreJob().then(({ job, action }) => {
+    if (job?.phase === 'finalizing' && action === 'keep') void resumeFinalizing(job);
+  });
   void pruneResults().catch(() => undefined);
 });

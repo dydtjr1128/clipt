@@ -119,6 +119,10 @@
     "message": "곧 녹화를 시작해요",
     "description": "카운트다운 중"
   },
+  "recSaving": {
+    "message": "녹화를 저장하는 중이에요",
+    "description": "녹화 저장 중 팝업 제목"
+  },
   "recordingTitle": {
     "message": "녹화 중 · $1",
     "description": "녹화 중 제목. $1은 모드 이름"

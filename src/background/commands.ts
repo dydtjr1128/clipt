@@ -28,8 +28,9 @@ export async function handleCommand(
   const job = await actions.getJob();
 
   if (job) {
-    // 녹화 토글: 녹화 중이면 저장하고 끝낸다. 시작 준비 중이면 취소한다
+    // 녹화 토글: 녹화 중이면 저장하고 끝낸다. 시작 준비 중이면 취소한다. 저장 중이면 그대로 둔다
     if (command === 'toggle-recording' && isRecordMode(job.mode)) {
+      if (job.phase === 'finalizing') return 'ignored';
       if (job.phase === 'recording') {
         await actions.stop(job.id);
         return 'stopped';

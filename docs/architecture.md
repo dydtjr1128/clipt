@@ -172,6 +172,7 @@ type Job = {
 | `job:pause` / `job:resume {jobId?}` | popup → SW | 녹화 일시정지·재개 (9.1절) |
 | `rec:ended {jobId, resultId, error?}` | OS → SW | 탭 닫힘·최대 길이·인코더/저장 오류 등으로 녹화가 스스로 끝남. 저장하지 못했으면 `resultId: null`과 `error` |
 | `rec:start` / `rec:pause` / `rec:resume` / `rec:stop` / `rec:discard` / `rec:status` | SW → OS | 녹화 제어 (9.1절) |
+| `rec:result {jobId}` | SW → OS | 진행 중이거나 끝난 마지막 저장의 결과. 저장 중 재기동한 서비스 워커가 이어 받는다 (9.5절) |
 | `result:objectUrl {resultId}` | SW → OS | 결과 Blob URL (다운로드용) |
 | `content:ping` | SW → CS | 콘텐츠 스크립트 주입 여부 확인 |
 | `page:probe` | SW → CS | 뷰포트·스크롤·`scrollHeight`·DPR·내부 스크롤 여부 |
@@ -361,6 +362,7 @@ select:done(target: x 뷰포트, y 문서) → core/crop.ts normalizeCrop: 녹�
 ### 9.5 종료 조건과 복구
 
 - 종료: 팝업 중지, 위젯 중지, 단축키 토글, 최대 시간 도달, 대상 탭 닫힘, 스트림 `ended`, 인코더 오류, chunk 저장 실패.
+- 저장 중 중지 재요청: 같은 서비스 워커가 저장(`rec:stop` 응답)을 기다리는 동안의 `job:stop`·녹화 토글은 무시한다. 저장 중 서비스 워커가 재기동되면 응답을 잃으므로, 새 워커는 기동 시 남은 `finalizing` 작업(오프스크린이 살아 있으면 유지)을 `rec:result`로 이어 받아 마무리한다. 이어 받을 저장이 없으면 작업을 끝내고 사유를 남긴다.
 - 탭 내비게이션: 탭 모드는 계속 녹화(탭 캡처는 문서 교체 후에도 유지). 영역·요소 모드는 레이아웃이 바뀌므로 중지 후 "페이지가 이동해 녹화를 마쳤어요" 안내.
 - 복구(`shared/recover.ts`): 진행 중인 작업이 아닌 녹화의 chunk가 남아 있으면 결과 페이지가 배너로 복구·삭제를 제안한다. 복구는 chunk를 합쳐 결과로 저장하고(길이는 chunk 수로 어림, `warnings: recovered`) 그 결과 페이지로 이동한다.
 
@@ -475,7 +477,7 @@ type Settings = {
 "permissions": ["activeTab", "scripting", "tabCapture", "offscreen", "storage", "downloads", "clipboardWrite"]
 ```
 
-**단축키** (`core/menu.ts`, `background/commands.ts`): 메뉴 항목마다 명령 하나(`capture-visible`, `capture-fullpage`, `capture-element`, `capture-region`, `toggle-recording`, `record-region`, `record-element`). Chrome은 기본 키를 4개까지만 허용하므로 보이는 화면 `Alt+Shift+1`, 영역 `Alt+Shift+2`, 요소 `Alt+Shift+3`, 녹화 토글 `Alt+Shift+4`만 제안하고 나머지는 사용자가 `chrome://extensions/shortcuts`에서 지정한다(`Alt+Shift+R`은 Chrome이 받아들이지 않아 쓰지 않는다). 명령은 팝업 클릭과 같은 진입 함수로 시작하며, 녹화 중 토글 키는 저장 후 중지, 카운트다운 중이면 취소, 선택 중 같은 키를 다시 누르면 취소, 그 밖에 작업이 있으면 무시한다. 제한 페이지 등으로 시작하지 못하면 배지 `!`와 다음 팝업의 알림으로 알린다.
+**단축키** (`core/menu.ts`, `background/commands.ts`): 메뉴 항목마다 명령 하나(`capture-visible`, `capture-fullpage`, `capture-element`, `capture-region`, `toggle-recording`, `record-region`, `record-element`). Chrome은 기본 키를 4개까지만 허용하므로 보이는 화면 `Alt+Shift+1`, 영역 `Alt+Shift+2`, 요소 `Alt+Shift+3`, 녹화 토글 `Alt+Shift+4`만 제안하고 나머지는 사용자가 `chrome://extensions/shortcuts`에서 지정한다(`Alt+Shift+R`은 Chrome이 받아들이지 않아 쓰지 않는다). 명령은 팝업 클릭과 같은 진입 함수로 시작하며, 녹화 중 토글 키는 저장 후 중지, 카운트다운 중이면 취소, 저장 중(`finalizing`)이면 무시, 선택 중 같은 키를 다시 누르면 취소, 그 밖에 작업이 있으면 무시한다. `job:stop`도 저장 중에는 무시한다(중지 연타로 저장 중인 결과를 취소하지 않게). 제한 페이지 등으로 시작하지 못하면 배지 `!`와 다음 팝업의 알림으로 알린다.
 
 `host_permissions` 없음. 권한별 사용 사유와 activeTab 부여 조건은 [docs/store/permissions.md](store/permissions.md). 탭 접근은 `background/access.ts`의 `checkTab`이 URL 판정(`core/restricted.ts`) 후 실제 주입 가능 여부로 확인하고, 제한 페이지면 `job:start`가 `RESTRICTED_PAGE`(사유 `browser`·`webstore`·`file`·`unsupported`·`no-access`)로 거부한다. 확장은 `tabs` 권한이 없어 activeTab이 없는 탭(`chrome://` 포함)의 URL을 읽지 못하며 이 경우 `no-access`다. 마이크는 manifest 권한이 아니라 사이트 권한 프롬프트(권한 페이지)로 처리. 
 
