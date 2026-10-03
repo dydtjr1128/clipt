@@ -23,6 +23,26 @@ describe('selectExpired', () => {
     expect(selectExpired(items, now, policy)).toEqual(['a']);
   });
 
+  it('가장 최근 결과는 혼자 용량 한도를 넘어도 지우지 않는다(긴 녹화)', () => {
+    const now = 100 * HOUR;
+    expect(selectExpired([{ id: 'big', createdAt: now - 1, bytes: 501 }], now, policy)).toEqual([]);
+    const items = [
+      { id: 'older', createdAt: now - 10, bytes: 30 },
+      { id: 'big', createdAt: now - 1, bytes: 501 },
+    ];
+    expect(selectExpired(items, now, policy)).toEqual(['older']);
+  });
+
+  it('keep으로 넘긴 결과는 기간·용량과 관계없이 남긴다', () => {
+    const now = 100 * HOUR;
+    const items = [
+      { id: 'viewing', createdAt: now - 30 * HOUR, bytes: 80 },
+      { id: 'newer', createdAt: now - 1 * HOUR, bytes: 80 },
+    ];
+    expect(selectExpired(items, now, policy, ['viewing'])).toEqual([]);
+    expect(selectExpired(items, now, policy)).toEqual(['viewing']);
+  });
+
   it('한도 안이면 아무것도 고르지 않는다', () => {
     expect(selectExpired([{ id: 'x', createdAt: 0, bytes: 10 }], 1, policy)).toEqual([]);
   });
