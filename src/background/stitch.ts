@@ -75,9 +75,10 @@ export async function stitchCapture(
       // 고정 헤더 등이 반복해서(요소 캡처면 요소 위에) 찍히지 않도록 숨긴다
       const hideNow = index === hideFixedFrom;
       if (hideNow) await sendToTab(job.tabId, 'page:hideFixed', null);
-      // 스크롤하거나 스타일을 바꿨으면 렌더가 안정될 때까지 기다린다
+      // 스크롤하거나 스타일을 바꿨으면 렌더가 안정될 때까지 기다린다. 조각이 하나여도 계획한 위치가 지금과 다르면
+      // (영역을 그린 뒤 화면 밖으로 스크롤) 스크롤해야 한다. 자를 위치는 응답받은 실제 위치로 계산한다
       const scrollY =
-        multi || hideNow
+        multi || hideNow || piece.scrollY !== page.scroll.y
           ? await sendToTab(job.tabId, 'page:scrollTo', {
               y: piece.scrollY,
               lazyWaitMs: settings.fullpage.lazyWaitMs,

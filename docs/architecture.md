@@ -227,7 +227,7 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 2. 계획(`planStitch`): 대상이 지금 화면 안에 다 들어오면 스크롤 없이 한 조각. 아니면 대상 위쪽부터 뷰포트 높이씩 나누되 스크롤은 최대 스크롤 위치에서 멈추고, 그 화면에 보이는 남은 부분만 붙인다. 조각 높이 합 = 대상 높이, 겹침 없음.
 3. 캔버스 한계(Chrome: 한 변 32767px, 면적 16384²)를 넘으면 계획 단계에서 축소 배율을 정하고 결과 메타 `scaled`에 기록한다.
 4. `page:prepare`: 스크롤 위치·`scroll-behavior`를 기억하고 조각이 여러 개면 스크롤바를 숨긴다. 두 번째 조각부터 `page:hideFixed`로 `position: fixed|sticky` 요소를 `visibility: hidden`(레이아웃 유지)으로 숨겨 고정 헤더가 한 번만 나오게 한다.
-5. 조각마다 `page:scrollTo` → 콘텐츠는 `scrollTo(behavior: instant)` 후 2프레임 대기, 뷰포트 안 미완료 이미지를 `decode`로 기다리고(최대 `lazyWaitMs`) 다시 2프레임 뒤 **실제 scrollY**를 돌려준다. 자를 위치는 요청값이 아니라 실제 위치로 계산한다.
+5. 조각마다(조각이 하나라도 계획한 스크롤 위치가 지금과 다르면, 예: 영역을 그린 뒤 화면 밖으로 스크롤) `page:scrollTo` → 콘텐츠는 `scrollTo(behavior: instant)` 후 2프레임 대기, 뷰포트 안 미완료 이미지를 `decode`로 기다리고(최대 `lazyWaitMs`) 다시 2프레임 뒤 **실제 scrollY**를 돌려준다. 자를 위치는 요청값이 아니라 실제 위치로 계산한다.
 6. `captureShot`(초당 2회 제한용 550ms 간격 큐) → 서비스 워커의 `OffscreenCanvas`에 `drawImage`. 이웃 조각 경계는 같은 반올림으로 계산해 소수 DPR에서도 틈·겹침이 없다(`pieceRects`). 이미지를 다른 컨텍스트로 보내지 않아도 돼 오프스크린 문서를 쓰지 않는다.
 7. 끝나거나 실패·취소되면 `page:restore`로 숨긴 요소·스크롤바·스크롤 위치·인라인 스타일을 원래대로 되돌린다(원래 없던 `style`·`class` 속성은 지운다).
 8. 진행률은 `job.progress`(배지 `3/12`, 팝업 진행 바). 페이지에서 Esc를 누르거나 팝업에서 취소하면 다음 조각 전에 멈춘다. 캡처 중에는 페이지에 토스트를 띄우지 않는다(결과에 찍히므로).
