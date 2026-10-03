@@ -33,17 +33,18 @@ test('배포 빌드 manifest에는 host 권한이 없고 툴바 클릭으로 탭
     host_permissions?: string[];
   };
   expect(manifest.host_permissions ?? []).toEqual([]);
+  const url = `${SITE}/blocks?t=grant`;
   const site = await openSite(context, '/blocks?t=grant');
-  const urlBefore = await serviceWorker.evaluate(
-    async () => (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0]?.url,
-  );
-  expect(urlBefore).toBeUndefined(); // activeTab 전에는 탭 URL을 읽지 못한다
+  // 모든 탭 중 대상 URL을 읽을 수 있는지 본다(창 포커스와 무관하게)
+  const readable = () =>
+    serviceWorker.evaluate(
+      async (url) => (await chrome.tabs.query({})).some((tab) => tab.url === url),
+      url,
+    );
+  expect(await readable()).toBe(false); // activeTab 전에는 탭 URL을 읽지 못한다
   const popup = await clickToolbar(context, site, extensionId);
   await popup.waitFor("document.querySelectorAll('.menu-item:not([disabled])').length === 7");
-  const urlAfter = await serviceWorker.evaluate(
-    async () => (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0]?.url,
-  );
-  expect(urlAfter).toBe(`${SITE}/blocks?t=grant`);
+  expect(await readable()).toBe(true);
 });
 
 test('툴바 팝업에서 보이는 화면을 캡처한다', async ({ context, extensionId }) => {
