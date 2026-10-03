@@ -9,7 +9,7 @@
 | 항목 | 프로젝트 값 또는 기준 문서 |
 | --- | --- |
 | 목적과 주요 사용 흐름 | 웹페이지를 원하는 범위만큼 캡처·녹화하는 Chrome 확장(Manifest V3). 기능 범위와 사용 흐름은 [README.md](README.md) |
-| 실행·배포 환경과 지원 런타임 | Chrome 116 이상([INSTALL.md](INSTALL.md)). 개발·CI는 Node 22 |
+| 실행·배포 환경과 지원 런타임 | Chrome 116 이상([INSTALL.md](INSTALL.md)). CI는 Node 22([ci.yml](.github/workflows/ci.yml)), `engines` 고정 없음 |
 | 주요 소스·테스트 위치 | 아래 `디렉터리` 절. 테스트 역할 분담은 [docs/testing.md](docs/testing.md) |
 | 구조·동작 규칙의 담당 문서 | [docs/architecture.md](docs/architecture.md)(구조·파이프라인·설정 스키마), [docs/ux-design.md](docs/ux-design.md)(화면·상호작용·문구) |
 | 생성 파일·사용자 데이터 위치와 편집 제한 | `.output/`·`.wxt/`·`test-results/`는 생성물로 직접 편집·커밋하지 않음. 캡처·녹화 결과물과 테스트 산출물은 커밋하지 않음 |
