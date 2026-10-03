@@ -93,7 +93,8 @@ export interface Protocol {
     'rec:pause': (payload: null) => null;
     'rec:resume': (payload: null) => null;
     /** 녹화 종료·결과 저장 */
-    'rec:stop': (payload: { warning?: string } | null) => { resultId: string };
+    /** 녹화 종료·결과 저장. jobId가 같으면 이미 진행 중인 저장(자동 종료)의 결과를 돌려준다 */
+    'rec:stop': (payload: { warning?: string; jobId?: string } | null) => { resultId: string };
     /** 진행 중이거나 끝난 마지막 저장의 결과. 저장 중 재기동한 서비스 워커가 이어 받는다 */
     'rec:result': (payload: { jobId: string }) => { resultId: string };
     /** 녹화 버림(취소) */

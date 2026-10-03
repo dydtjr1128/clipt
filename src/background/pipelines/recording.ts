@@ -222,7 +222,11 @@ export async function stopTabRecording(jobId?: string, warning?: string): Promis
     return;
   }
   await transitionJob(job.id, 'finalizing');
-  await settle(job, () => send('offscreen', 'rec:stop', warning ? { warning } : null), true);
+  await settle(
+    job,
+    () => send('offscreen', 'rec:stop', { jobId: job.id, ...(warning ? { warning } : {}) }),
+    true,
+  );
 }
 
 /** 이 서비스 워커 인스턴스가 저장(rec:stop 응답)을 기다리는 작업 */
@@ -262,7 +266,8 @@ export function resumeFinalizing(job: Job): Promise<void> {
 
 /** 결과 저장 후 공통 마무리: 작업 종료 → 배출 → 오프스크린 닫기 */
 export async function finishRecording(job: Job, resultId: string | null): Promise<void> {
-  await endJob(job.id);
+  // 자동 종료(rec:ended)와 사용자 중지(rec:stop 응답)가 겹치면 둘 다 여기로 온다. 작업을 실제로 끝낸 쪽만 마무리한다
+  if (!(await endJob(job.id))) return;
   await hideIndicator(job);
   try {
     if (resultId) await emitRecording(job, resultId, await loadSettings());
