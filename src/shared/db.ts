@@ -107,13 +107,14 @@ export async function deleteResults(ids: readonly string[]): Promise<void> {
   ]);
 }
 
-/** 보존 정책을 넘은 결과를 삭제하고 삭제한 id를 반환한다 */
+/** 보존 정책을 넘은 결과를 삭제하고 삭제한 id를 반환한다. keep은 지우지 않는다(지금 열려 있는 결과) */
 export async function pruneResults(
   now: number = Date.now(),
   policy: RetentionPolicy = DEFAULT_RETENTION,
+  keep: readonly string[] = [],
 ): Promise<string[]> {
   const metas = await (await db()).getAll('results');
-  const expired = selectExpired(metas, now, policy);
+  const expired = selectExpired(metas, now, policy, keep);
   await deleteResults(expired);
   return expired;
 }

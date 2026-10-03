@@ -408,7 +408,7 @@ OS: 프레임마다 최신 위치로 trackedDraw → OffscreenCanvas(고정 크�
 | `chunks` | `[jobId, seq]` | `Blob` | 녹화 중 임시. 병합 후 삭제 |
 
 - 구현: `shared/db.ts`(`saveResult`, `loadResult`, `deleteResults`, `pruneResults`, `appendChunk`, `readChunks`, `deleteChunks`, `listChunkJobIds`). 확장 페이지와 오프스크린 문서가 같은 origin이라 같은 DB를 공유한다.
-- 보존: 결과는 24시간 또는 총 500MB 초과 시 오래된 것부터 삭제(`core/retention.ts`). 결과 페이지 진입·서비스 워커 기동 시 정리.
+- 보존: 결과는 24시간 또는 총 500MB 초과 시 오래된 것부터 삭제(`core/retention.ts`). 결과 페이지 진입·서비스 워커 기동 시 정리. 가장 최근 결과는 혼자 한도를 넘어도 용량 기준으로는 지우지 않고(긴 녹화 보호, 녹화 chunk는 저장 직후 지워져 복구할 수 없음), 결과 페이지는 지금 여는 결과를 기간·용량과 관계없이 남긴다.
 - `storage.session`: `job`, `lastError`.
 - `storage.sync`: `settings`.
 

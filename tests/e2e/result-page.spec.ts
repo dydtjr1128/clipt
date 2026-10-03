@@ -160,6 +160,44 @@ test('오래된 결과는 결과 페이지에 들어올 때 보존 정책에 따
   await expect(page.locator('.result-status')).toContainText('만료');
 });
 
+test('보존 용량 한도보다 큰 최신 결과도 결과 페이지에서 지워지지 않는다', async ({
+  openExtensionPage,
+}) => {
+  const page = await openExtensionPage('result.html');
+  await expect(page.locator('.result-status')).toBeVisible();
+  // 30분 녹화처럼 한도(500MiB)를 넘는 결과. 메타의 bytes로 정책을 판단하므로 실제 Blob은 작게 둔다
+  await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const req = indexedDB.open('clipt');
+      req.onsuccess = () => resolve(req.result);
+    });
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(['results', 'blobs'], 'readwrite');
+      tx.objectStore('results').put({
+        id: 'long-recording',
+        kind: 'image',
+        mode: 'visible',
+        mime: 'image/png',
+        width: 1,
+        height: 1,
+        bytes: 600 * 1024 * 1024,
+        createdAt: Date.now(),
+      });
+      tx.objectStore('blobs').put(new Blob(['x'], { type: 'image/png' }), 'long-recording');
+      tx.oncomplete = () => resolve();
+    });
+    db.close();
+  });
+  const url = page.url().replace(/result\.html.*/, 'result.html?id=long-recording');
+  await page.goto(url);
+  await expect(page.locator('[data-result-id="long-recording"]')).toBeVisible();
+  // 진입 시 정리가 끝난 뒤 다시 열어도 남아 있다
+  await page.waitForTimeout(300);
+  await page.reload();
+  await expect(page.locator('[data-result-id="long-recording"]')).toBeVisible();
+  await expect(page.locator('.result-status')).toHaveCount(0);
+});
+
 test('영상 결과는 복사 버튼을 비활성으로 두고 영상 정보를 보여 준다', async ({
   context,
   openControlWindow,
