@@ -61,8 +61,13 @@ export function cropTrack(
   let framesOut = 0;
   let firstTimestamp: number | null = null;
   let canvas: OffscreenCanvas | null = null;
-  /** 직전 프레임의 캔버스 사본과, 요소가 화면 밖이라 사본을 유지 중인지(요소 추적) */
+  /**
+   * 요소 추적: 직전 프레임의 캔버스 사본, 사본에 실제로 그린 프레임이 담겼는지(첫 프레임 전의 검정 캔버스가 아님),
+   * 요소가 화면 밖이라 화면을 유지 중인지
+   */
   let previous: OffscreenCanvas | null = null;
+  let previousDrawn = false;
+  let drawnFrames = 0;
   let holding = false;
   /** 고정 크롭을 여백 있는 캔버스에 그릴지. 첫 프레임에서 정한다 */
   let padCrop: boolean | null = null;
@@ -117,6 +122,8 @@ export function cropTrack(
               // 다음 프레임에 요소가 화면 밖으로 나가면 되돌릴 수 있게 지금 화면을 보관한다
               previous ??= new OffscreenCanvas(canvas.width, canvas.height);
               previous.getContext('2d', { alpha: false })!.drawImage(canvas, 0, 0);
+              previousDrawn = drawnFrames > 0;
+              drawnFrames++;
               holding = false;
             }
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -131,7 +138,7 @@ export function cropTrack(
               draw.dst.width,
               draw.dst.height,
             );
-          } else if (previous && !holding) {
+          } else if (previous && previousDrawn && !holding) {
             // 요소가 막 화면 밖으로 나감: 그리지 않고 직전 화면을 유지한다. 단, 위치 메시지가 한 프레임 늦어
             // 바로 앞 프레임은 이미 움직인 화면을 옛 위치로 그렸을 수 있어(#60) 그 이전 프레임으로 되돌린다
             ctx.drawImage(previous, 0, 0);
