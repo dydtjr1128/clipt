@@ -313,9 +313,15 @@ function release(current: Session): Promise<void> {
 }
 
 /** 녹화를 끝내고 결과를 저장한다 */
-export function stopRecording(options: { warning?: string } = {}): Promise<{ resultId: string }> {
+export function stopRecording(
+  options: { warning?: string; jobId?: string } = {},
+): Promise<{ resultId: string }> {
   const current = session;
-  if (!current) return Promise.reject(new CliptError('NO_JOB', 'not recording'));
+  if (!current) {
+    // 녹화가 스스로 끝나는 중(최대 길이·탭 닫힘·오류)에 온 중지: 같은 작업이면 진행 중인 저장 결과를 돌려준다
+    if (options.jobId && lastStop?.jobId === options.jobId) return lastStop.done;
+    return Promise.reject(new CliptError('NO_JOB', 'not recording'));
+  }
   session = null;
   if (options.warning && !current.warnings.includes(options.warning)) {
     current.warnings.push(options.warning);
