@@ -1,4 +1,12 @@
-import { aspectChanged, cropPixels, normalizeCrop } from '@/core/crop';
+import {
+  aspectChanged,
+  cropPixels,
+  MAX_OUTPUT_ASPECT,
+  MIN_OUTPUT_SIDE,
+  needsPadding,
+  normalizeCrop,
+  paddedSize,
+} from '@/core/crop';
 
 const viewport = { w: 1000, h: 800 };
 
@@ -32,6 +40,61 @@ describe('cropPixels', () => {
     const px = cropPixels({ x: 0.9, y: 0.9, w: 0.5, h: 0.5 }, { width: 1001, height: 801 });
     expect(px.x + px.width).toBeLessThanOrEqual(1001);
     expect(px.y + px.height).toBeLessThanOrEqual(801);
+  });
+});
+
+describe('paddedSize', () => {
+  it('충분히 큰 내용은 크기 그대로다', () => {
+    expect(paddedSize({ width: 480, height: 240 })).toEqual({ width: 480, height: 240 });
+    expect(needsPadding({ width: 480, height: 240 })).toBe(false);
+  });
+
+  it('작은 변은 최소 크기까지 여백을 더한다', () => {
+    expect(paddedSize({ width: 300, height: 30 })).toEqual({ width: 300, height: MIN_OUTPUT_SIDE });
+    expect(paddedSize({ width: 40, height: 20 })).toEqual({
+      width: MIN_OUTPUT_SIDE,
+      height: MIN_OUTPUT_SIDE,
+    });
+    expect(needsPadding({ width: 240, height: 120 })).toBe(true);
+  });
+
+  it('가로세로 비율이 최대 비율을 넘지 않게 짧은 변을 늘린다', () => {
+    expect(paddedSize({ width: 1904, height: 30 })).toEqual({ width: 1904, height: 476 });
+    expect(paddedSize({ width: 30, height: 1000 })).toEqual({ width: 250, height: 1000 });
+    for (const content of [
+      { width: 1904, height: 30 },
+      { width: 700, height: 30 },
+      { width: 2, height: 2 },
+      { width: 31, height: 999 },
+    ]) {
+      const size = paddedSize(content);
+      expect(size.width / size.height).toBeLessThanOrEqual(MAX_OUTPUT_ASPECT + 0.01);
+      expect(size.height / size.width).toBeLessThanOrEqual(MAX_OUTPUT_ASPECT + 0.01);
+      expect(size.width).toBeGreaterThanOrEqual(content.width);
+      expect(size.height).toBeGreaterThanOrEqual(content.height);
+      expect(size.width % 2).toBe(0);
+      expect(size.height % 2).toBe(0);
+    }
+  });
+
+  it('고정 크롭은 같은 픽셀 사각형을 확대·축소 없이 정수 위치 가운데에 그린다', async () => {
+    const { centeredDraw } = await import('@/core/crop');
+    const frame = { width: 1000, height: 800 };
+    // 301×31 선택은 짝수 정렬로 300×30이 되고, 그 사각형 그대로 그린다(재샘플링 없음)
+    const rect = cropPixels({ x: 0.1, y: 0.5, w: 0.301, h: 31 / 800 }, frame);
+    expect(rect).toEqual({ x: 100, y: 400, width: 300, height: 30 });
+    const canvas = paddedSize(rect);
+    expect(canvas).toEqual({ width: 300, height: MIN_OUTPUT_SIDE });
+    expect(centeredDraw(rect, canvas)).toEqual({
+      src: rect,
+      dst: { x: 0, y: 65, width: 300, height: 30 },
+    });
+  });
+
+  it('프레임이 커져 크롭이 캔버스보다 커지면 비율을 지켜 줄인다', async () => {
+    const { centeredDraw } = await import('@/core/crop');
+    const draw = centeredDraw({ x: 0, y: 0, width: 600, height: 60 }, { width: 300, height: 160 });
+    expect(draw.dst).toEqual({ x: 0, y: 65, width: 300, height: 30 });
   });
 });
 

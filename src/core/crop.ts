@@ -59,6 +59,58 @@ export function cropPixels(
   return { x, y, width, height };
 }
 
+/**
+ * 출력 영상의 최소 한 변(px)과 최대 가로세로 비율. 작은 요소·영역을 그대로 내보내면
+ * 플레이어의 재생 컨트롤(버튼 줄과 그라데이션, 아래쪽 약 70px)이 내용을 덮어 보이지 않는다.
+ * 160px이면 가운데 둔 내용이 컨트롤 위로 드러나고, 4:1을 넘는 가는 영상은
+ * 플레이어 너비에 맞춰 줄어들 때 같은 문제가 생겨 비율도 제한한다.
+ */
+export const MIN_OUTPUT_SIDE = 160;
+export const MAX_OUTPUT_ASPECT = 4;
+
+/**
+ * 내용(요소·영역) 크기를 담을 출력 크기(px, 짝수). 최소 한 변과 최대 비율을 맞추도록 여백을 더하고,
+ * 내용은 확대하지 않고 가운데에 둔다. 충분히 크면 내용 크기 그대로다
+ */
+export function paddedSize(content: { width: number; height: number }): {
+  width: number;
+  height: number;
+} {
+  const even = (n: number) => Math.ceil(n / 2) * 2;
+  return {
+    width: even(Math.max(content.width, MIN_OUTPUT_SIDE, content.height / MAX_OUTPUT_ASPECT)),
+    height: even(Math.max(content.height, MIN_OUTPUT_SIDE, content.width / MAX_OUTPUT_ASPECT)),
+  };
+}
+
+/**
+ * 고정 크롭(픽셀 사각형)을 여백 캔버스 가운데에 그리는 계산. 크롭과 같은 크기로 1:1(정수 위치)에 두어
+ * 재샘플링하지 않는다. 녹화 중 프레임 크기가 바뀌어 크롭이 캔버스보다 커질 때만 비율을 지켜 줄인다
+ */
+export function centeredDraw(
+  src: PixelRect,
+  canvas: { width: number; height: number },
+): TrackedDraw {
+  const scale = Math.min(1, canvas.width / src.width, canvas.height / src.height);
+  const width = src.width * scale;
+  const height = src.height * scale;
+  return {
+    src,
+    dst: {
+      x: Math.floor((canvas.width - width) / 2),
+      y: Math.floor((canvas.height - height) / 2),
+      width,
+      height,
+    },
+  };
+}
+
+/** 내용 크기에 여백이 필요한지 */
+export function needsPadding(content: { width: number; height: number }): boolean {
+  const size = paddedSize(content);
+  return size.width > content.width || size.height > content.height;
+}
+
 /** 녹화 중 프레임 비율이 달라졌는지(창 리사이즈·개발자 도구). 같은 비율의 크기 변화는 허용 */
 export function aspectChanged(
   base: { width: number; height: number },
@@ -100,7 +152,8 @@ function subjectSpan(
 }
 
 /**
- * 추적 녹화의 고정 출력 크기(px, 짝수). 시작 시점 요소 크기이며 화면보다 클 수 없다.
+ * 추적 녹화의 기준 크기(px, 짝수). 시작 시점 요소 크기이며 화면보다 클 수 없다.
+ * 출력 캔버스는 여기에 paddedSize로 여백을 더한 크기로 고정한다.
  * 요소가 숨겨져 있거나(0 크기) 2px보다 작으면 null — 유효한 크기가 잡힐 때까지 기다린다
  */
 export function trackedCanvasSize(
@@ -116,8 +169,8 @@ export function trackedCanvasSize(
 }
 
 /**
- * 요소 추적 녹화의 한 프레임 그리기 계산. 출력 크기는 고정이고(canvas),
- * 요소가 커지면 비율을 유지해 줄이고 작아지면 그대로 가운데에 둔다(레터박스, 확대하지 않음).
+ * 캔버스 녹화(요소 추적, 여백이 필요한 고정 크롭)의 한 프레임 그리기 계산. 출력 크기는 고정이고(canvas),
+ * 요소가 캔버스보다 커지면 비율을 유지해 줄이고 작으면 그대로 가운데에 둔다(레터박스, 확대하지 않음).
  * 요소가 화면 밖으로 일부 나가면 보이는 부분만 제자리에 그린다. 전혀 보이지 않으면 null(직전 화면 유지).
  */
 export function trackedDraw(
