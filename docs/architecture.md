@@ -286,8 +286,8 @@ SW: recording 전이(startedAt) → 배지 REC
 - **메모리**: chunk를 1초마다 IndexedDB에 쓰고 메모리에 모으지 않는다. 녹화 길이와 관계없이 오프스크린 메모리가 일정하다.
 - **길이 메타**: MediaRecorder의 webm에는 길이가 없어 탐색이 안 되므로 `fix-webm-duration`으로 채운다. 길이는 일시정지 구간을 뺀 실제 녹화 시간이다.
 - **오디오 샘플레이트**: 합성 AudioContext는 48kHz로 만든다. 기본값(출력 장치 샘플레이트)이 96kHz 등이면 Windows의 MP4 AAC 인코더가 받지 못해 MediaRecorder가 오류 없이 데이터도 `stop`도 내지 않는다(#57). 스피커 출력은 브라우저가 장치 샘플레이트로 변환한다.
-- **오류 종료**: MediaRecorder `error`(인코더 오류)와 chunk 쓰기 실패(저장 공간 부족 등)는 그때까지 저장하고 끝내며 결과 `warnings`에 `recorder-error`·`storage-failed`를 남긴다. 쓰기에 한 번 실패하면 이후 chunk는 쓰지 않는다. 쓴 chunk가 하나도 없으면 빈 파일을 결과로 남기지 않고 `CAPTURE_FAILED`로 끝내며, 오프스크린이 `rec:ended`에 사유를 실어 보내면 서비스 워커가 `lastError`로 남긴다. 스트림·트랙·오디오 해제는 오류가 나도 `finally`에서 한다.
-- **시작 직후 중지**: 인코더가 첫 데이터를 내기 전에 `stop()`하면 아무것도 남지 않는다(빈 파일). 중지 요청 때 아직 데이터가 없으면 첫 데이터가 나올 때까지(최대 `FIRST_DATA_WAIT_MS` 2초) 더 녹화한 뒤 멈추고, 길이는 멈춘 시점으로 계산한다.
+- **오류 종료**: MediaRecorder `error`(인코더 오류)와 chunk 쓰기 실패(저장 공간 부족 등)는 그때까지 저장하고 끝내며 결과 `warnings`에 `recorder-error`·`storage-failed`를 남긴다. 쓰기에 한 번 실패하면 이후 chunk는 쓰지 않고, 중지 중 마지막 chunk에서 실패해도 경고를 남긴다. 쓴 chunk가 하나도 없으면 빈 파일을 결과로 남기지 않고 `CAPTURE_FAILED`로 끝내며, 오프스크린이 `rec:ended`에 사유를 실어 보내면 서비스 워커가 `lastError`로 남긴다. 스트림·트랙·오디오 해제는 오류가 나도 `finally`에서 한다.
+- **시작 직후 중지**: 인코더가 첫 데이터를 내기 전에 `stop()`하면 아무것도 남지 않는다(빈 파일). 사용자가 중지했을 때 아직 데이터가 없으면 첫 데이터가 나올 때까지(최대 `FIRST_DATA_WAIT_MS` 2초) 더 녹화한 뒤 멈추고, 길이는 멈춘 시점으로 계산한다. 레이아웃 변경 등 자동 종료는 화면이 이미 바뀌었을 수 있어 기다리지 않는다.
 - **종료 경쟁**: 탭이 닫혀 트랙이 끝나면 MediaRecorder가 스스로 멈추며 마지막 데이터를 늦게 내보낸다. 상태만 보지 않고 항상 `stop` 이벤트를 기다린다(최대 5초).
 - **일시정지**: `job:pause`·`job:resume` → 오프스크린 `MediaRecorder.pause()/resume()`. 작업에 `pausedAt`·`pausedTotal`을 기록해 팝업 타이머와 배지(`❚❚`)가 멈춘다.
 - **취소**: `job:cancel` → `rec:discard`(스트림 정지, chunk 삭제) → 오프스크린 닫기. 결과를 만들지 않는다.

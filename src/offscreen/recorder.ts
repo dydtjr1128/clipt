@@ -214,8 +214,10 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
         await appendChunk(options.jobId, seq, event.data);
         live.written++;
       } catch (error) {
-        // 저장 공간 부족 등으로 쓰지 못하면 이후 chunk도 이어 붙일 수 없어 그때까지로 끝낸다
+        // 저장 공간 부족 등으로 쓰지 못하면 이후 chunk도 이어 붙일 수 없어 그때까지로 끝낸다.
+        // 중지 중(마지막 chunk) 실패해도 결과에 남도록 경고는 세션 상태와 따로 기록한다
         live.writeError = error;
+        if (!live.warnings.includes('storage-failed')) live.warnings.push('storage-failed');
         if (session === live) stopWithWarning(live, 'storage-failed');
       }
     });
@@ -322,8 +324,9 @@ export async function stopRecording(
   }
 
   try {
-    // 녹화 중인데 아직 데이터가 없으면(시작 직후 중지) 첫 데이터까지 잠깐 더 녹화한다
-    if (current.seq === 0 && current.recorder.state === 'recording') {
+    // 사용자가 시작 직후 중지했는데 아직 데이터가 없으면 첫 데이터까지 잠깐 더 녹화한다.
+    // 자동 종료(레이아웃 변경 등)는 화면이 이미 바뀌었을 수 있어 기다리지 않는다
+    if (!options.warning && current.seq === 0 && current.recorder.state === 'recording') {
       await Promise.race([
         current.firstData,
         new Promise((resolve) => setTimeout(resolve, FIRST_DATA_WAIT_MS)),

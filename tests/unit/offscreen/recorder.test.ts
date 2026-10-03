@@ -35,6 +35,8 @@ class FakeRecorder extends EventTarget {
   state: 'inactive' | 'recording' | 'paused' = 'inactive';
   ondataavailable: ((event: { data: Blob }) => void) | null = null;
   onerror: ((event: Event) => void) | null = null;
+  /** 지정하면 stop()에서 마지막 chunk로 내보낸다 */
+  flushOnStop: string | null = null;
   constructor() {
     super();
     FakeRecorder.last = this;
@@ -45,6 +47,7 @@ class FakeRecorder extends EventTarget {
   stop() {
     if (this.state === 'inactive') throw new Error('InvalidState');
     this.state = 'inactive';
+    if (this.flushOnStop) this.emit(this.flushOnStop);
     queueMicrotask(() => this.dispatchEvent(new Event('stop')));
   }
   pause() {}
@@ -138,6 +141,26 @@ describe('녹화 종료', () => {
     const result = await resultOf(resultId);
     expect(await result?.blob.text()).toBe('late');
     expect(media.state).toBe('inactive');
+  });
+
+  it('레이아웃 변경 같은 자동 종료는 첫 데이터를 기다리지 않는다', async () => {
+    const { recorder } = await start('layout');
+    const startedAt = Date.now();
+    await expect(recorder.stopRecording({ warning: 'layout-changed' })).rejects.toMatchObject({
+      code: 'CAPTURE_FAILED',
+    });
+    expect(Date.now() - startedAt).toBeLessThan(1000);
+  });
+
+  it('중지 중 마지막 chunk 저장이 실패해도 결과에 저장 실패 경고를 남긴다', async () => {
+    appendBehavior = (call) => (call >= 1 ? 'fail' : 'ok');
+    const { recorder, media } = await start('flush-fail');
+    media.emit('a');
+    media.flushOnStop = 'b';
+    const { resultId } = await recorder.stopRecording();
+    const result = await resultOf(resultId);
+    expect(result?.meta.warnings).toContain('storage-failed');
+    expect(await result?.blob.text()).toBe('a');
   });
 
   it('인코더 오류가 나면 그때까지 저장하고 결과와 함께 종료를 알린다', async () => {
