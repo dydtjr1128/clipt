@@ -24,7 +24,8 @@ CI(`.github/workflows/ci.yml`)는 PR과 main 푸시마다 정적 검사·단위 
 | `core/settings` | 기본값 병합, 값 검증, 버전 마이그레이션 |
 | `core/media-profile`, `core/filename`, `core/format`, `core/retention`, `core/restricted`, `core/menu`, `core/time` | 포맷 폴백, 파일명, 서식, 보존 정책, URL 판정, 단축키 구성 |
 | `background/commands`, `background/access`, `background/offscreen`, `background/capture` | 단축키 처리 규칙, 주입·PING, 오프스크린 단일 생성, 캡처 호출 간격 |
-| `shared/messages`, `shared/db`, `offscreen/audio-mixer` | 메시지 라우팅·오류 직렬화, 결과·chunk 저장, 오디오 연결 |
+| `shared/messages`, `shared/db`, `offscreen/audio-mixer` | 메시지 라우팅·오류 직렬화, 결과·chunk 저장, 오디오 연결·48kHz 고정 |
+| `offscreen/recorder`, `background/pipelines/recording` | 인코더 오류·chunk 저장 실패·빈 결과의 종료 처리와 자원 해제, 바로 다운로드 실패·중단 시 결과 페이지 대체 |
 | `locales` | ko·en 키·치환자 일치, 미사용 키, 주석 밖 한글 문자열 |
 
 ## E2E가 맡는 것 (`tests/e2e`)

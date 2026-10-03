@@ -16,6 +16,8 @@ const WARNING_MESSAGE: Record<string, MessageKey> = {
   'internal-scroll': 'noticeInternalScroll',
   clipped: 'noticeClipped',
   recovered: 'noticeRecovered',
+  'recorder-error': 'noticeRecorderError',
+  'storage-failed': 'noticeStorageFailed',
 };
 
 export function noticesOf(meta: ResultMeta): string[] {

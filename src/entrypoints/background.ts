@@ -65,9 +65,12 @@ export default defineBackground(() => {
       await resumeRecording(jobId);
       return null;
     },
-    'rec:ended': async ({ jobId, resultId }) => {
+    'rec:ended': async ({ jobId, resultId, error }) => {
       const job = await getJob();
-      if (job?.id === jobId) await finishRecording(job, resultId);
+      if (job?.id !== jobId) return null;
+      // 저장하지 못하고 끝났으면(인코더·저장 오류) 다음 팝업에서 사유를 알린다
+      if (error) await recordError(new CliptError(error.code, error.message), job.mode);
+      await finishRecording(job, resultId);
       return null;
     },
     'job:get': () => readJob(),
