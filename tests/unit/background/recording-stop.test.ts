@@ -26,7 +26,7 @@ vi.mock('@/background/offscreen', () => ({
 }));
 vi.mock('@/background/emit', () => ({ openResultPage: vi.fn(async () => undefined) }));
 
-const { stopTabRecording, resumeFinalizing, onPageResized } =
+const { stopTabRecording, resumeFinalizing, onPageResized, finishRecording } =
   await import('@/background/pipelines/recording');
 const jobs = await import('@/background/jobs');
 const messages = await import('@/shared/messages');
@@ -60,6 +60,30 @@ describe('stopTabRecording', () => {
     saved({ resultId: 'r1' });
     await first;
     expect(emit.openResultPage).toHaveBeenCalledWith(expect.objectContaining({ id: 'j' }), 'r1');
+  });
+
+  it('자동 종료(rec:ended)와 사용자 중지가 겹쳐도 결과는 한 번만 마무리한다', async () => {
+    current = job('recording');
+    let saved!: (value: { resultId: string }) => void;
+    vi.mocked(messages.send).mockImplementation((async (_target: string, type: string) =>
+      type === 'rec:stop' ? new Promise((resolve) => (saved = resolve)) : null) as never);
+    const stopping = stopTabRecording('j');
+    await vi.waitFor(() => expect(current?.phase).toBe('finalizing'));
+    // 오프스크린이 먼저 저장을 끝내고 rec:ended를 보냈다
+    await finishRecording(job('finalizing'), 'r1');
+    saved({ resultId: 'r1' });
+    await stopping;
+    expect(emit.openResultPage).toHaveBeenCalledTimes(1);
+    expect(offscreen.closeOffscreen).toHaveBeenCalledTimes(1);
+    expect(jobs.recordError).not.toHaveBeenCalled();
+  });
+
+  it('중지 요청에 작업 id를 실어 진행 중인 자동 종료 저장을 이어 받을 수 있게 한다', async () => {
+    current = job('recording');
+    vi.mocked(messages.send).mockImplementation((async (_target: string, type: string) =>
+      type === 'rec:stop' ? { resultId: 'r3' } : null) as never);
+    await stopTabRecording('j');
+    expect(messages.send).toHaveBeenCalledWith('offscreen', 'rec:stop', { jobId: 'j' });
   });
 
   it('서비스 워커 재기동 뒤 남은 저장 중 작업은 오프스크린의 저장 결과를 이어 받아 마무리한다', async () => {

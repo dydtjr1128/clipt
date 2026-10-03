@@ -171,6 +171,19 @@ describe('녹화 종료', () => {
     await expect(recorder.stopResult('other')).rejects.toMatchObject({ code: 'NO_JOB' });
   });
 
+  it('자동 종료로 저장 중일 때 같은 작업의 중지 요청은 그 저장 결과를 받는다', async () => {
+    const { recorder, media, ended } = await start('auto');
+    media.emit('a');
+    media.fail(); // 오프스크린이 스스로 저장을 시작한다(세션이 비워짐)
+    const fromStop = recorder.stopRecording({ jobId: 'auto' });
+    await vi.waitFor(() => expect(ended).toHaveBeenCalled());
+    const [, resultId] = ended.mock.calls[0]!;
+    await expect(fromStop).resolves.toEqual({ resultId });
+    await expect(recorder.stopRecording({ jobId: 'other' })).rejects.toMatchObject({
+      code: 'NO_JOB',
+    });
+  });
+
   it('인코더 오류가 나면 그때까지 저장하고 결과와 함께 종료를 알린다', async () => {
     const { ended, media } = await start('encoder-error');
     media.emit('a');
