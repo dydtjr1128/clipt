@@ -146,40 +146,62 @@ async function tabCaptureSize(
   };
 }
 
-async function emitRecording(job: Job, resultId: string, settings: Settings): Promise<void> {
+export async function emitRecording(job: Job, resultId: string, settings: Settings): Promise<void> {
   if (settings.afterRecord === 'download') {
     const result = await loadResult(resultId);
     if (result) {
-      // 서비스 워커에는 URL.createObjectURL이 없어 오프스크린이 만든 Blob URL로 받는다
-      const url = await send('offscreen', 'result:objectUrl', { resultId });
-      const downloadId = await browser.downloads.download({
-        url,
-        filename: buildFilename(settings.download.pattern, {
-          date: new Date(result.meta.createdAt),
-          mode: job.mode,
-          mime: result.meta.mime,
-        }),
-        saveAs: settings.download.saveAs,
-      });
-      await waitForDownload(downloadId);
-      await flashBadge('✓');
-      return;
+      const state = await downloadRecording(job, resultId, result.meta, settings).catch(
+        () => 'failed' as const,
+      );
+      if (state === 'complete') {
+        await flashBadge('✓');
+        return;
+      }
+      // 저장 위치 취소·거부·중단 등으로 받지 못하면 저장된 결과를 잃지 않게 결과 페이지를 연다.
+      // 60초 안에 끝나지 않으면(대용량) 다운로드는 계속되므로 결과 페이지를 열지 않는다
+      if (state === 'pending') return;
     }
   }
   await openResultPage(job, resultId);
 }
 
-/** 다운로드가 끝날 때까지(최대 60초) 오프스크린 문서를 유지해야 Blob URL이 살아 있다 */
-function waitForDownload(id: number): Promise<void> {
+async function downloadRecording(
+  job: Job,
+  resultId: string,
+  meta: { createdAt: number; mime: string },
+  settings: Settings,
+): Promise<DownloadState> {
+  // 서비스 워커에는 URL.createObjectURL이 없어 오프스크린이 만든 Blob URL로 받는다
+  const url = await send('offscreen', 'result:objectUrl', { resultId });
+  const downloadId = await browser.downloads.download({
+    url,
+    filename: buildFilename(settings.download.pattern, {
+      date: new Date(meta.createdAt),
+      mode: job.mode,
+      mime: meta.mime,
+    }),
+    saveAs: settings.download.saveAs,
+  });
+  return waitForDownload(downloadId);
+}
+
+type DownloadState = 'complete' | 'interrupted' | 'pending' | 'failed';
+
+/**
+ * 다운로드가 끝날 때까지(최대 60초) 기다린다. 오프스크린 문서를 유지해야 Blob URL이 살아 있다.
+ * 60초가 지나도 진행 중이면 'pending'
+ */
+export function waitForDownload(id: number, timeoutMs = 60_000): Promise<DownloadState> {
   return new Promise((resolve) => {
-    const timer = setTimeout(done, 60_000);
-    function done() {
+    const timer = setTimeout(() => done('pending'), timeoutMs);
+    function done(state: DownloadState) {
       clearTimeout(timer);
       browser.downloads.onChanged.removeListener(listener);
-      resolve();
+      resolve(state);
     }
     function listener(delta: { id: number; state?: { current?: string } }) {
-      if (delta.id === id && delta.state?.current && delta.state.current !== 'in_progress') done();
+      if (delta.id !== id || !delta.state?.current || delta.state.current === 'in_progress') return;
+      done(delta.state.current === 'complete' ? 'complete' : 'interrupted');
     }
     browser.downloads.onChanged.addListener(listener);
   });

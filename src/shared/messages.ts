@@ -36,7 +36,12 @@ export interface Protocol {
     'job:pause': (payload: { jobId?: string }) => null;
     'job:resume': (payload: { jobId?: string }) => null;
     /** 오프스크린: 탭이 닫히는 등으로 녹화 스트림이 끝나 그때까지 저장함 */
-    'rec:ended': (payload: { jobId: string; resultId: string | null }) => null;
+    'rec:ended': (payload: {
+      jobId: string;
+      resultId: string | null;
+      /** 저장하지 못하고 끝났을 때의 사유 */
+      error?: ErrorPayload;
+    }) => null;
     /** 탭에서 캡처·녹화를 시작할 수 있는지 확인 (팝업 메뉴 활성화 판단) */
     'tab:status': (payload: { tabId: number }) => TabAccess;
     /** 콘텐츠 선택 UI에서 사용자가 범위를 확정함. 오버레이는 이미 제거된 상태 */
