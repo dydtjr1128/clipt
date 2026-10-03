@@ -81,6 +81,48 @@ test('Shadow DOM 내부 요소가 하이라이트된다', async ({ context, open
   await expect.poll(() => boxRect(site)).toEqual(innerRect);
 });
 
+test('Shadow DOM 최상위 요소 사이를 ←/→로 이동한다', async ({ context, openControlWindow }) => {
+  const { site } = await startElementMode(context, openControlWindow);
+  const host = (await site.locator('#host').boundingBox())!;
+  await site.mouse.click(host.x + 20, host.y + 15);
+  await expect(site.locator('clipt-overlay .panel')).toBeVisible();
+  await expect(site.locator('clipt-overlay .hl-label')).toContainText('button#inner');
+  await site.keyboard.press('ArrowRight');
+  await expect(site.locator('clipt-overlay .hl-label')).toContainText('button#inner2');
+  await site.keyboard.press('ArrowLeft');
+  await expect(site.locator('clipt-overlay .hl-label')).toContainText('button#inner');
+  await expect(site.locator('clipt-overlay .hl-label')).not.toContainText('inner2');
+});
+
+test('마우스 없이 Enter로 화면 가운데 요소를 고정하고 키보드만으로 캡처한다', async ({
+  context,
+  openControlWindow,
+}) => {
+  const { site } = await startElementMode(context, openControlWindow);
+  // 마우스를 움직이지 않았으므로 호버한 요소가 없다. Enter로 화면 가운데 요소를 고른다
+  await site.keyboard.press('Enter');
+  await expect(site.locator('clipt-overlay .panel')).toBeVisible();
+  const center = await site.evaluate(() => {
+    const el = document.elementFromPoint(innerWidth / 2, innerHeight / 2)!;
+    return `${el.localName}${el.id ? `#${el.id}` : ''}`;
+  });
+  await expect(site.locator('clipt-overlay .hl-label')).toContainText(center);
+  // 이후는 기존 키보드 조작 그대로: Enter로 캡처
+  const opened = context.waitForEvent('page', (p) => p.url().includes('/result.html?id='));
+  await site.keyboard.press('Enter');
+  await expect((await opened).locator('.result-media')).toBeVisible();
+});
+
+test('호버 중에는 ↓로 호버한 요소를 고정한다', async ({ context, openControlWindow }) => {
+  const { site } = await startElementMode(context, openControlWindow);
+  const block = (await site.locator('#block').boundingBox())!;
+  await site.mouse.move(block.x + 20, block.y + 20);
+  await expect(site.locator('clipt-overlay .hl-label')).toContainText('div#block');
+  await site.keyboard.press('ArrowDown');
+  await expect(site.locator('clipt-overlay .panel')).toBeVisible();
+  await expect(site.locator('clipt-overlay .hl-label')).toContainText('div#block');
+});
+
 test('스크롤 중에도 박스가 요소를 따라간다', async ({ context, openControlWindow }) => {
   const { site } = await startElementMode(context, openControlWindow);
   const block = (await site.locator('#block').boundingBox())!;

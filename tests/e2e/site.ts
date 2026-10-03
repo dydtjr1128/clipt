@@ -62,7 +62,7 @@ function blocksPage(params: URLSearchParams): string {
 ${fixed ? '<div id="hdr"></div>' : ''}
 <script>
 const root = document.getElementById('host').attachShadow({ mode: 'open' });
-root.innerHTML = '<button id="inner" style="width:120px;height:40px">shadow</button>';
+root.innerHTML = '<button id="inner" style="width:120px;height:40px">shadow</button><button id="inner2" style="width:120px;height:40px">second</button>';
 </script></body>`;
 }
 

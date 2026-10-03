@@ -50,7 +50,7 @@ export function startElementPicker(options: PickerOptions): Picker {
   label.append(labelName, labelSize);
   const toast = el('div', 'toast', { role: 'status' });
   const toastKeys = el('span', 'keys');
-  toastKeys.textContent = '↑↓ · Esc';
+  toastKeys.textContent = 'Enter · ↑↓ · Esc';
   toast.append(t(options.forRecording ? 'hintPickElementRec' : 'hintPickElement'), toastKeys);
   overlay.layer.append(box, label, toast);
   const html = document.documentElement;
@@ -122,6 +122,19 @@ export function startElementPicker(options: PickerOptions): Picker {
   }
 
   function onKey(event: KeyboardEvent): void {
+    // 키보드만으로 시작: 호버 단계의 Enter·↑·↓는 호버한 요소(없으면 화면 가운데 요소)를 고정한다.
+    // 고정 뒤의 키는 선택 패널(element-session)이 맡는다
+    if (
+      !locked &&
+      (event.key === 'Enter' || event.key === 'ArrowUp' || event.key === 'ArrowDown')
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const target =
+        hovered ?? deepElementFromPoint(innerWidth / 2, innerHeight / 2) ?? document.body;
+      api.lock(target);
+      return;
+    }
     if (event.key !== 'Escape') return;
     event.preventDefault();
     event.stopImmediatePropagation();

@@ -9,6 +9,11 @@ export interface TreeAdapter<N> {
   children(node: N): readonly N[];
   /** 선택 가능 여부(크기 0, 숨김, 오버레이 자신 제외) */
   selectable(node: N): boolean;
+  /**
+   * node와 같은 트리에 있는 형제 목록(node 포함). 없으면 parent의 children을 쓴다.
+   * Shadow root 최상위 요소는 parent가 host지만 형제는 host의 자식이 아니라 ShadowRoot의 자식이다
+   */
+  siblings?(node: N): readonly N[];
 }
 
 /**
@@ -30,7 +35,9 @@ export function buildPath<N>(anchor: N, root: N, tree: TreeAdapter<N>): N[] {
 export function siblingOf<N>(node: N, direction: -1 | 1, tree: TreeAdapter<N>): N | null {
   const parent = tree.parent(node);
   if (!parent) return null;
-  const siblings = tree.children(parent).filter((n) => n === node || tree.selectable(n));
+  const siblings = (tree.siblings?.(node) ?? tree.children(parent)).filter(
+    (n) => n === node || tree.selectable(n),
+  );
   const index = siblings.indexOf(node);
   if (index < 0) return null;
   return siblings[index + direction] ?? null;

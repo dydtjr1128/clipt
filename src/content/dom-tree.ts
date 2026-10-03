@@ -26,6 +26,11 @@ export const domTree: TreeAdapter<Element> = {
   children(el) {
     return [...el.children];
   },
+  siblings(el) {
+    if (el.parentElement) return [...el.parentElement.children];
+    const root = el.getRootNode();
+    return root instanceof ShadowRoot ? [...root.children] : [el];
+  },
   selectable: isSelectable,
 };
 
