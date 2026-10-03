@@ -1,1 +1,6 @@
 blank_issues_enabled: false
+# 질문을 Discussions 등 다른 경로로 받으려면 question.yml을 빼고 아래 예시의 주석을 해제해 수정
+# contact_links:
+#   - name: 질문·토론
+#     url: https://github.com/dydtjr1128/clipt/discussions
+#     about: 사용 방법 질문과 아이디어 논의
