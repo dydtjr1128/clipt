@@ -1,6 +1,7 @@
 name: Release
 
 # vX.Y.Z 태그를 푸시하면 검사 후 설치용 zip을 GitHub Release에 올린다.
+# 게시 전에 태그 커밋의 CI(main 푸시, E2E 포함)가 성공했는지 확인한다(scripts/ci-gate.mjs).
 # PR에서는 릴리스 파일이 만들어지는지만 확인한다(게시하지 않음).
 on:
   pull_request:
@@ -11,6 +12,7 @@ on:
       - 'CHANGELOG.md'
       - 'scripts/release-assets.mjs'
       - 'scripts/check-release.mjs'
+      - 'scripts/ci-gate.mjs'
       - '.github/workflows/release.yml'
   push:
     tags: ['v*.*.*']
@@ -56,9 +58,31 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  ci-gate:
+    name: 태그 커밋의 CI 성공 확인
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: CI 결과 확인(실행 중이면 대기)
+        run: node scripts/ci-gate.mjs
+
   publish:
     name: GitHub Release 게시
-    needs: package
+    needs: [package, ci-gate]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 5
