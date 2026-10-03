@@ -3,6 +3,7 @@ import type { browser } from 'wxt/browser';
 import { test, expect, SITE, sendToBackground, tabIdOf } from './fixtures';
 import { expectColor } from './result';
 import { PALETTE } from './site';
+import { MAX_OUTPUT_ASPECT, MIN_OUTPUT_SIDE, paddedSize } from '../../src/core/crop';
 
 declare const chrome: typeof browser;
 
@@ -130,8 +131,9 @@ test('브라우저 확대 125%에서도 요소 녹화 범위가 요소와 일치
 
   const result = await recordThenStop(context, control);
   const frame = await videoFrame(result, CORNERS);
+  // 300×150은 최소 출력 크기보다 낮아 위아래에 5px 여백이 붙는다(모서리 표본은 내용 안쪽)
   expect(Math.abs(frame.width - 240 * 1.25)).toBeLessThanOrEqual(4);
-  expect(Math.abs(frame.height - 120 * 1.25)).toBeLessThanOrEqual(4);
+  expect(Math.abs(frame.height - MIN_OUTPUT_SIDE)).toBeLessThanOrEqual(4);
   for (const color of frame.pixels) expectColor(color, PALETTE.block, 24);
 });
 
@@ -256,5 +258,93 @@ test.describe('1080p', () => {
     expect(received).toBeGreaterThan(30); // 3초 동안 원본 프레임이 들어왔다
     expect(sent / received).toBeGreaterThanOrEqual(0.98);
     await sendToBackground(control, 'job:cancel', {});
+  });
+});
+
+test.describe('작은 요소·영역', () => {
+  const GRAY = [221, 221, 221] as const; // .card p 배경
+  const BLACK = [0, 0, 0] as const;
+
+  /** 결과 영상이 최소 크기로 여백을 두고, 내용은 가운데에 있으며, 결과 페이지에서 컨트롤에 가리지 않는다 */
+  async function expectPadded(
+    result: Page,
+    content: { width: number; height: number },
+    color: readonly number[],
+  ) {
+    const expected = paddedSize(content);
+    expect(expected.height).toBeGreaterThan(content.height);
+    const frame = await videoFrame(result, [
+      [0.5, 0.5],
+      [0.5, 0.04],
+      [0.5, 0.96],
+    ]);
+    expect(Math.abs(frame.width - expected.width)).toBeLessThanOrEqual(2);
+    expect(Math.abs(frame.height - expected.height)).toBeLessThanOrEqual(2);
+    expectColor(frame.pixels[0]!, color, 24);
+    expectColor(frame.pixels[1]!, BLACK, 24);
+    expectColor(frame.pixels[2]!, BLACK, 24);
+    // 결과 페이지에서도 최소 크기로 보여 재생 컨트롤(아래쪽 약 70px)이 가운데 내용을 덮지 않는다
+    const box = (await result.locator('video.result-media').boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(MIN_OUTPUT_SIDE - 2);
+    expect(box.height / 2 - content.height / 2).toBeGreaterThanOrEqual(60);
+  }
+
+  for (const follow of [true, false]) {
+    test(`높이 30px 요소 녹화는 최소 크기 영상 가운데에 담긴다(따라가기 ${follow ? '켬' : '끔'})`, async ({
+      context,
+      openControlWindow,
+    }) => {
+      const { site, control, tabId } = await openSite(context, openControlWindow);
+      await sendToBackground(control, 'job:start', { mode: 'rec-element', tabId });
+      await expect(site.locator('clipt-overlay .toast')).toBeVisible();
+      const p1 = (await site.locator('#p1').boundingBox())!;
+      expect(Math.round(p1.height)).toBe(30);
+      await site.mouse.click(p1.x + 20, p1.y + 15);
+      await expect(site.locator('clipt-overlay .panel')).toContainText('녹화 시작');
+      const toggle = site.locator('clipt-overlay .panel-follow input');
+      if ((await toggle.isChecked()) !== follow)
+        await site.locator('clipt-overlay .panel-follow').click();
+      await site.keyboard.press('Enter');
+      await expect(site.locator('clipt-overlay')).toHaveCount(0);
+
+      const result = await recordThenStop(context, control);
+      await expectPadded(result, { width: Math.round(p1.width), height: 30 }, GRAY);
+    });
+  }
+
+  test('가는 영역 녹화도 최소 크기 영상 가운데에 담긴다', async ({
+    context,
+    openControlWindow,
+  }) => {
+    const { site, control, tabId } = await openSite(context, openControlWindow);
+    await sendToBackground(control, 'job:start', { mode: 'rec-region', tabId });
+    await dragRegion(site, [200, 160], [440, 190]); // #block 안쪽 240×30
+    await expect(site.locator('clipt-overlay')).toHaveCount(0);
+
+    const result = await recordThenStop(context, control);
+    await expectPadded(result, { width: 240, height: 30 }, PALETTE.block);
+  });
+
+  test('가로로 긴 가는 영역은 4:1로 담기고 좁은 결과 창에서도 컨트롤 공간이 남는다', async ({
+    context,
+    openControlWindow,
+  }) => {
+    const { site, control, tabId } = await openSite(context, openControlWindow);
+    const vw = await site.evaluate(() => innerWidth);
+    await sendToBackground(control, 'job:start', { mode: 'rec-region', tabId });
+    await dragRegion(site, [0, 160], [vw, 190]);
+    await expect(site.locator('clipt-overlay')).toHaveCount(0);
+
+    const result = await recordThenStop(context, control);
+    const frame = await videoFrame(result, [[0.5, 0.5]]);
+    expect(frame.width / frame.height).toBeLessThanOrEqual(MAX_OUTPUT_ASPECT + 0.05);
+    await result.setViewportSize({ width: 520, height: 700 });
+    const video = result.locator('video.result-media');
+    await expect.poll(async () => (await video.boundingBox())!.width).toBeLessThan(frame.width);
+    const box = (await video.boundingBox())!;
+    // 줄어든 영상 안의 내용 띠(가운데) 아래로 컨트롤이 들어갈 높이가 남는다
+    const band = (30 / frame.width) * box.width;
+    expect(box.height).toBeGreaterThanOrEqual(MIN_OUTPUT_SIDE - 2);
+    expect(box.height / 2 - band / 2).toBeGreaterThanOrEqual(60);
   });
 });

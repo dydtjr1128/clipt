@@ -1,6 +1,9 @@
 import {
   aspectChanged,
+  centeredDraw,
   cropPixels,
+  needsPadding,
+  paddedSize,
   trackedCanvasSize,
   trackedDraw,
   type NormalizedRect,
@@ -16,6 +19,7 @@ import {
  * 지우기 전 화면을 첫 프레임으로 보낼 수 있기 때문이다.
  *
  * 요소 추적(9.6절)은 출력 크기를 고정해야 하므로 visibleRect 대신 OffscreenCanvas에 그려 새 프레임을 만든다.
+ * 고정 크롭도 최소 출력 크기(core/crop.ts paddedSize)보다 작으면 여백을 둬야 해 같은 캔버스 경로로 그린다.
  */
 interface ProcessorCtor {
   new (init: { track: MediaStreamTrack }): { readable: ReadableStream<VideoFrame> };
@@ -57,6 +61,8 @@ export function cropTrack(
   let framesOut = 0;
   let firstTimestamp: number | null = null;
   let canvas: OffscreenCanvas | null = null;
+  /** 고정 크롭을 여백 있는 캔버스에 그릴지. 첫 프레임에서 정한다 */
+  let padCrop: boolean | null = null;
   let resolveSize!: (size: { width: number; height: number }) => void;
   const size = new Promise<{ width: number; height: number }>((resolve) => (resolveSize = resolve));
 
@@ -79,14 +85,19 @@ export function cropTrack(
       }
       let output: VideoFrame | null;
       let outSize = { width: frame.displayWidth, height: frame.displayHeight };
-      if (track) {
+      if (crop && !track && padCrop === null) padCrop = needsPadding(cropPixels(crop, frameSize));
+      // 캔버스 경로: 요소 추적(최신 요소 위치) 또는 여백이 필요한 고정 크롭(같은 픽셀 사각형을 1:1로 가운데)
+      if (track || (padCrop && crop)) {
         if (!canvas) {
           // 요소가 아직 보이지 않으면(숨김·0 크기) 크기를 정할 수 없어 보일 때까지 프레임을 버린다
-          const fixed = trackedCanvasSize(track(), frameSize);
-          if (!fixed) {
+          const content = track
+            ? trackedCanvasSize(track(), frameSize)
+            : cropPixels(crop!, frameSize);
+          if (!content) {
             frame.close();
             return;
           }
+          const fixed = paddedSize(content);
           canvas = new OffscreenCanvas(fixed.width, fixed.height);
           const ctx = canvas.getContext('2d', { alpha: false })!;
           ctx.fillStyle = '#000';
@@ -94,7 +105,9 @@ export function cropTrack(
         }
         outSize = { width: canvas.width, height: canvas.height };
         try {
-          const draw = trackedDraw(track(), frameSize, outSize);
+          const draw = track
+            ? trackedDraw(track(), frameSize, outSize)
+            : centeredDraw(cropPixels(crop!, frameSize), outSize);
           // 요소가 화면 밖이면 그리지 않아 직전 화면이 남는다
           if (draw) {
             const ctx = canvas.getContext('2d', { alpha: false })!;

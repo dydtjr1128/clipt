@@ -110,7 +110,8 @@ for (const indicator of ['border', 'widget'] as const) {
     const opened = waitResult(context);
     if (indicator === 'widget') await site.locator('clipt-overlay [data-action="stop"]').click();
     else await sendToBackground(control, 'job:stop', {});
-    const video = await readVideo(await opened, CORNERS);
+    // 240×120 영역은 최소 출력 크기 여백이 붙으므로 선택 영역 기준으로 읽는다
+    const video = await readVideo(await opened, CORNERS, 'start', { width: 240, height: 120 });
     for (const color of video.pixels) expectColor(color, PALETTE.block, 24);
     await expect(site.locator('clipt-overlay')).toHaveCount(0);
   });

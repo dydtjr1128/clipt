@@ -4,12 +4,16 @@ import { test, expect, SITE, sendToBackground, tabIdOf } from './fixtures';
 import { expectColor } from './result';
 import { PALETTE } from './site';
 import { CORNERS, chunksOf, readVideo, setSettings, sleep, waitRecording, waitResult } from './rec';
+import { paddedSize } from '../../src/core/crop';
 
 declare const chrome: typeof browser;
 
 // 세로로 스크롤되는 페이지. #block은 (200,150)에 240×120
 const PATH = '/blocks?tall=2000';
 const BLACK = [0, 0, 0] as const;
+const BLOCK = { width: 240, height: 120 };
+// 120px 높이는 최소 출력 크기보다 작아 위아래에 검은 여백이 붙는다
+const OUTPUT = paddedSize(BLOCK);
 
 async function open(
   context: BrowserContext,
@@ -58,9 +62,9 @@ test('요소 따라가기를 켜면 스크롤해도 요소가 영상 안에 유�
   const result = await changeThenStop(context, control, () =>
     site.evaluate(() => scrollTo(0, 100)),
   );
-  const video = await readVideo(result, CORNERS, 'end');
-  expect(Math.abs(video.width - 240)).toBeLessThanOrEqual(2);
-  expect(Math.abs(video.height - 120)).toBeLessThanOrEqual(2);
+  const video = await readVideo(result, CORNERS, 'end', BLOCK);
+  expect(Math.abs(video.width - OUTPUT.width)).toBeLessThanOrEqual(2);
+  expect(Math.abs(video.height - OUTPUT.height)).toBeLessThanOrEqual(2);
   for (const color of video.pixels) expectColor(color, PALETTE.block, 48);
 });
 
@@ -86,6 +90,7 @@ test('요소 따라가기를 끄면 시작 위치를 그대로 녹화하고 선�
       [0.5, 0.6],
     ],
     'end',
+    BLOCK,
   );
   expect(Math.abs(video.width - 240)).toBeLessThanOrEqual(2);
   expectColor(video.pixels[0], PALETTE.block, 48);
@@ -120,10 +125,11 @@ test('녹화 중 요소 크기가 바뀌어도 출력 크기는 그대로고 왜
       [0.7, 0.9],
     ],
     'end',
+    BLOCK,
   );
-  expect(Math.abs(video.width - 240)).toBeLessThanOrEqual(2);
-  expect(Math.abs(video.height - 120)).toBeLessThanOrEqual(2);
-  // 120×120이 된 요소가 확대 없이 가운데(60~180px)에 있고 양옆은 검은 여백
+  expect(Math.abs(video.width - OUTPUT.width)).toBeLessThanOrEqual(2);
+  expect(Math.abs(video.height - OUTPUT.height)).toBeLessThanOrEqual(2);
+  // 120×120이 된 요소가 확대 없이 가운데(60~180px)에 있고 양옆은 검은 여백(좌표는 원래 요소 영역 기준)
   expectColor(video.pixels[0], BLACK, 48);
   expectColor(video.pixels[1], PALETTE.block, 48);
   expectColor(video.pixels[2], BLACK, 48);
@@ -139,7 +145,7 @@ test('요소가 화면 밖으로 나가면 직전 화면을 유지한다', async
   const result = await changeThenStop(context, control, () =>
     site.evaluate(() => scrollTo(0, 600)),
   );
-  const video = await readVideo(result, CORNERS, 'end');
+  const video = await readVideo(result, CORNERS, 'end', BLOCK);
   for (const color of video.pixels) expectColor(color, PALETTE.block, 48);
 });
 
@@ -165,6 +171,6 @@ test('요소를 따라가는 동안 테두리 표시도 따라가며 영상에 �
     .toBeGreaterThanOrEqual(before + 2);
   const opened = waitResult(context);
   await sendToBackground(control, 'job:stop', {});
-  const video = await readVideo(await opened, CORNERS, 'end');
+  const video = await readVideo(await opened, CORNERS, 'end', BLOCK);
   for (const color of video.pixels) expectColor(color, PALETTE.block, 48);
 });
