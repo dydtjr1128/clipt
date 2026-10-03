@@ -24,6 +24,7 @@
 
 - MP4 컨테이너 녹화는 Chrome 126부터 지원된다([chromestatus](https://chromestatus.com/feature/5163469011943424)). 확장의 최소 버전은 Chrome 116이므로 116~125에서는 `mp4`가 비활성으로 보이고, 이미 `mp4`로 설정돼 있으면 `webm-vp9`로 폴백한다.
 - H.264·AAC 인코더는 브라우저 빌드에 따라 빠질 수 있다(일부 Chromium 배포판). 이 경우에도 같은 폴백이 적용된다.
+- MP4의 AAC(`mp4a.40.2`) 인코딩은 Windows에서 44.1·48kHz 입력만 받는다. 오디오 장치 기본 샘플레이트가 96kHz인 PC에서 확인했으며, 이때 MediaRecorder는 오류 없이 데이터를 내지 않는다. 오디오 합성은 48kHz로 고정한다(`offscreen/audio-mixer.ts`, #57).
 - AV1 인코딩은 CPU 부하가 커 저사양 기기에서 프레임이 떨어질 수 있다. 설정 화면의 포맷 설명에 안내한다.
 
 ## 폴백

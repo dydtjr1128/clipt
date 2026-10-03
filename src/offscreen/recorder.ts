@@ -1,5 +1,5 @@
 import fixWebmDuration from 'fix-webm-duration';
-import { CliptError } from '@/core/errors';
+import { CliptError, toErrorPayload, type ErrorPayload } from '@/core/errors';
 import type { Mode } from '@/core/job';
 import { chooseMime, containerOf, videoBitrate, type RecordFormat } from '@/core/media-profile';
 import type { Settings } from '@/core/settings';
@@ -58,6 +58,10 @@ interface Session {
   height: number;
   warnings: string[];
   seq: number;
+  /** IndexedDB에 실제로 쓴 chunk 수 */
+  written: number;
+  /** chunk 쓰기 실패(저장 공간 부족 등). 생기면 이후 chunk는 쓰지 않고 녹화를 끝낸다 */
+  writeError?: unknown;
   writes: Promise<void>;
   /** 녹화된 시간(ms). 일시정지 구간 제외 */
   activeMs: number;
@@ -65,9 +69,17 @@ interface Session {
   state: State;
   /** MediaRecorder의 stop 이벤트(마지막 dataavailable 이후)에 풀린다 */
   stopped: Promise<void>;
+  /** 인코더가 처음으로 데이터를 냈을 때 풀린다 */
+  firstData: Promise<void>;
+  gotFirstData: () => void;
 }
 
 const TIMESLICE_MS = 1000;
+/**
+ * 시작 직후 중지하면 인코더가 아직 첫 데이터를 내기 전이라 아무것도 남지 않는다(빈 파일).
+ * 중지 요청 때 데이터가 없으면 첫 데이터가 나올 때까지 이만큼 기다린 뒤 멈춘다
+ */
+export const FIRST_DATA_WAIT_MS = 2000;
 let session: Session | null = null;
 /** 요소 추적의 최신 요소 위치. 녹화 준비 중에 먼저 도착할 수 있어 세션과 따로 둔다 */
 let tracked: { jobId: string; rect: NormalizedRect } | null = null;
@@ -76,8 +88,8 @@ export function updateTrackedRect(jobId: string, rect: NormalizedRect): void {
   tracked = { jobId, rect };
 }
 
-/** 대상 탭이 닫히는 등으로 스트림이 끝났을 때 호출 */
-let onEnded: ((jobId: string, resultId: string | null) => void) | null = null;
+/** 대상 탭이 닫히거나 오류 등으로 녹화가 스스로 끝났을 때 호출. 저장하지 못했으면 error가 있다 */
+let onEnded: ((jobId: string, resultId: string | null, error?: ErrorPayload) => void) | null = null;
 export function setEndedHandler(handler: typeof onEnded): void {
   onEnded = handler;
 }
@@ -179,6 +191,7 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
     height,
     warnings,
     seq: 0,
+    written: 0,
     writes: Promise.resolve(),
     activeMs: 0,
     segmentStart: performance.now(),
@@ -188,23 +201,39 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
     stopped: new Promise<void>((resolve) =>
       recorder.addEventListener('stop', () => resolve(), { once: true }),
     ),
+    ...firstDataSignal(),
   };
   const live = current;
   recorder.ondataavailable = (event) => {
     if (event.data.size === 0) return;
+    live.gotFirstData();
     const seq = live.seq++;
-    live.writes = live.writes.then(() => appendChunk(options.jobId, seq, event.data));
+    live.writes = live.writes.then(async () => {
+      if (live.writeError) return;
+      try {
+        await appendChunk(options.jobId, seq, event.data);
+        live.written++;
+      } catch (error) {
+        // 저장 공간 부족 등으로 쓰지 못하면 이후 chunk도 이어 붙일 수 없어 그때까지로 끝낸다
+        live.writeError = error;
+        if (session === live) stopWithWarning(live, 'storage-failed');
+      }
+    });
     // 최대 길이에 도달하면 그때까지 저장하고 끝낸다
     if (options.maxMs && session === live && activeMsOf(live) >= options.maxMs) {
       stopWithWarning(live, 'max-length');
     }
+  };
+  // 인코더 오류: MediaRecorder가 error 뒤 스스로 멈춘다. 그때까지 저장하고 끝낸다
+  recorder.onerror = () => {
+    if (session === live) stopWithWarning(live, 'recorder-error');
   };
   // 탭이 닫히거나 캡처가 끊기면 그때까지의 영상을 저장한다
   video.addEventListener('ended', () => {
     if (session !== live) return;
     void stopRecording()
       .then(({ resultId }) => onEnded?.(options.jobId, resultId))
-      .catch(() => onEnded?.(options.jobId, null));
+      .catch((error: unknown) => onEnded?.(options.jobId, null, toErrorPayload(error)));
   });
 
   session = live;
@@ -250,6 +279,12 @@ export function recordingStatus(): {
   };
 }
 
+function firstDataSignal(): Pick<Session, 'firstData' | 'gotFirstData'> {
+  let gotFirstData!: () => void;
+  const firstData = new Promise<void>((resolve) => (gotFirstData = resolve));
+  return { firstData, gotFirstData };
+}
+
 /** 일시정지 구간을 뺀 지금까지의 녹화 시간 */
 function activeMsOf(current: Session): number {
   return (
@@ -266,7 +301,7 @@ function stopForLayoutChange(current: Session): void {
 function stopWithWarning(current: Session, warning: string): void {
   void stopRecording({ warning })
     .then(({ resultId }) => onEnded?.(current.options.jobId, resultId))
-    .catch(() => onEnded?.(current.options.jobId, null));
+    .catch((error: unknown) => onEnded?.(current.options.jobId, null, toErrorPayload(error)));
 }
 
 function release(current: Session): Promise<void> {
@@ -285,14 +320,32 @@ export async function stopRecording(
   if (options.warning && !current.warnings.includes(options.warning)) {
     current.warnings.push(options.warning);
   }
-  if (current.state === 'recording') current.activeMs += performance.now() - current.segmentStart;
 
-  if (current.recorder.state !== 'inactive') current.recorder.stop();
-  await Promise.race([current.stopped, new Promise((resolve) => setTimeout(resolve, 5000))]);
-  await current.writes;
-  await release(current);
+  try {
+    // 녹화 중인데 아직 데이터가 없으면(시작 직후 중지) 첫 데이터까지 잠깐 더 녹화한다
+    if (current.seq === 0 && current.recorder.state === 'recording') {
+      await Promise.race([
+        current.firstData,
+        new Promise((resolve) => setTimeout(resolve, FIRST_DATA_WAIT_MS)),
+      ]);
+    }
+    if (current.state === 'recording') {
+      current.activeMs += performance.now() - current.segmentStart;
+    }
+    if (current.recorder.state !== 'inactive') current.recorder.stop();
+    await Promise.race([current.stopped, new Promise((resolve) => setTimeout(resolve, 5000))]);
+    await current.writes;
+  } finally {
+    // 오류가 나도 탭 캡처·마이크·오디오는 항상 놓는다
+    await release(current);
+  }
 
   const { jobId, mode, fps, audio } = current.options;
+  if (current.written === 0) {
+    // 인코더가 데이터를 하나도 내지 않았다(예: 지원하지 않는 오디오 형식). 빈 파일을 결과로 남기지 않는다
+    await deleteChunks(jobId).catch(() => undefined);
+    throw new CliptError('CAPTURE_FAILED', 'recorder produced no data');
+  }
   const type = containerOf(current.mime);
   let blob = new Blob(await readChunks(jobId), { type });
   if (type === 'video/webm') {

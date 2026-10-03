@@ -134,20 +134,22 @@ test('탭+마이크 설정에서 마이크를 못 쓰면 탭 소리 한 트랙�
   await sleep(1200);
   await sendToBackground(both.control, 'job:stop', {});
   const result = await opened;
-  const warnings = await result.evaluate(async () => {
+  const { warnings, bytes } = await result.evaluate(async () => {
     const id = new URLSearchParams(location.search).get('id')!;
     const db = await new Promise<IDBDatabase>((resolve) => {
       const req = indexedDB.open('clipt');
       req.onsuccess = () => resolve(req.result);
     });
-    const meta = await new Promise<{ warnings?: string[] }>((resolve) => {
+    const meta = await new Promise<{ warnings?: string[]; bytes: number }>((resolve) => {
       const req = db.transaction('results').objectStore('results').get(id);
       req.onsuccess = () => resolve(req.result);
     });
     db.close();
-    return meta.warnings;
+    return meta;
   });
   expect(warnings).toEqual(['mic-unavailable']);
+  // 짧은 녹화(1초 남짓)도 인코더의 첫 데이터까지 기다려 빈 파일이 되지 않는다
+  expect(bytes).toBeGreaterThan(0);
   await expect.poll(() => job(both.control)).toBeNull();
 
   await both.control.evaluate(() =>

@@ -495,6 +495,14 @@
     "message": "Only the visible part was included.",
     "description": "잘림 안내"
   },
+  "noticeRecorderError": {
+    "message": "Recording stopped because of an error. Saved up to that point.",
+    "description": "인코더 오류 안내"
+  },
+  "noticeStorageFailed": {
+    "message": "Ran out of storage space. Saved up to that point.",
+    "description": "저장 실패 안내"
+  },
   "noticeRecovered": {
     "message": "Recovered an unsaved recording. Its length may be inexact.",
     "description": "복구 안내"

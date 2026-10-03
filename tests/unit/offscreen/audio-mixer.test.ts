@@ -1,4 +1,4 @@
-import { mixAudio } from '@/offscreen/audio-mixer';
+import { MIX_SAMPLE_RATE, mixAudio } from '@/offscreen/audio-mixer';
 import { recordedMs } from '@/core/job';
 
 /** 연결 관계만 기록하는 가짜 AudioContext */
@@ -44,6 +44,30 @@ describe('mixAudio', () => {
     expect(mix.track).toBe(fake.outputTrack);
     await mix.close();
     expect(fake.isClosed()).toBe(true);
+  });
+
+  it('기본 컨텍스트는 출력 장치와 관계없이 48kHz로 만든다(96kHz 장치에서 MP4 AAC 인코더 멈춤 방지)', () => {
+    const options: unknown[] = [];
+    vi.stubGlobal(
+      'AudioContext',
+      class {
+        destination = { name: 'speaker' };
+        constructor(init: unknown) {
+          options.push(init);
+        }
+        createMediaStreamDestination() {
+          return { stream: { getAudioTracks: () => [{}] } };
+        }
+        createMediaStreamSource() {
+          return { connect: () => undefined };
+        }
+        close = async () => undefined;
+      },
+    );
+    mixAudio(stream('tab', 1), null);
+    expect(options).toEqual([{ sampleRate: MIX_SAMPLE_RATE }]);
+    expect(MIX_SAMPLE_RATE).toBe(48_000);
+    vi.unstubAllGlobals();
   });
 
   it('오디오가 없으면 트랙도 컨텍스트도 만들지 않는다', () => {

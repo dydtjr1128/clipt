@@ -9,10 +9,16 @@ export interface AudioMix {
   close(): Promise<void>;
 }
 
+/**
+ * 합성 샘플레이트. 기본값(출력 장치 샘플레이트)은 96kHz 장치 등에서 MP4의 AAC 인코더가 받지 못해
+ * MediaRecorder가 데이터를 내지 않는다. AAC·Opus 모두 지원하는 48kHz로 고정하고 스피커 출력은 브라우저가 변환한다
+ */
+export const MIX_SAMPLE_RATE = 48_000;
+
 export function mixAudio(
   tab: MediaStream | null,
   mic: MediaStream | null,
-  createContext: () => AudioContext = () => new AudioContext(),
+  createContext: () => AudioContext = () => new AudioContext({ sampleRate: MIX_SAMPLE_RATE }),
 ): AudioMix {
   const hasTab = (tab?.getAudioTracks().length ?? 0) > 0;
   const hasMic = (mic?.getAudioTracks().length ?? 0) > 0;

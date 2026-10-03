@@ -170,7 +170,7 @@ type Job = {
 | `job:get` | any → SW | 현재 작업 조회. 복원이 끝난 뒤의 상태를 돌려준다 |
 | `tab:status {tabId}` | popup → SW | 탭 사용 가능 여부와 제한 사유 (13절) |
 | `job:pause` / `job:resume {jobId?}` | popup → SW | 녹화 일시정지·재개 (9.1절) |
-| `rec:ended {jobId, resultId}` | OS → SW | 탭이 닫히는 등으로 녹화 스트림이 끝나 저장함 |
+| `rec:ended {jobId, resultId, error?}` | OS → SW | 탭 닫힘·최대 길이·인코더/저장 오류 등으로 녹화가 스스로 끝남. 저장하지 못했으면 `resultId: null`과 `error` |
 | `rec:start` / `rec:pause` / `rec:resume` / `rec:stop` / `rec:discard` / `rec:status` | SW → OS | 녹화 제어 (9.1절) |
 | `result:objectUrl {resultId}` | SW → OS | 결과 Blob URL (다운로드용) |
 | `content:ping` | SW → CS | 콘텐츠 스크립트 주입 여부 확인 |
@@ -273,7 +273,7 @@ OS(offscreen/recorder.ts):
   getUserMedia({video:{chromeMediaSource:'tab', maxWidth·maxHeight=size, minFrameRate=maxFrameRate=fps},
                 audio: 탭 소리면 tab 소스})
    ├▶ 마이크 옵션이면 getUserMedia({audio:true}). 권한이 없으면 마이크 없이 녹화, 결과 warnings: mic-unavailable
-   ├▶ audio-mixer: 탭 소리 → AudioContext.destination(사용자에게 계속 들림) + 녹화용 목적지
+   ├▶ audio-mixer: AudioContext(48kHz 고정) 탭 소리 → destination(사용자에게 계속 들림) + 녹화용 목적지
    │              마이크 → 녹화용 목적지만(하울링 방지) → 오디오 트랙 1개
    ├▶ 영역·요소 모드(#12): <video> → OffscreenCanvas.drawImage(crop) → canvas.captureStream(fps)
    └▶ MediaRecorder(mimeType, bitrate, timeslice=1000) → chunk를 IndexedDB `chunks`에 순서대로 append
@@ -285,6 +285,9 @@ SW: recording 전이(startedAt) → 배지 REC
 - **해상도·프레임**: 크기 제약이 없으면 탭 캡처가 낮은 기본 해상도로 잡히고, 화면이 바뀌지 않으면 프레임이 나오지 않아 MediaRecorder가 데이터를 만들지 않는다. 탭 뷰포트 × DPR을 최대 크기로, `minFrameRate`를 fps로 준다.
 - **메모리**: chunk를 1초마다 IndexedDB에 쓰고 메모리에 모으지 않는다. 녹화 길이와 관계없이 오프스크린 메모리가 일정하다.
 - **길이 메타**: MediaRecorder의 webm에는 길이가 없어 탐색이 안 되므로 `fix-webm-duration`으로 채운다. 길이는 일시정지 구간을 뺀 실제 녹화 시간이다.
+- **오디오 샘플레이트**: 합성 AudioContext는 48kHz로 만든다. 기본값(출력 장치 샘플레이트)이 96kHz 등이면 Windows의 MP4 AAC 인코더가 받지 못해 MediaRecorder가 오류 없이 데이터도 `stop`도 내지 않는다(#57). 스피커 출력은 브라우저가 장치 샘플레이트로 변환한다.
+- **오류 종료**: MediaRecorder `error`(인코더 오류)와 chunk 쓰기 실패(저장 공간 부족 등)는 그때까지 저장하고 끝내며 결과 `warnings`에 `recorder-error`·`storage-failed`를 남긴다. 쓰기에 한 번 실패하면 이후 chunk는 쓰지 않는다. 쓴 chunk가 하나도 없으면 빈 파일을 결과로 남기지 않고 `CAPTURE_FAILED`로 끝내며, 오프스크린이 `rec:ended`에 사유를 실어 보내면 서비스 워커가 `lastError`로 남긴다. 스트림·트랙·오디오 해제는 오류가 나도 `finally`에서 한다.
+- **시작 직후 중지**: 인코더가 첫 데이터를 내기 전에 `stop()`하면 아무것도 남지 않는다(빈 파일). 중지 요청 때 아직 데이터가 없으면 첫 데이터가 나올 때까지(최대 `FIRST_DATA_WAIT_MS` 2초) 더 녹화한 뒤 멈추고, 길이는 멈춘 시점으로 계산한다.
 - **종료 경쟁**: 탭이 닫혀 트랙이 끝나면 MediaRecorder가 스스로 멈추며 마지막 데이터를 늦게 내보낸다. 상태만 보지 않고 항상 `stop` 이벤트를 기다린다(최대 5초).
 - **일시정지**: `job:pause`·`job:resume` → 오프스크린 `MediaRecorder.pause()/resume()`. 작업에 `pausedAt`·`pausedTotal`을 기록해 팝업 타이머와 배지(`❚❚`)가 멈춘다.
 - **취소**: `job:cancel` → `rec:discard`(스트림 정지, chunk 삭제) → 오프스크린 닫기. 결과를 만들지 않는다.
@@ -356,7 +359,7 @@ select:done(target: x 뷰포트, y 문서) → core/crop.ts normalizeCrop: 녹�
 
 ### 9.5 종료 조건과 복구
 
-- 종료: 팝업 중지, 위젯 중지, 단축키 토글, 최대 시간 도달, 대상 탭 닫힘, 스트림 `ended`.
+- 종료: 팝업 중지, 위젯 중지, 단축키 토글, 최대 시간 도달, 대상 탭 닫힘, 스트림 `ended`, 인코더 오류, chunk 저장 실패.
 - 탭 내비게이션: 탭 모드는 계속 녹화(탭 캡처는 문서 교체 후에도 유지). 영역·요소 모드는 레이아웃이 바뀌므로 중지 후 "페이지가 이동해 녹화를 마쳤어요" 안내.
 - 복구(`shared/recover.ts`): 진행 중인 작업이 아닌 녹화의 chunk가 남아 있으면 결과 페이지가 배너로 복구·삭제를 제안한다. 복구는 chunk를 합쳐 결과로 저장하고(길이는 chunk 수로 어림, `warnings: recovered`) 그 결과 페이지로 이동한다.
 
@@ -444,7 +447,7 @@ type Settings = {
 | 동작 | 처리 | 피드백 |
 | --- | --- | --- |
 | 결과 페이지 | `chrome.tabs.create({url: 'result.html?id=…'})`, 대상 탭 바로 오른쪽 | 새 탭 |
-| 바로 다운로드 | `chrome.downloads.download({url, filename, saveAs})`. 이미지는 캡처 dataURL을 그대로 쓰고, 영상(Blob URL)은 녹화 이슈에서 오프스크린이 만든다. 파일명 규칙은 `core/filename.ts` | 배지 `✓` 2초 |
+| 바로 다운로드 | `chrome.downloads.download({url, filename, saveAs})`. 이미지는 캡처 dataURL을 그대로 쓰고, 영상(Blob URL)은 녹화 이슈에서 오프스크린이 만든다. 파일명 규칙은 `core/filename.ts`. 영상은 다운로드가 `complete`일 때만 성공으로 보고, 시작 실패·중단(저장 위치 취소 포함)이면 결과 페이지를 대신 연다 | 배지 `✓` 2초 |
 | 클립보드 | 대상 탭 문서에서 `scripting.executeScript`로 `navigator.clipboard.write([ClipboardItem({'image/png'})])`. 오프스크린 문서는 포커스를 가질 수 없어 이미지 쓰기가 막히므로, 팝업이 닫혀 포커스가 돌아온 페이지에서 쓴다. 클립보드는 PNG만 받으므로 이 설정이면 PNG로 캡처한다. 영상은 불가 → 결과 페이지 | 배지 `✓` 2초 |
 
 결과 페이지는 `id`로 `results`+`blobs`를 읽어 표시한다. 영상 결과는 "다른 포맷으로 저장"에서 GIF 변환(후속)을 제공한다. 상세 UI는 `docs/ux-design.md` 8절.
