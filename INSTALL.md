@@ -42,6 +42,7 @@ sha256sum clipt.zip
 - 기능과 사용 흐름: [README.md](README.md)
 - 단축키 변경: `chrome://extensions/shortcuts`
 - `chrome://` 페이지, Chrome 웹 스토어, 다른 확장 페이지에서는 Chrome 정책상 동작하지 않음
+- `file://` 페이지는 확장 관리 화면에서 "파일 URL에 대한 액세스 허용"을 켠 경우에만 동작
 - 마이크 녹음은 설정에서 마이크를 고른 뒤 권한 페이지에서 한 번 허용
 
 ## 개인정보
