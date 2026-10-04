@@ -1,7 +1,9 @@
 name: Release
 
-# vX.Y.Z 태그를 푸시하면 검사 후 설치용 zip을 GitHub Release에 올린다.
-# 게시 전에 태그 커밋의 CI(main 푸시, E2E 포함)가 성공했는지 확인한다(scripts/ci-gate.mjs).
+# 설치용 zip을 GitHub Release에 올린다. 두 경로가 있다.
+# - 자동: main 푸시의 CI가 성공하면 그 커밋의 package.json 버전에 vX.Y.Z 태그가 없을 때
+#   태그를 만들고 게시한다. 이미 태그가 있으면(버전을 올리지 않은 머지) 아무것도 하지 않는다.
+# - 수동: vX.Y.Z 태그를 푸시하면 태그 커밋의 CI(main 푸시, E2E 포함) 성공을 확인한 뒤 게시한다(scripts/ci-gate.mjs).
 # PR에서는 릴리스 파일이 만들어지는지만 확인한다(게시하지 않음).
 on:
   pull_request:
@@ -16,6 +18,10 @@ on:
       - '.github/workflows/release.yml'
   push:
     tags: ['v*.*.*']
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -26,15 +32,59 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  detect:
+    name: 새 버전 확인
+    # main 푸시의 CI가 성공했을 때만. PR·태그 푸시는 이 단계를 건너뛴다
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      release: ${{ steps.check.outputs.release }}
+      tag: ${{ steps.check.outputs.tag }}
+      sha: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: package.json 버전의 태그가 있는지 확인
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="v$(node -p "require('./package.json').version")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh api "repos/$GH_REPO/git/ref/tags/$tag" --silent 2>/dev/null; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "$tag 태그가 이미 있음. 버전을 올리지 않은 머지라 릴리스하지 않음"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "$tag 태그 없음. 이 커밋으로 릴리스"
+          fi
+
   package:
     name: 검사와 패키징
+    needs: [detect]
+    # detect는 PR·태그 푸시에서 건너뛰므로 !cancelled()로 이어서 실행한다
+    if: >-
+      !cancelled() && needs.detect.result != 'failure' &&
+      (github.event_name != 'workflow_run' || needs.detect.outputs.release == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
       version: ${{ steps.assets.outputs.version }}
+    env:
+      # 자동 릴리스에서 만들 태그. release-assets.mjs가 버전·main 소속을 확인한다
+      RELEASE_TAG: ${{ needs.detect.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.detect.outputs.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -82,8 +132,12 @@ jobs:
 
   publish:
     name: GitHub Release 게시
-    needs: [package, ci-gate]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [detect, package, ci-gate]
+    # 수동 태그는 ci-gate 성공, 자동 릴리스는 detect가 새 버전을 찾았을 때(CI 성공은 workflow_run 조건으로 확인됨)
+    if: >-
+      !cancelled() && needs.package.result == 'success' &&
+      ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.ci-gate.result == 'success') ||
+      (github.event_name == 'workflow_run' && needs.detect.outputs.release == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -91,8 +145,9 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_TAG: ${{ needs.detect.outputs.tag || github.ref_name }}
       RELEASE_VERSION: ${{ needs.package.outputs.version }}
+      RELEASE_SHA: ${{ needs.detect.outputs.sha }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -103,6 +158,14 @@ jobs:
         run: |
           sha256sum --check SHA256SUMS.txt
           cmp clipt.zip "clipt-${RELEASE_VERSION}.zip"
+      - name: 자동 릴리스 태그 만들기
+        if: github.event_name == 'workflow_run'
+        # GITHUB_TOKEN으로 만든 태그는 태그 푸시 워크플로를 다시 띄우지 않는다(이중 게시 없음)
+        run: |
+          if ! gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --silent 2>/dev/null; then
+            gh api "repos/$GH_REPO/git/refs" -f ref="refs/tags/$RELEASE_TAG" -f sha="$RELEASE_SHA" --silent
+          fi
+          echo "$RELEASE_TAG → $(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq .object.sha)"
       - name: Release 생성과 게시
         # 이전 실행이 draft를 남겼으면 지우고 다시 만든다. 이미 게시된 릴리스는 덮어쓰지 않는다
         run: |

@@ -96,6 +96,6 @@ Capture or record exactly the part of a page you need.
 
 1. 버전 자리는 AGENTS.md의 버전과 변경기록 절에 따라 정한다(manifest 버전은 WXT가 `package.json`에서 가져온다).
 2. [manual-checklist.md](../manual-checklist.md)를 확인한다.
-3. `package.json` 버전을 올리고 `releases/X.Y.Z.md`에 릴리스 노트를 쓰며 `CHANGELOG.md` 맨 위 행의 버전을 맞춘 뒤 main에 머지하고 그 머지 커밋에 `vX.Y.Z` 태그를 푸시하면 릴리스 워크플로가 검사하고 태그 커밋의 CI 성공을 확인한 뒤 `clipt.zip`·`clipt-X.Y.Z.zip`·`SHA256SUMS.txt`를 GitHub Release에 올린다(CI가 실패했거나 없으면 게시하지 않음). 로컬에서는 `npm run check:release` → `.output/release/`.
+3. `package.json` 버전을 올리고 `releases/X.Y.Z.md`에 릴리스 노트, `CHANGELOG.md` 맨 위에 그 버전 행을 추가해 main에 머지하면, 그 커밋의 main CI가 성공한 뒤 릴리스 워크플로가 `vX.Y.Z` 태그를 만들고 `clipt.zip`·`clipt-X.Y.Z.zip`·`SHA256SUMS.txt`를 GitHub Release에 올린다(CI가 실패하면 게시하지 않음). 스토어에는 이 Release의 `clipt-X.Y.Z.zip`을 올린다. 로컬에서는 `npm run check:release` → `.output/release/`.
 4. 대시보드에 zip 업로드 → 위 문안·이미지 입력 → 개인정보 처리방침 URL 등록 → 제출.
 5. 심사 중 권한 질문이 오면 [permissions.md](permissions.md)의 문안으로 답한다.

@@ -87,10 +87,13 @@
 
 ### 버전과 변경기록
 
-- 버전은 `package.json`의 `version` 한 곳에서 관리하며 릴리스 단위로만 올린다. 개별 PR은 버전을 올리지 않는다.
+- 버전은 `package.json`의 `version` 한 곳에서 관리한다. 버전을 올리는 것이 곧 릴리스다. 태그는 CI가 붙인다(아래).
+- 배포 빌드에 들어가는 변경(`src/`, `public/`, `wxt.config.ts`, 런타임 의존성)이 main에 들어가면 그때마다 릴리스한다. 단독 PR은 그 PR에서, 함께 기획한 PR 묶음(이슈 배치, 부모 이슈의 자식들)은 마지막 PR에서 버전을 올린다. 묶음의 중간 PR은 버전을 올리지 않는다. CI는 배포 빌드 파일이 바뀌었는데 버전이 그대로인 PR에 경고를 남긴다.
+- 문서·테스트·CI·저장소 절차만 바꾼 PR은 버전을 올리지 않고 다음 릴리스에 함께 실린다. 이런 변경만 쌓였거나 따로 릴리스해야 하면 릴리스 전용 PR(`chore: X.Y.Z 릴리스`)을 쓴다.
 - 올리는 자리는 변경 성격에 맞춘다. 수정·정정·문서·저장소 절차(`fix:`/`docs:`/`chore:`/`refactor:`/`test:`)만 쌓였으면 patch, 사용자가 새로 쓸 수 있는 기능(`feat:`)이 하나라도 있으면 minor(patch 자리는 0으로). major는 저장 형식·설정 스키마·권한처럼 기존 설치와 호환되지 않는 변경이 필요할 때 사용자가 명시적으로 요청한 경우에만 올리고, 에이전트가 자율 결정하지 않는다. 0.1.0 → 1.0.0은 기능 변경 없이 첫 정식 배포 버전을 붙인 일회성 예외로, 사용자 요청으로 수행했다.
-- [CHANGELOG.md](CHANGELOG.md)는 버전마다가 아니라 작업 단위마다 한 행을 쓴다. 작업 단위는 독자가 "이번에 무엇이 달라졌나"를 한 번에 읽을 범위다. 함께 기획해 연달아 랜딩한 PR 묶음(이슈 배치, 부모 이슈의 자식들)은 한 행, 단독 PR은 그 자체로 한 행이다. 묶음에 속한 개별 PR은 CHANGELOG를 건드리지 않고 묶음의 마지막 PR이 행을 쓰며, 단독 PR은 자기 PR에서 쓴다. 행의 버전은 그 변경이 실릴 다음 릴리스 버전이다. 행 형식은 CHANGELOG.md의 작성 규칙이 정본이다.
-- 릴리스 PR은 버전을 올리고 `releases/X.Y.Z.md`(사용자용 릴리스 노트)를 추가하며, CHANGELOG 맨 위 행의 버전이 새 버전과 같은지 확인한다. `scripts/release-assets.mjs`가 이 일치를 검사한다.
+- 버전을 올리는 PR(릴리스 PR)은 `releases/X.Y.Z.md`(사용자용 릴리스 노트)와 [CHANGELOG.md](CHANGELOG.md) 맨 위의 그 버전 행을 함께 추가한다. 둘 다 직전 릴리스 태그 이후 main에 머지된 PR 전체를 다룬다. CHANGELOG는 버전마다 한 행이며, 버전을 올리지 않는 PR은 CHANGELOG를 건드리지 않는다. 행 형식은 CHANGELOG.md의 작성 규칙이 정본이다.
+- 릴리스 PR에서는 `scripts/release-assets.mjs`(release.yml의 PR 검사)가 아직 태그가 없는 버전의 릴리스 노트와 CHANGELOG 맨 위 행 버전 일치를 확인한다.
+- 릴리스 PR이 머지되고 그 커밋의 main CI(E2E 포함)가 성공하면 `.github/workflows/release.yml`이 `vX.Y.Z` 태그를 만들고 GitHub Release를 게시한다. 머지 뒤 Release 게시와 태그를 확인한다. 자동 게시가 실패하면 원인을 고쳐 다시 실행하고, 그래도 안 되면 그 커밋에 태그를 직접 푸시한다(같은 검사를 거쳐 게시).
 
 ## 프로젝트 정보
 
@@ -99,7 +102,7 @@
 - 확장 프로그램 로컬 확인은 `chrome://extensions`에서 개발자 모드를 켜고 빌드 결과 폴더(`.output/chrome-mv3`)를 `압축해제된 확장 프로그램을 로드합니다`로 불러온다.
 - 오버레이(호버 박스, 라벨, 선택 패널)는 캡처·녹화 결과에 포함되지 않아야 한다. 관련 변경은 실제 캡처 결과로 확인한다.
 - 캡처·녹화 결과물(이미지·영상)과 테스트 산출물은 커밋하지 않는다. 예외는 README 화면 캡처로, `npm run screenshots`가 만든 `docs/images/*.png`만 커밋하고 UI·문구가 바뀌면 다시 만든다.
-- 버전은 `package.json`의 `version` 한 곳에서 관리한다(manifest는 WXT가 가져온다). 릴리스는 위 버전과 변경기록 절에 따라 버전을 올리고 `releases/X.Y.Z.md`(릴리스 노트, 없으면 실패)를 추가해 main에 머지한 뒤 `vX.Y.Z` 태그를 푸시한다. `.github/workflows/release.yml`이 검사하고 태그 커밋의 CI(main 푸시, E2E 포함) 성공을 확인한 뒤(`scripts/ci-gate.mjs`, 실행 중이면 대기) `clipt.zip`(최신 다운로드 링크용 고정 이름)·`clipt-X.Y.Z.zip`·`SHA256SUMS.txt`를 GitHub Release에 올린다. 태그는 CI가 돈 main 머지 커밋에 붙인다. 사용자 설치 절차는 [INSTALL.md](INSTALL.md). 스토어 제출 절차는 [docs/store/listing.md](docs/store/listing.md).
+- 버전은 `package.json`의 `version` 한 곳에서 관리한다(manifest는 WXT가 가져온다). 릴리스는 위 버전과 변경기록 절에 따라 버전을 올리고 `releases/X.Y.Z.md`(릴리스 노트, 없으면 실패)와 CHANGELOG 행을 추가해 main에 머지하는 것으로 끝난다. 그 커밋의 main CI가 성공하면 `.github/workflows/release.yml`이 `package.json` 버전의 태그가 없을 때 `vX.Y.Z` 태그를 만들고 `clipt.zip`(최신 다운로드 링크용 고정 이름)·`clipt-X.Y.Z.zip`·`SHA256SUMS.txt`를 GitHub Release에 올린다. 태그를 직접 푸시하는 경로도 남아 있으며, 이때는 태그 커밋의 CI 성공을 확인한 뒤(`scripts/ci-gate.mjs`, 실행 중이면 대기) 게시한다. 사용자 설치 절차는 [INSTALL.md](INSTALL.md). 스토어 제출 절차는 [docs/store/listing.md](docs/store/listing.md).
 - 구조·파이프라인·설정 스키마는 [docs/architecture.md](docs/architecture.md), 화면·상호작용·문구는 [docs/ux-design.md](docs/ux-design.md)를 기준으로 한다. 두 문서와 다른 구현을 할 때는 문서를 먼저 고친다.
 
 ### 기술 스택

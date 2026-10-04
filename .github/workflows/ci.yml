@@ -19,6 +19,24 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # 배포 빌드가 바뀌는 PR은 버전을 올려야 머지 후 태그·Release가 자동으로 생긴다(AGENTS.md 버전과 변경기록).
+      # 묶음의 중간 PR은 올리지 않으므로 실패 대신 경고로 알린다
+      - name: 배포 빌드 변경 시 버전 올림 확인
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          changed=$(git diff --name-only "$BASE"...HEAD -- src public wxt.config.ts)
+          base_version=$(git show "$BASE:package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+          head_version=$(node -p "require('./package.json').version")
+          if [ -n "$changed" ] && [ "$base_version" = "$head_version" ]; then
+            echo "::warning title=버전을 올리지 않음::배포 빌드 파일이 바뀌었지만 버전이 $head_version 그대로입니다. 단독 PR이나 묶음의 마지막 PR이면 버전을 올리고 releases/X.Y.Z.md와 CHANGELOG 행을 추가하세요."
+            { echo "### 버전을 올리지 않음"; echo "바뀐 배포 빌드 파일:"; echo '```'; echo "$changed"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "버전 $base_version → $head_version, 배포 빌드 변경 $(printf '%s' "$changed" | grep -c . || true)개"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
