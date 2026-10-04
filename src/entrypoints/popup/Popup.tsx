@@ -8,6 +8,7 @@ import { formatElapsed } from '@/core/time';
 import { t, type MessageKey } from '@/shared/i18n';
 import { send } from '@/shared/messages';
 import { clearLastError, useNow, useSessionState, useShortcuts, useTargetTab } from './hooks';
+import { BrandMark, Icon } from '@/components/Icon';
 import { SettingsForm, profileSummary, useSettings } from '@/components/SettingsForm';
 
 /** 팝업 화면 (docs/ux-design.md 3절). 작업 상태에 따라 메뉴·선택 중·캡처 중·녹화 중 화면을 그린다 */
@@ -114,7 +115,8 @@ function Header({ onSettings }: { onSettings: () => void }) {
   return (
     <header class="popup-header">
       <h1 class="popup-title">
-        <span aria-hidden="true">{'✂'}</span> {t('appShortName')}
+        <BrandMark />
+        {t('appShortName')}
       </h1>
       <div class="popup-actions">
         <button
@@ -125,7 +127,7 @@ function Header({ onSettings }: { onSettings: () => void }) {
           data-action="settings"
           onClick={onSettings}
         >
-          <span aria-hidden="true">{'⚙'}</span>
+          <Icon name="settings" />
         </button>
         <button
           type="button"
@@ -134,7 +136,7 @@ function Header({ onSettings }: { onSettings: () => void }) {
           aria-label={t('popupShortcuts')}
           onClick={() => void browser.tabs.create({ url: 'chrome://extensions/shortcuts' })}
         >
-          <span aria-hidden="true">{'⌨'}</span>
+          <Icon name="keyboard" />
         </button>
       </div>
     </header>
@@ -219,8 +221,8 @@ function Menu({
         disabled={disabled}
         onClick={() => void start(item.mode)}
       >
-        <span class={`menu-icon${isRecordMode(item.mode) ? ' is-rec' : ''}`} aria-hidden="true">
-          {item.icon}
+        <span class={`menu-icon${isRecordMode(item.mode) ? ' is-rec' : ''}`}>
+          <Icon name={item.icon} />
         </span>
         <span class="menu-label">{t(MENU_LABEL[item.mode])}</span>
         <kbd
@@ -268,7 +270,7 @@ function SelectingView({ job }: { job: Job }) {
   return (
     <section class="state" data-state="selecting">
       <h2 class="state-title">
-        <span aria-hidden="true">{element ? '◱' : '⬚'}</span>{' '}
+        <Icon name={element ? 'element' : 'region'} />
         {t(element ? 'selectingElement' : 'selectingRegion')}
       </h2>
       <p class="state-text">{t(element ? 'selectingHintElement' : 'selectingHintRegion')}</p>
@@ -329,9 +331,7 @@ function RecordingView({ job, shortcuts }: { job: Job; shortcuts: Map<string, st
   return (
     <section class="state" data-state="recording">
       <h2 class="state-title rec-title">
-        <span class="rec-dot" aria-hidden="true">
-          {'●'}
-        </span>{' '}
+        <Icon name="record" class={`icon rec-dot${paused ? ' is-paused' : ''}`} />
         {saving ? t('recSaving') : recording ? t('recordingTitle', modeLabel) : t('countdownTitle')}
       </h2>
       {recording && (
@@ -358,7 +358,7 @@ function RecordingView({ job, shortcuts }: { job: Job; shortcuts: Map<string, st
               void send('background', paused ? 'job:resume' : 'job:pause', { jobId: job.id })
             }
           >
-            <span aria-hidden="true">{paused ? '▶' : '❚❚'}</span>{' '}
+            <Icon name={paused ? 'play' : 'pause'} />
             {t(paused ? 'recResume' : 'recPause')}
           </button>
         )}
@@ -368,10 +368,15 @@ function RecordingView({ job, shortcuts }: { job: Job; shortcuts: Map<string, st
           disabled={saving}
           onClick={() => void send('background', 'job:stop', { jobId: job.id })}
         >
-          <span aria-hidden="true">{'■'}</span> {t('recStop')}
-          {stopShortcut && <kbd class="menu-shortcut">{stopShortcut}</kbd>}
+          <Icon name="stop" />
+          {t('recStop')}
         </button>
       </div>
+      {stopShortcut && !saving && (
+        <p class="rec-shortcut">
+          <kbd class="menu-shortcut">{stopShortcut}</kbd> {t('recStop')}
+        </p>
+      )}
     </section>
   );
 }

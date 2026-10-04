@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
+import { Icon } from '@/components/Icon';
 import { t } from '@/shared/i18n';
 
 /**
@@ -35,6 +36,16 @@ export interface PanelProps {
   onDragStart: (event: PointerEvent) => void;
 }
 
+/** 칩이 넘쳐 가려진 쪽 가장자리를 흐리게 표시한다(글자가 중간에서 잘려 보이지 않게) */
+function updateChipsFade(chips: HTMLElement | null) {
+  if (!chips) return;
+  const start = chips.scrollLeft > 1;
+  const end = chips.scrollLeft + chips.clientWidth < chips.scrollWidth - 1;
+  const fade = start && end ? 'both' : start ? 'start' : end ? 'end' : null;
+  if (fade) chips.dataset.fade = fade;
+  else delete chips.dataset.fade;
+}
+
 export function SelectionPanel(props: PanelProps) {
   const { path, depth, info, forRecording } = props;
   const chipsRef = useRef<HTMLDivElement>(null);
@@ -49,6 +60,7 @@ export function SelectionPanel(props: PanelProps) {
   useEffect(() => {
     const chip = chipsRef.current?.querySelector<HTMLElement>('[aria-current="true"]');
     chip?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    updateChipsFade(chipsRef.current);
   }, [depth, path]);
 
   const current = path[depth]?.label ?? '';
@@ -85,7 +97,12 @@ export function SelectionPanel(props: PanelProps) {
 
       <div class="panel-row">
         <div class="panel-caption">{t('panelPath')}</div>
-        <div class="chips" ref={chipsRef} onPointerLeave={() => props.onPreview(null)}>
+        <div
+          class="chips"
+          ref={chipsRef}
+          onScroll={(e) => updateChipsFade(e.currentTarget as HTMLDivElement)}
+          onPointerLeave={() => props.onPreview(null)}
+        >
           {path.map((item, index) => (
             <span class="chip-wrap" key={index}>
               {index > 0 && (
@@ -163,7 +180,7 @@ export function SelectionPanel(props: PanelProps) {
           class={`btn ${forRecording ? 'btn-rec' : 'btn-primary'} panel-confirm`}
           onClick={props.onConfirm}
         >
-          <span aria-hidden="true">{forRecording ? '●' : '◱'}</span>{' '}
+          <Icon name={forRecording ? 'record' : 'element'} />
           {t(forRecording ? 'panelRecord' : 'panelCapture')}
         </button>
         <button type="button" class="btn" onClick={props.onReselect}>

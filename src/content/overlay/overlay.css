@@ -11,6 +11,9 @@
   color: var(--c-fg);
   pointer-events: none;
   -webkit-font-smoothing: antialiased;
+  /* 한국어 문장이 음절 중간에서 줄바꿈되지 않게 한다 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* hidden 속성이 display 선언에 덮이지 않게 한다 */
@@ -48,6 +51,13 @@
 
 .toast .keys {
   color: var(--c-fg-2);
+}
+
+/* SVG 아이콘(src/shared/icons.ts) */
+.icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
 }
 
 kbd {
@@ -192,6 +202,7 @@ kbd {
   color: var(--c-fg);
   font: inherit;
   font-size: var(--fs-sm);
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -418,7 +429,36 @@ kbd {
   align-items: center;
   overflow-x: auto;
   padding-bottom: 2px;
+  scroll-padding-inline: 20px;
   scrollbar-width: thin;
+}
+
+/* 넘쳐 가려진 쪽 가장자리를 흐리게 (docs/ux-design.md 5.3절) */
+.chips[data-fade='start'] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 20px);
+  mask-image: linear-gradient(to right, transparent, #000 20px);
+}
+
+.chips[data-fade='end'] {
+  -webkit-mask-image: linear-gradient(to left, transparent, #000 20px);
+  mask-image: linear-gradient(to left, transparent, #000 20px);
+}
+
+.chips[data-fade='both'] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 20px,
+    #000 calc(100% - 20px),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 20px,
+    #000 calc(100% - 20px),
+    transparent
+  );
 }
 
 .chip-wrap {
@@ -716,6 +756,8 @@ kbd {
 }
 
 .rec-widget-dot {
+  width: 10px;
+  height: 10px;
   color: var(--c-rec);
 }
 
@@ -744,6 +786,11 @@ kbd {
   font: inherit;
   font-size: var(--fs-xs);
   cursor: pointer;
+}
+
+.rec-widget-btn .icon {
+  width: 12px;
+  height: 12px;
 }
 
 .rec-widget-btn.is-stop {

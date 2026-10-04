@@ -8,6 +8,9 @@
 }
 
 .permission h1 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   margin: 0 0 var(--sp-3);
   font-size: var(--fs-lg);
 }
@@ -40,4 +43,10 @@
 
 .permission .permission-result.is-denied {
   color: var(--c-warn);
+}
+
+.perm-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--c-accent);
 }

@@ -10,6 +10,7 @@ import {
   type Point,
 } from '@/core/region';
 import { t } from '@/shared/i18n';
+import { iconElement } from '@/shared/icons';
 import { createOverlay, el, type Overlay } from './overlay/host';
 
 /**
@@ -53,7 +54,7 @@ export function startRegionSelector(options: RegionOptions): () => void {
     'data-action': 'confirm',
   });
   confirmBtn.append(
-    options.forRecording ? '● ' : '',
+    iconElement(options.forRecording ? 'record' : 'region'),
     t(options.forRecording ? 'panelRecord' : 'panelCapture'),
     ' ',
     el('kbd'),

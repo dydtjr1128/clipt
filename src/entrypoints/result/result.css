@@ -32,7 +32,10 @@ body,
 }
 
 .topbar-brand {
+  display: flex;
   flex: none;
+  align-items: center;
+  gap: var(--sp-2);
   font-size: var(--fs-lg);
   font-weight: 700;
 }
@@ -76,6 +79,10 @@ body,
 }
 
 .tb-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   min-height: 32px;
   padding: 0 var(--sp-3);
   border: 1px solid var(--c-border);
