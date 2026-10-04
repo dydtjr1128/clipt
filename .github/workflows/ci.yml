@@ -5,9 +5,10 @@ on:
   push:
     branches: [main]
 
+# PR은 새 푸시가 오면 이전 실행을 취소한다. main은 커밋마다 끝까지 돌린다(버전을 올린 커밋의 CI 성공이 자동 릴리스 조건)
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}-${{ github.event_name == 'push' && github.sha || 'pr' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -19,11 +20,19 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      # 배포 빌드(소스·런타임 의존성)가 바뀌었는데 버전이 그대로인 PR에 경고(AGENTS.md 버전과 변경기록)
+      - name: 배포 빌드 변경 시 버전 올림 확인
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/check-version-bump.mjs
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check

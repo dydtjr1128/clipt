@@ -3,8 +3,9 @@
 //   clipt-<version>.zip  같은 내용의 버전 표기 파일
 //   SHA256SUMS.txt       두 zip의 체크섬
 //   RELEASE_NOTES.md     releases/<version>.md
-// 태그 빌드에서는 CHANGELOG.md 맨 위 행의 버전이 package.json과 같은지도 확인한다.
-// 태그 빌드(GITHUB_REF_TYPE=tag)에서는 태그가 v<version>인지, 커밋이 origin/main에 속하는지도 확인한다.
+// 아직 태그가 없는 버전(릴리스 PR·태그 빌드)에서는 CHANGELOG.md 맨 위 행의 버전이 package.json과 같은지도 확인한다.
+// 태그 빌드(GITHUB_REF_TYPE=tag)와 자동 릴리스(RELEASE_TAG, CI 성공 후 만들 태그)에서는
+// 태그가 v<version>인지, 커밋이 origin/main에 속하는지도 확인한다.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
@@ -27,7 +28,9 @@ const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
 if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version))
   fail(`버전은 X.Y.Z 형식이어야 함: ${version}`);
 
-const tag = process.env.GITHUB_REF_TYPE === 'tag' ? process.env.GITHUB_REF_NAME : '';
+const tag =
+  process.env.RELEASE_TAG ||
+  (process.env.GITHUB_REF_TYPE === 'tag' ? process.env.GITHUB_REF_NAME : '');
 if (tag) {
   if (tag !== `v${version}`) fail(`태그 ${tag} ≠ package.json 버전 v${version}`);
   try {
@@ -43,14 +46,23 @@ const notesFile = path.join('releases', `${version}.md`);
 const notes = existsSync(notesFile) ? readFileSync(notesFile, 'utf8').trim() : '';
 if (!notes) fail(`릴리스 노트 ${notesFile} 없음`);
 
-// CHANGELOG 맨 위 행의 버전은 릴리스 시점에 package.json과 같아야 한다(행을 빠뜨린 채 릴리스하지 않도록).
-// 릴리스 사이의 PR은 다음 릴리스 버전으로 행을 먼저 쓰므로 태그 빌드에서만 강제하고 그 밖에는 알리기만 한다
+// 아직 태그가 없는 버전이면 릴리스 PR 또는 릴리스 빌드다. 태그를 받지 못한 환경(얕은 clone)에서는 판단하지 않는다
+let unreleased = false;
+try {
+  const tags = execFileSync('git', ['tag', '--list'], { encoding: 'utf8' }).split(/\r?\n/);
+  unreleased = tags.some((t) => /^v\d/.test(t)) && !tags.includes(`v${version}`);
+} catch {
+  // git이 없으면 판단하지 않음
+}
+
+// CHANGELOG는 버전마다 한 행이고 릴리스 PR이 맨 위에 그 버전 행을 쓴다(행을 빠뜨린 채 릴리스하지 않도록).
+// 릴리스 PR·태그 빌드에서 강제하고, 이미 릴리스된 버전의 일반 PR에서는 알리기만 한다
 const changelog = readFileSync('CHANGELOG.md', 'utf8');
 const topRow = changelog.split('\n').find((line) => /^\| \d+\.\d+\.\d+ \|/.test(line));
 const topVersion = topRow?.split('|')[1]?.trim();
 if (topVersion !== version) {
   const message = `CHANGELOG.md 맨 위 행의 버전 ${topVersion ?? '(없음)'} ≠ package.json 버전 ${version}`;
-  if (tag) fail(message);
+  if (tag || unreleased) fail(message);
   console.log(`· ${message} (릴리스 전에 맞춘다)`);
 }
 
@@ -74,4 +86,6 @@ writeFileSync(path.join(out, 'SHA256SUMS.txt'), `${sums}\n`);
 writeFileSync(path.join(out, 'RELEASE_NOTES.md'), `${notes}\n`);
 
 if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
-console.log(`✓ 릴리스 파일 준비: ${out} (Clipt ${version}${tag ? `, ${tag}` : ', 빌드만'})`);
+console.log(
+  `✓ 릴리스 파일 준비: ${out} (Clipt ${version}${tag ? `, ${tag}` : unreleased ? ', 릴리스 PR' : ', 빌드만'})`,
+);
