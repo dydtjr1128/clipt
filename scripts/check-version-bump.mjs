@@ -19,21 +19,27 @@ const files = git('diff', '--name-only', `${base}...HEAD`, '--', 'src', 'public'
   .split(/\r?\n/)
   .filter(Boolean);
 
-/** lockfile에서 런타임에 쓰이는(dev가 아닌) 패키지 → 버전 */
+/** lockfile에서 런타임에 쓰이는(dev가 아닌) 패키지 → 버전·출처·무결성(같은 버전 번호의 다른 출처도 변경으로 본다) */
 function runtimePackages(lockText) {
   if (!lockText) return new Map();
   const { packages = {} } = JSON.parse(lockText);
   return new Map(
     Object.entries(packages)
       .filter(([name, info]) => name && !info.dev)
-      .map(([name, info]) => [name.replace(/^node_modules\//, ''), info.version]),
+      .map(([name, info]) => [
+        name.replace(/^node_modules\//, ''),
+        [info.version, info.resolved, info.integrity].join(' '),
+      ]),
   );
 }
 const before = runtimePackages(readBase('package-lock.json'));
 const after = runtimePackages(readFileSync('package-lock.json', 'utf8'));
 const deps = [...new Set([...before.keys(), ...after.keys()])]
   .filter((name) => before.get(name) !== after.get(name))
-  .map((name) => `${name} ${before.get(name) ?? '(없음)'} → ${after.get(name) ?? '(삭제)'}`);
+  .map((name) => {
+    const version = (entry) => entry?.split(' ')[0];
+    return `${name} ${version(before.get(name)) ?? '(없음)'} → ${version(after.get(name)) ?? '(삭제)'}`;
+  });
 
 const baseVersion = JSON.parse(readBase('package.json') ?? '{}').version;
 const headVersion = JSON.parse(readFileSync('package.json', 'utf8')).version;

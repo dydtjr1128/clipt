@@ -27,8 +27,9 @@ on:
 permissions:
   contents: read
 
+# 자동 릴리스는 커밋별 그룹이다. main 하나로 묶으면 대기 중인 실행이 다음 CI 완료 이벤트에 밀려 취소될 수 있다
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event.workflow_run.head_sha || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -171,20 +172,32 @@ jobs:
           sha256sum --check SHA256SUMS.txt
           cmp clipt.zip "clipt-${RELEASE_VERSION}.zip"
       - name: 자동 릴리스 태그 만들기
+        id: tag
         if: github.event_name == 'workflow_run'
         # GITHUB_TOKEN으로 만든 태그는 태그 푸시 워크플로를 다시 띄우지 않는다(이중 게시 없음).
-        # 태그가 이미 있으면(재시도·동시 수동 태그) 패키징한 커밋을 가리킬 때만 이어서 게시한다
+        # 태그가 이미 있으면(재시도·동시 실행) 패키징한 커밋을 가리킬 때만 이어서 게시한다.
+        # 다른 커밋을 가리키고 그 릴리스가 이미 게시됐으면 같은 버전을 다른 실행이 끝낸 것이라 건너뛴다
         run: |
           if ! gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --silent 2>/dev/null; then
-            gh api "repos/$GH_REPO/git/refs" -f ref="refs/tags/$RELEASE_TAG" -f sha="$RELEASE_SHA" --silent
+            if ! gh api "repos/$GH_REPO/git/refs" -f ref="refs/tags/$RELEASE_TAG" -f sha="$RELEASE_SHA" --silent; then
+              # GITHUB_TOKEN은 main과 워크플로 파일이 다른 과거 커밋에 ref를 만들 수 없다(workflows 권한 없음)
+              echo "::error::$RELEASE_TAG 태그를 만들지 못함. 그 커밋(${RELEASE_SHA:0:7})에 태그를 직접 푸시하면 태그 경로로 게시된다"
+              exit 1
+            fi
           fi
           tagged=$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)
           if [ "$tagged" != "$RELEASE_SHA" ]; then
+            if [ "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)" = "false" ]; then
+              echo "::notice::$RELEASE_TAG 는 다른 커밋(${tagged:0:7})으로 이미 게시됨. 건너뜀"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             echo "::error::$RELEASE_TAG 태그가 패키징한 커밋(${RELEASE_SHA:0:7})이 아닌 ${tagged:0:7}을 가리킴. 게시 중단"
             exit 1
           fi
           echo "$RELEASE_TAG → $tagged"
       - name: Release 생성과 게시
+        if: steps.tag.outputs.skip != 'true'
         # 이전 실행이 draft를 남겼으면 지우고 다시 만든다. 이미 게시된 릴리스는 덮어쓰지 않는다
         run: |
           if state=$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null); then
