@@ -93,7 +93,7 @@
 - 올리는 자리는 변경 성격에 맞춘다. 수정·정정·문서·저장소 절차(`fix:`/`docs:`/`chore:`/`refactor:`/`test:`)만 쌓였으면 patch, 사용자가 새로 쓸 수 있는 기능(`feat:`)이 하나라도 있으면 minor(patch 자리는 0으로). major는 저장 형식·설정 스키마·권한처럼 기존 설치와 호환되지 않는 변경이 필요할 때 사용자가 명시적으로 요청한 경우에만 올리고, 에이전트가 자율 결정하지 않는다. 0.1.0 → 1.0.0은 기능 변경 없이 첫 정식 배포 버전을 붙인 일회성 예외로, 사용자 요청으로 수행했다.
 - 버전을 올리는 PR(릴리스 PR)은 `releases/X.Y.Z.md`(사용자용 릴리스 노트)와 [CHANGELOG.md](CHANGELOG.md) 맨 위의 그 버전 행을 함께 추가한다. 둘 다 직전 릴리스 태그 이후 main에 머지된 PR 전체를 다룬다. CHANGELOG는 버전마다 한 행이며, 버전을 올리지 않는 PR은 CHANGELOG를 건드리지 않는다. 행 형식은 CHANGELOG.md의 작성 규칙이 정본이다.
 - 릴리스 PR에서는 `scripts/release-assets.mjs`(release.yml의 PR 검사)가 아직 태그가 없는 버전의 릴리스 노트와 CHANGELOG 맨 위 행 버전 일치를 확인한다.
-- 릴리스 PR이 머지되고 그 커밋의 main CI(E2E 포함)가 성공하면 `.github/workflows/release.yml`이 `vX.Y.Z` 태그를 만들고 GitHub Release를 게시한다. 머지 뒤 Release 게시와 태그를 확인한다. 자동 게시가 실패하면 원인을 고쳐 다시 실행하고, 그래도 안 되면 그 커밋에 태그를 직접 푸시한다(같은 검사를 거쳐 게시).
+- 릴리스 PR이 머지되고 그 커밋(직전 커밋과 버전이 다른 커밋)의 main CI(E2E 포함)가 성공하면 `.github/workflows/release.yml`이 그 커밋에 `vX.Y.Z` 태그를 만들고 GitHub Release를 게시한다. 버전을 올리지 않은 뒤이은 커밋은 릴리스하지 않는다. 머지 뒤 Release 게시와 태그를 확인한다. 자동 게시가 실패하면 원인을 고쳐 다시 실행하고, 그래도 안 되면 그 커밋에 태그를 직접 푸시한다(같은 검사를 거쳐 게시).
 
 ## 프로젝트 정보
 

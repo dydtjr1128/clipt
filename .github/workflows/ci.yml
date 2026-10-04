@@ -5,9 +5,10 @@ on:
   push:
     branches: [main]
 
+# PR은 새 푸시가 오면 이전 실행을 취소한다. main은 커밋마다 끝까지 돌린다(버전을 올린 커밋의 CI 성공이 자동 릴리스 조건)
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}-${{ github.event_name == 'push' && github.sha || 'pr' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

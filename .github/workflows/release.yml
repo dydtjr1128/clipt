@@ -1,8 +1,8 @@
 name: Release
 
 # 설치용 zip을 GitHub Release에 올린다. 두 경로가 있다.
-# - 자동: main 푸시의 CI가 성공하면 그 커밋의 package.json 버전에 vX.Y.Z 태그가 없을 때
-#   태그를 만들고 게시한다. 이미 태그가 있으면(버전을 올리지 않은 머지) 아무것도 하지 않는다.
+# - 자동: 버전을 올린 main 커밋(직전 커밋과 package.json 버전이 다른 커밋)의 CI가 성공하면
+#   그 커밋에 vX.Y.Z 태그를 만들고 게시한다. 버전을 올리지 않은 머지는 아무것도 하지 않는다.
 # - 수동: vX.Y.Z 태그를 푸시하면 태그 커밋의 CI(main 푸시, E2E 포함) 성공을 확인한 뒤 게시한다(scripts/ci-gate.mjs).
 # PR에서는 릴리스 파일이 만들어지는지만 확인한다(게시하지 않음).
 on:
@@ -51,6 +51,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
           persist-credentials: false
       - name: package.json 버전의 태그·Release 상태 확인
         id: check
@@ -58,17 +59,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           SHA: ${{ github.event.workflow_run.head_sha }}
-        # 태그 없음 → 릴리스. 태그와 게시된 Release가 있음 → 버전을 올리지 않은 머지라 건너뜀.
+        # 릴리스 후보는 버전을 올린 커밋뿐이다(뒤이은 커밋이 같은 버전으로 먼저 게시되지 않게).
+        # 후보에서: 태그 없음 → 릴리스. 게시된 Release 있음 → 건너뜀.
         # 태그만 있고 Release가 없거나 draft → 이전 게시가 실패한 것. 태그가 이 커밋이면 다시 게시하고, 다른 커밋이면 건너뛰고 경고
         run: |
-          tag="v$(node -p "require('./package.json').version")"
+          version=$(node -p "require('./package.json').version")
+          previous=$(git show HEAD^1:package.json 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" 2>/dev/null || true)
+          tag="v$version"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           release=false
-          if ! gh api "repos/$GH_REPO/git/ref/tags/$tag" --silent 2>/dev/null; then
+          if [ "$version" = "$previous" ]; then
+            if gh api "repos/$GH_REPO/git/ref/tags/$tag" --silent 2>/dev/null; then
+              echo "버전을 올리지 않은 머지($version)라 릴리스하지 않음"
+            else
+              echo "::warning title=$tag 미게시::버전을 올린 커밋의 CI가 성공하지 않았거나 릴리스가 실패했습니다. 그 커밋의 CI 또는 릴리스 실행을 다시 돌리세요"
+            fi
+          elif ! gh api "repos/$GH_REPO/git/ref/tags/$tag" --silent 2>/dev/null; then
             release=true
-            echo "$tag 태그 없음. 이 커밋으로 릴리스"
+            echo "$version 으로 버전을 올린 커밋. $tag 태그를 만들어 릴리스"
           elif [ "$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null)" = "false" ]; then
-            echo "$tag 릴리스가 이미 게시됨. 버전을 올리지 않은 머지라 건너뜀"
+            echo "$tag 릴리스가 이미 게시됨. 건너뜀"
           else
             tagged=$(gh api "repos/$GH_REPO/commits/$tag" --jq .sha)
             if [ "$tagged" = "$SHA" ]; then
@@ -146,6 +156,10 @@ jobs:
   publish:
     name: GitHub Release 게시
     needs: [detect, package, ci-gate]
+    # 자동·수동 경로가 같은 태그를 동시에 게시하지 않게 태그 기준으로 직렬화한다
+    concurrency:
+      group: release-publish-${{ needs.detect.outputs.tag || github.ref_name }}
+      cancel-in-progress: false
     # 수동 태그는 ci-gate 성공, 자동 릴리스는 detect가 새 버전을 찾았을 때(CI 성공은 workflow_run 조건으로 확인됨)
     if: >-
       !cancelled() && needs.package.result == 'success' &&
@@ -188,12 +202,13 @@ jobs:
             fi
           fi
           tagged=$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)
+          # 그사이 다른 실행(수동 태그 경로 포함)이 게시를 끝냈으면 건너뛴다
+          if [ "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)" = "false" ]; then
+            echo "::notice::$RELEASE_TAG 는 ${tagged:0:7} 커밋으로 이미 게시됨. 건너뜀"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$tagged" != "$RELEASE_SHA" ]; then
-            if [ "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)" = "false" ]; then
-              echo "::notice::$RELEASE_TAG 는 다른 커밋(${tagged:0:7})으로 이미 게시됨. 건너뜀"
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
             echo "::error::$RELEASE_TAG 태그가 패키징한 커밋(${RELEASE_SHA:0:7})이 아닌 ${tagged:0:7}을 가리킴. 게시 중단"
             exit 1
           fi
