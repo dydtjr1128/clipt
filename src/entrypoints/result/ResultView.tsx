@@ -4,6 +4,7 @@ import { buildFilename, extensionOf } from '@/core/filename';
 import { formatBytes, safeBaseName, shortUrl, splitFilename, stepZoom } from '@/core/format';
 import { isRecordMode, type Mode } from '@/core/job';
 import { formatElapsed } from '@/core/time';
+import { BrandMark, Icon } from '@/components/Icon';
 import { loadResult, type ResultMeta } from '@/shared/db';
 import { t, type MessageKey } from '@/shared/i18n';
 import { loadSettings } from '@/shared/settings';
@@ -171,7 +172,8 @@ function Result({ meta, blob, url }: { meta: ResultMeta; blob: Blob; url: string
     <div class="result-app" data-result-id={meta.id}>
       <header class="topbar">
         <span class="topbar-brand">
-          <span aria-hidden="true">{'✂'}</span> {t('appShortName')}
+          <BrandMark />
+          {t('appShortName')}
         </span>
         <label class="filename">
           <input
@@ -201,7 +203,14 @@ function Result({ meta, blob, url }: { meta: ResultMeta; blob: Blob; url: string
             data-action="download"
             onClick={() => void download(blob, ext)}
           >
-            {flash === 'saved' ? `✓ ${t('resultSaved')}` : `⬇ ${t('resultDownload')}`}
+            {flash === 'saved' ? (
+              `✓ ${t('resultSaved')}`
+            ) : (
+              <>
+                <Icon name="download" />
+                {t('resultDownload')}
+              </>
+            )}
           </button>
         </div>
       </header>

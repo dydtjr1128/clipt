@@ -1,3 +1,4 @@
+import type { IconName } from '@/shared/icons';
 import type { Mode } from './job';
 
 /**
@@ -8,21 +9,21 @@ export interface MenuItem {
   mode: Mode;
   /** chrome.commands 명령 이름. 단축키 힌트 표시에 쓴다 */
   command: string;
-  /** 화면 아이콘 문자 */
-  icon: string;
+  /** 화면 아이콘 */
+  icon: IconName;
 }
 
 export const SCREENSHOT_MENU: readonly MenuItem[] = [
-  { mode: 'visible', command: 'capture-visible', icon: '▣' },
-  { mode: 'fullpage', command: 'capture-fullpage', icon: '▤' },
-  { mode: 'element', command: 'capture-element', icon: '◱' },
-  { mode: 'region', command: 'capture-region', icon: '⬚' },
+  { mode: 'visible', command: 'capture-visible', icon: 'visible' },
+  { mode: 'fullpage', command: 'capture-fullpage', icon: 'fullpage' },
+  { mode: 'element', command: 'capture-element', icon: 'element' },
+  { mode: 'region', command: 'capture-region', icon: 'region' },
 ];
 
 export const RECORDING_MENU: readonly MenuItem[] = [
-  { mode: 'rec-tab', command: 'toggle-recording', icon: '●' },
-  { mode: 'rec-region', command: 'record-region', icon: '⬚' },
-  { mode: 'rec-element', command: 'record-element', icon: '◱' },
+  { mode: 'rec-tab', command: 'toggle-recording', icon: 'record' },
+  { mode: 'rec-region', command: 'record-region', icon: 'region' },
+  { mode: 'rec-element', command: 'record-element', icon: 'element' },
 ];
 
 /** commands.getAll 결과에서 명령 이름 → 단축키 문자열 맵을 만든다. 미할당은 제외 */

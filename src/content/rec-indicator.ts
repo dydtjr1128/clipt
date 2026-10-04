@@ -4,6 +4,7 @@ import { boxesOverlap } from '@/core/geometry';
 import { recordedMs } from '@/core/job';
 import { formatElapsed } from '@/core/time';
 import { t } from '@/shared/i18n';
+import { iconElement } from '@/shared/icons';
 import { send } from '@/shared/messages';
 import { createOverlay, el, type Overlay } from './overlay/host';
 
@@ -108,12 +109,11 @@ export function showIndicator(options: IndicatorOptions): void {
   let render = () => undefined as void;
   if (options.kind === 'widget') {
     const widget = el('div', 'rec-widget', { role: 'group', 'aria-label': t('recordingShort') });
-    const dot = el('span', 'rec-widget-dot', { 'aria-hidden': 'true' });
-    dot.textContent = '●';
+    const dot = iconElement('record', 'icon rec-widget-dot');
     const time = el('span', 'rec-widget-time', { role: 'timer' });
     const pause = el('button', 'rec-widget-btn', { type: 'button', 'data-action': 'pause' });
     const stop = el('button', 'rec-widget-btn is-stop', { type: 'button', 'data-action': 'stop' });
-    stop.textContent = '■';
+    stop.append(iconElement('stop'));
     stop.title = t('recStop');
     stop.setAttribute('aria-label', t('recStop'));
     widget.append(dot, time, pause, stop);
@@ -158,7 +158,10 @@ export function showIndicator(options: IndicatorOptions): void {
       const paused = state.pausedAt !== undefined;
       time.textContent = formatElapsed(recordedMs(state, Date.now()));
       widget.classList.toggle('is-paused', paused);
-      pause.textContent = paused ? '▶' : '❚❚';
+      if (pause.dataset.icon !== (paused ? 'play' : 'pause')) {
+        pause.dataset.icon = paused ? 'play' : 'pause';
+        pause.replaceChildren(iconElement(paused ? 'play' : 'pause'));
+      }
       const label = t(paused ? 'recResume' : 'recPause');
       pause.title = label;
       pause.setAttribute('aria-label', label);

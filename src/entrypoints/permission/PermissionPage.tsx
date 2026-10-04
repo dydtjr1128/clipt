@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { Icon } from '@/components/Icon';
 import { t } from '@/shared/i18n';
 
 /**
@@ -25,7 +26,8 @@ export function PermissionPage() {
   return (
     <main class="permission">
       <h1>
-        <span aria-hidden="true">{'🎤'}</span> {t('permTitle')}
+        <Icon name="mic" class="icon perm-icon" />
+        {t('permTitle')}
       </h1>
       <p>{t('permBody')}</p>
       {state === 'idle' && (
