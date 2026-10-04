@@ -145,6 +145,11 @@ async function shoot(lang, outDir, extraDir) {
     await options.goto(`chrome-extension://${extensionId}/options.html`);
     await options.waitForTimeout(500);
     await options.screenshot({ path: save('5-settings.png') });
+    // README에는 아래가 잘리지 않게 설정 화면 전체를 찍는다(스토어 이미지는 1280×800 고정)
+    if (extraDir) {
+      await options.setViewportSize({ width: 560, height: 1200 });
+      await options.locator('.options').screenshot({ path: path.join(extraDir, 'settings.png') });
+    }
     await options.close();
     await control.evaluate(() =>
       chrome.storage.sync.set({
@@ -253,7 +258,6 @@ const README_IMAGES = {
   'element.png': '2-element.png',
   'region.png': '3-region.png',
   'result.png': '4-result.png',
-  'settings.png': '5-settings.png',
 };
 
 for (const lang of ['ko', 'en']) {
