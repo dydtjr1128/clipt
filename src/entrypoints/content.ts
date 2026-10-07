@@ -1,5 +1,5 @@
 import { listen, send } from '@/shared/messages';
-import { hideFixed, isCapturing, prepare, probe, restore, scrollToY } from '@/content/page';
+import { hideFixed, isCapturing, prepare, probeFullPage, restore, scrollToY } from '@/content/page';
 import { cancelSelection, startSelection, stopWatchingResize } from '@/content/selection';
 import { cancelCountdown, runCountdown } from '@/content/countdown';
 import { hideIndicator, showIndicator, updateIndicator } from '@/content/rec-indicator';
@@ -21,12 +21,9 @@ export default defineContentScript({
 
     listen('content', {
       'content:ping': () => 'pong' as const,
-      'page:probe': () => probe(),
-      'page:prepare': ({ hideScrollbar }) => {
-        prepare({ hideScrollbar });
-        return null;
-      },
-      'page:hideFixed': () => hideFixed(),
+      'page:probe': () => probeFullPage(),
+      'page:prepare': (options) => prepare(options),
+      'page:hideFixed': (options) => hideFixed(options?.keepDescendants ?? true),
       'page:scrollTo': ({ y, lazyWaitMs }) => scrollToY(y, lazyWaitMs),
       'page:restore': () => {
         restore();

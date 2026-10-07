@@ -499,6 +499,10 @@
     "message": "페이지 안쪽 영역이 스크롤되는 구조라 일부만 캡처됐을 수 있어요.",
     "description": "내부 스크롤 안내"
   },
+  "noticeScrollArea": {
+    "message": "페이지 안쪽의 스크롤 영역 전체를 이어 붙였어요. 영역 밖의 머리글·메뉴는 담기지 않아요.",
+    "description": "안쪽 스크롤 영역을 이어 붙인 전체 페이지 캡처 안내"
+  },
   "noticeClipped": {
     "message": "가려진 부분은 빼고 보이는 부분만 담았어요.",
     "description": "잘림 안내"

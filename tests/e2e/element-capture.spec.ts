@@ -105,7 +105,7 @@ test('고정 요소 자체를 선택하면 숨기지 않고 캡처한다', async
   expectColor((await samplePixels(result, [[vw / 2, 30]]))[0], PALETTE.header);
 });
 
-test('스크롤 영역에 잘린 요소는 보이는 부분만 캡처하고 일부 잘림을 알린다', async ({
+test('스크롤 영역에 잘린 요소는 영역을 스크롤해 전체를 캡처한다', async ({
   context,
   openControlWindow,
 }) => {
@@ -114,13 +114,65 @@ test('스크롤 영역에 잘린 요소는 보이는 부분만 캡처하고 일�
     y: 40,
   });
   await expect(site.locator('clipt-overlay .info-tag')).toHaveText('div#inner-tall');
-  await expect(site.locator('clipt-overlay .info-clipped')).toBeVisible();
-  const visible = await site.evaluate(() => {
-    const s = document.getElementById('scroller')!;
-    return { w: s.clientWidth, h: s.clientHeight };
+  await expect(site.locator('clipt-overlay .info-clipped')).toHaveCount(0);
+  const width = await site.evaluate(() => document.getElementById('scroller')!.clientWidth);
+
+  const { result, info } = await captureWithEnter(context, site);
+  expect({ w: info.width, h: info.height }).toEqual({ w: width, h: 600 });
+  expect(info.meta.warnings).toBeUndefined();
+  const [top, bottom] = await samplePixels(result, [
+    [width / 2, 10],
+    [width / 2, 590],
+  ]);
+  expectColor(top, PALETTE.bandA);
+  expectColor(bottom, PALETTE.bandB);
+});
+
+test('화면에 일부만 보이는 스크롤 영역 자체를 고르면 창과 영역을 스크롤해 내용 전체를 담고 되돌린다', async ({
+  context,
+  openControlWindow,
+}) => {
+  const { site } = await lockOn(context, openControlWindow, '/blocks', '#scroller', {
+    x: 50,
+    y: 40,
   });
+  await site.keyboard.press('ArrowUp');
+  await expect(site.locator('clipt-overlay .info-tag')).toHaveText('div#scroller');
+  await expect(site.locator('clipt-overlay .info-clipped')).toHaveCount(0);
+  // 영역(문서 y 700~850)이 화면 아래로 일부 나가게 한다(창 크기에 따라 나간 높이가 다르다)
+  await site.evaluate(() => {
+    document.getElementById('scroller')!.scrollTop = 100;
+    scrollTo(0, 0);
+  });
+  const before = await site.evaluate(() => {
+    const s = document.getElementById('scroller')!;
+    return { width: s.clientWidth, hidden: s.getBoundingClientRect().bottom - innerHeight };
+  });
+  expect(before.hidden).toBeGreaterThan(0);
+
+  const { result, info } = await captureWithEnter(context, site);
+  expect({ w: info.width, h: info.height }).toEqual({ w: before.width, h: 600 });
+  expect(info.meta.warnings).toBeUndefined();
+  const [top, bottom] = await samplePixels(result, [
+    [before.width / 2, 10],
+    [before.width / 2, 590],
+  ]);
+  expectColor(top, PALETTE.bandA);
+  expectColor(bottom, PALETTE.bandB);
+  expect(
+    await site.evaluate(() => [scrollY, document.getElementById('scroller')!.scrollTop]),
+  ).toEqual([0, 100]);
+});
+
+test('스크롤로 펼칠 수 없게 가려진 요소는 보이는 부분만 캡처하고 일부 잘림을 알린다', async ({
+  context,
+  openControlWindow,
+}) => {
+  const { site } = await lockOn(context, openControlWindow, '/blocks', '#clip');
+  await expect(site.locator('clipt-overlay .info-tag')).toHaveText('div#clip-inner');
+  await expect(site.locator('clipt-overlay .info-clipped')).toBeVisible();
 
   const { info } = await captureWithEnter(context, site);
-  expect({ w: info.width, h: info.height }).toEqual(visible);
+  expect({ w: info.width, h: info.height }).toEqual({ w: 200, h: 100 });
   expect(info.meta.warnings).toEqual(['clipped']);
 });

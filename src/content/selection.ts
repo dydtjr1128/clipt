@@ -60,19 +60,21 @@ async function confirm(
     warnings?: string[];
     forRecording?: boolean;
     follow?: boolean;
+    /** 요소 캡처: 요소를 가려 스크롤하며 담을 스크롤 영역 */
+    area?: HTMLElement | null;
   } = {},
 ): Promise<void> {
   active = null;
   if (extra.forRecording) watchResize(jobId);
   const follow = Boolean(extra.forRecording && extra.follow && extra.element);
   setTrackedElement(follow ? extra.element! : null);
-  // 요소 캡처면 고정 요소를 숨길 때 대상 요소는 남긴다
-  setCaptureTarget(extra.element ?? null);
+  // 요소 캡처면 고정 요소를 숨길 때 대상 요소는 남기고, 요소를 가린 스크롤 영역을 기억한다
+  setCaptureTarget(extra.element ?? null, extra.area ?? null);
   await settleFrames();
   await send('background', 'select:done', {
     jobId,
     target,
-    page: probe(),
+    page: probe(extra.area ?? null),
     ...(extra.selector ? { selector: extra.selector } : {}),
     ...(follow ? { follow: true } : {}),
     ...(extra.warnings?.length ? { warnings: extra.warnings } : {}),
@@ -84,10 +86,15 @@ export function startSelection(jobId: string, kind: SelectKind, forRecording: bo
   if (kind === 'element') {
     const dispose = startElementSession({
       forRecording,
-      onConfirm: (target, selector, element, warnings, follow) => {
-        void confirm(jobId, target, { selector, element, warnings, forRecording, follow }).catch(
-          () => undefined,
-        );
+      onConfirm: (target, selector, element, warnings, follow, area) => {
+        void confirm(jobId, target, {
+          selector,
+          element,
+          warnings,
+          forRecording,
+          follow,
+          area,
+        }).catch(() => undefined);
       },
       onCancel: () => {
         active = null;

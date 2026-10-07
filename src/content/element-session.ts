@@ -2,6 +2,7 @@ import { h, render } from 'preact';
 import { current, moveSibling, selectionOf, withDepth, type Selection } from '@/core/element-path';
 import { domTree, labelOf, sizeOf, visibleRectOf } from './dom-tree';
 import { startElementPicker } from './element-picker';
+import { scrollAreaOf } from './scroll-area';
 import { el } from './overlay/host';
 import { SelectionPanel } from './panel/SelectionPanel';
 import type { RegionTarget } from './region-selector';
@@ -20,6 +21,8 @@ export interface ElementSessionOptions {
     warnings: string[],
     /** 요소 녹화: 요소 따라가기 */
     follow: boolean,
+    /** 요소 캡처: 요소를 가려 스크롤하며 담을 스크롤 영역 */
+    area: HTMLElement | null,
   ) => void;
   onCancel: () => void;
 }
@@ -62,7 +65,8 @@ function clampPosition(
 
 /**
  * 확정 대상: x는 뷰포트, y는 문서 기준. overflow 조상에 잘린 부분은 빼고,
- * 가로는 화면 안으로 자른다(스티칭은 세로만).
+ * 가로는 화면 안으로 자른다(스티칭은 세로만). 스크롤 영역에 가린 요소를 펼쳐 담을 때는
+ * 캡처 직전 page:prepare가 영역 내용 기준으로 다시 잰다.
  */
 export function targetOf(element: Element): RegionTarget {
   const r = visibleRectOf(element).rect;
@@ -76,6 +80,21 @@ export function targetOf(element: Element): RegionTarget {
     w: Math.max(1, Math.round(right - left)),
     h: Math.max(1, Math.round(bottom - top)),
   };
+}
+
+/**
+ * 결과에서 빠지는 부분이 있는지. 캡처는 요소를 가린 스크롤 영역을 스크롤해 세로로 펼치므로
+ * 그 영역이 있으면 가로로 잘린 부분만 빠진다. 녹화는 보이는 화면만 담는다
+ */
+export function clipOf(
+  element: Element,
+  forRecording: boolean,
+): { area: HTMLElement | null; clipped: boolean } {
+  const visible = visibleRectOf(element);
+  const area = forRecording ? null : scrollAreaOf(element);
+  if (!area) return { area: null, clipped: visible.clipped };
+  const width = element.getBoundingClientRect().width;
+  return { area, clipped: Math.round(visible.rect.width) < Math.round(width) };
 }
 
 export function startElementSession(options: ElementSessionOptions): () => void {
@@ -171,7 +190,7 @@ export function startElementSession(options: ElementSessionOptions): () => void 
           id: target.id,
           classes: [...target.classList].slice(0, 6),
           size: sizeOf(target),
-          clipped: visibleRectOf(target).clipped,
+          clipped: clipOf(target, options.forRecording).clipped,
         },
         position,
         follow,
@@ -271,13 +290,21 @@ export function startElementSession(options: ElementSessionOptions): () => void 
     if (!selection || disposed) return;
     const target = current(selection);
     const measured = targetOf(target);
-    const warnings = visibleRectOf(target).clipped ? ['clipped'] : [];
+    const clip = clipOf(target, options.forRecording);
+    const warnings = clip.clipped ? ['clipped'] : [];
     const selector = selection.path
       .slice(0, selection.depth + 1)
       .map((node) => labelOf(node))
       .join(' > ');
     finish();
-    options.onConfirm(measured, selector, target, warnings, options.forRecording && follow);
+    options.onConfirm(
+      measured,
+      selector,
+      target,
+      warnings,
+      options.forRecording && follow,
+      clip.area,
+    );
   }
 
   const onResize = () => update();

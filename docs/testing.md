@@ -30,7 +30,7 @@ CI(`.github/workflows/ci.yml`)는 PR과 main 푸시마다 정적 검사·단위 
 
 ## E2E가 맡는 것 (`tests/e2e`)
 
-- 테스트 사이트는 네트워크 없이 `context.route`로 응답한다(`site.ts`): 색 띠로 된 긴 페이지, 고정 헤더, 지연 로딩 이미지, 위치가 정해진 블록·링크·Shadow DOM·스크롤 영역. 결과는 **픽셀 색**으로 검증한다(`result.ts`, `rec.ts`).
+- 테스트 사이트는 네트워크 없이 `context.route`로 응답한다(`site.ts`): 색 띠로 된 긴 페이지, 고정 헤더, 지연 로딩 이미지, 위치가 정해진 블록·링크·Shadow DOM·스크롤 영역, 안쪽 영역이 스크롤되는 앱형 레이아웃(`/app`: 머리글형, body 스크롤, 왼쪽 메뉴형(가운데 부유 패널 옵션), 고정 앱 틀 + Shadow DOM, Shadow DOM 고정 틀 + slot, 왼쪽 고정 메뉴 + 문서 스크롤, 머리글·스크롤 목록·바닥글의 짧은 일반 문서와 모달로 스크롤을 잠근 상태, sticky 머리·스크롤 스냅 옵션). 결과는 **픽셀 색**으로 검증한다(`result.ts`, `rec.ts`).
 - 확장은 E2E 전용 빌드(`npm run build:e2e`)를 쓴다. Playwright는 툴바 클릭·단축키로 activeTab을 줄 수 없어 `<all_urls>`와 고정 `key`를 더하고, `--allowlisted-extension-id`로 탭 캡처를 허용한다. 배포 빌드 manifest에 이것들이 없다는 것도 E2E가 확인한다.
 - 배포 빌드 검증(`toolbar.spec.ts`, `build: 'production'`): host 권한·고정 key·allowlist 없는 배포 빌드를 `--enable-unsafe-extension-debugging`으로 띄우고 CDP `Extensions.triggerAction`으로 실제 툴바 아이콘을 눌러 activeTab을 받는다. 툴바 팝업은 Playwright Page로 잡히지 않아 CDP 세션으로 조작한다(`toolbar.ts`). 보이는 화면·영역·요소 캡처, 탭 녹화 시작·중지, `chrome://extensions` 안내를 확인한다.
 - 옵션: `scaleFactor`(DPR), `windowSize`, `lang`. 조작용 확장 페이지는 `openControlWindow`로 별도 창에 띄워 대상 탭을 활성 상태로 둔다.
