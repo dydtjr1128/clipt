@@ -1,6 +1,7 @@
 /**
  * 스크롤 스티칭 계획 (docs/architecture.md 8.1절). 브라우저 API에 의존하지 않는다.
- * 좌표는 모두 문서 기준 CSS px이며, device px 변환은 drawPiece 단계에서 한다.
+ * 좌표는 모두 스크롤하는 대상(문서 또는 스크롤 영역)의 내용 기준 CSS px이며,
+ * device px 변환은 drawPiece 단계에서 한다.
  */
 
 /** Chrome 캔버스 한계: 한 변 32767px, 면적 16384² */
@@ -8,10 +9,11 @@ export const CANVAS_MAX_SIDE = 32767;
 export const CANVAS_MAX_AREA = 16384 * 16384;
 
 export interface StitchInput {
-  /** 캡처할 문서 영역 (CSS px, 문서 기준) */
+  /** 캡처할 범위 (CSS px). x는 뷰포트, y는 스크롤하는 대상의 내용 기준 */
   target: { x: number; y: number; w: number; h: number };
+  /** 한 번에 보이는 크기 (뷰포트 또는 스크롤 영역의 안쪽 상자) */
   viewport: { w: number; h: number };
-  /** 문서 전체 스크롤 높이 */
+  /** 스크롤하는 대상(문서 또는 스크롤 영역)의 전체 스크롤 높이 */
   scrollHeight: number;
   /** 현재 세로 스크롤 위치. 대상이 이미 화면 안에 있으면 스크롤하지 않는다 */
   currentScrollY: number;
@@ -81,6 +83,7 @@ export function planStitch(input: StitchInput): StitchPlan {
 /**
  * 조각을 결과 캔버스에 그릴 원본·대상 사각형(device px).
  * 이웃 조각의 경계를 같은 반올림으로 계산해 이음새에 틈이나 겹침이 생기지 않게 한다.
+ * originY는 스크롤하는 대상이 화면에서 시작하는 위치(문서는 0, 스크롤 영역은 안쪽 상자의 뷰포트 y)다.
  */
 export function pieceRects(
   piece: StitchPiece,
@@ -88,9 +91,10 @@ export function pieceRects(
   target: { x: number; y: number; w: number },
   dpr: number,
   scale: number,
+  originY = 0,
 ) {
   const top = Math.max(0, target.y);
-  const srcTop = top + piece.offset - capturedScrollY;
+  const srcTop = originY + top + piece.offset - capturedScrollY;
   const sy = Math.round(srcTop * dpr);
   const sh = Math.round((srcTop + piece.height) * dpr) - sy;
   const sx = Math.round(target.x * dpr);

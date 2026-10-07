@@ -70,6 +70,8 @@ export async function onSelectionDone(
       target: { x: target.x, y: target.y, w: target.w, h: target.h, unit: 'css' },
     });
     await transitionJob(job.id, 'capturing');
+    // 요소가 스크롤 영역에 가려 있으면(page.area) 그 영역을 스크롤해 요소 전체를 담는다
+    const byArea = job.mode === 'element' && page.area !== undefined;
     const image = await stitchCapture(
       job,
       tab.windowId,
@@ -77,13 +79,16 @@ export async function onSelectionDone(
       target,
       { ...settings, image: { ...settings.image, format: outputFormat(settings) } },
       // 요소는 첫 조각부터 고정 요소를 숨겨 요소 위를 덮지 않게 하고, 영역은 보이던 대로 둔다
-      { hideFixedFrom: job.mode === 'element' ? 0 : 1 },
+      { hideFixedFrom: job.mode === 'element' ? 0 : 1, ...(byArea ? { area: 'target' } : {}) },
     );
+    // 영역을 쓸 수 없어 보이는 부분만 찍었으면 잘렸다고 알린다
+    const all = [...(warnings ?? []), ...(byArea && !image.scrolledArea ? ['clipped'] : [])];
+    const merged = all.filter((w, i) => all.indexOf(w) === i);
     await finishCapture(job, tab, image, settings, {
       page,
       ...(image.scale < 1 ? { scaled: image.scale } : {}),
       ...(selector ? { selector } : {}),
-      ...(warnings?.length ? { warnings } : {}),
+      ...(merged.length ? { warnings: merged } : {}),
     });
   });
 }

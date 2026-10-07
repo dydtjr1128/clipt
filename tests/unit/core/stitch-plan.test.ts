@@ -82,6 +82,29 @@ describe('pieceRects', () => {
     expect(nextDy).toBe(plan.height);
   });
 
+  it('스크롤 영역은 영역 안쪽 상자의 화면 위치만큼 내려 잘라도 조각이 이어진다', () => {
+    const dpr = 1.25;
+    const box = { y: 60.5, h: 645 };
+    const target = { x: 200, y: 0, w: 785 };
+    const plan = planStitch({
+      target: { ...target, h: 3040 },
+      viewport: { w: 785, h: box.h },
+      scrollHeight: 3040,
+      currentScrollY: 200,
+      dpr,
+    });
+    let nextDy = 0;
+    for (const piece of plan.pieces) {
+      const r = pieceRects(piece, piece.scrollY, target, dpr, plan.scale, box.y);
+      expect(r.dy).toBe(nextDy);
+      // 영역 밖(머리글 등)은 자르지 않는다
+      expect(r.sy).toBeGreaterThanOrEqual(Math.round(box.y * dpr));
+      expect(r.sy + r.sh).toBeLessThanOrEqual(Math.round((box.y + box.h) * dpr));
+      nextDy = r.dy + r.dh;
+    }
+    expect(nextDy).toBe(plan.height);
+  });
+
   it('브라우저가 요청과 다른 위치로 스크롤해도 실제 위치 기준으로 자른다', () => {
     const piece = { scrollY: 1000, offset: 1000, height: 800 };
     const r = pieceRects(piece, 990, { x: 0, y: 0, w: 1000 }, 1, 1);

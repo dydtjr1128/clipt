@@ -2,7 +2,7 @@ import { browser, type Browser } from 'wxt/browser';
 import { CliptError, toErrorPayload, type ErrorPayload } from '@/core/errors';
 import type { Job, Mode } from '@/core/job';
 import type { TabAccess } from '@/core/restricted';
-import type { PageProbe } from '@/core/page';
+import type { AreaCapture, PageProbe } from '@/core/page';
 import type { RecordFormat } from '@/core/media-profile';
 import type { NormalizedRect } from '@/core/crop';
 import type { Settings } from '@/core/settings';
@@ -134,13 +134,20 @@ export interface Protocol {
     /** 요소 추적 시작. 지금 요소 위치를 돌려준다. 기억한 요소가 없으면 null */
     'track:start': (payload: { jobId: string }) => NormalizedRect | null;
     'track:stop': (payload: null) => null;
-    /** 뷰포트·스크롤·DPR 측정 */
+    /** 전체 페이지 캡처 전 측정: 뷰포트·스크롤·DPR, 문서 대신 스크롤할 안쪽 영역 */
     'page:probe': (payload: null) => PageProbe;
-    /** 캡처 전 준비: 스크롤 위치 기억, 부드러운 스크롤·스크롤바 끄기 */
-    'page:prepare': (payload: { hideScrollbar: boolean }) => null;
-    /** fixed·sticky 요소 숨김. 숨긴 요소 수 */
-    'page:hideFixed': (payload: null) => number;
-    /** 스크롤 후 렌더 안정(지연 로딩 이미지 대기)까지 기다려 실제 scrollY 반환 */
+    /**
+     * 캡처 전 준비: 스크롤 위치 기억, 부드러운 스크롤·스크롤바 끄기. area면 그 스크롤 영역을 화면 안에 두고
+     * 영역 상태와 영역 내용 기준 대상을 돌려준다(main: 가장 큰 안쪽 영역, target: 선택한 요소를 가린 영역).
+     * 영역을 쓸 수 없으면 null이고 문서를 스크롤한다
+     */
+    'page:prepare': (payload: {
+      hideScrollbar: boolean;
+      area?: 'main' | 'target';
+    }) => AreaCapture | null;
+    /** fixed·sticky 요소 숨김. keepDescendants가 false면 캡처 대상 안의 요소도 숨긴다. 숨긴 요소 수 */
+    'page:hideFixed': (payload: { keepDescendants: boolean } | null) => number;
+    /** 문서(준비한 스크롤 영역이 있으면 그 영역)를 스크롤하고 렌더 안정까지 기다려 실제 위치 반환 */
     'page:scrollTo': (payload: { y: number; lazyWaitMs: number }) => number;
     /** 캡처 후·취소 시 원상 복구 */
     'page:restore': (payload: null) => null;

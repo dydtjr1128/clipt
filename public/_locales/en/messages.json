@@ -499,6 +499,10 @@
     "message": "This page scrolls inside a container, so part of it may be missing.",
     "description": "내부 스크롤 안내"
   },
+  "noticeScrollArea": {
+    "message": "Captured the page's whole inner scroll area. Headers and menus outside it are not included.",
+    "description": "안쪽 스크롤 영역을 이어 붙인 전체 페이지 캡처 안내"
+  },
   "noticeClipped": {
     "message": "Only the visible part was included.",
     "description": "잘림 안내"

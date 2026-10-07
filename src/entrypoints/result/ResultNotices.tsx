@@ -14,6 +14,7 @@ const WARNING_MESSAGE: Record<string, MessageKey> = {
   'max-length': 'noticeMaxLength',
   'mic-unavailable': 'noticeMicUnavailable',
   'internal-scroll': 'noticeInternalScroll',
+  'scroll-area': 'noticeScrollArea',
   clipped: 'noticeClipped',
   recovered: 'noticeRecovered',
   'recorder-error': 'noticeRecorderError',

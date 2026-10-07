@@ -175,9 +175,9 @@ type Job = {
 | `rec:result {jobId}` | SW → OS | 진행 중이거나 끝난 마지막 저장의 결과. 저장 중 재기동한 서비스 워커가 이어 받는다 (9.5절) |
 | `result:objectUrl {resultId}` | SW → OS | 결과 Blob URL (다운로드용) |
 | `content:ping` | SW → CS | 콘텐츠 스크립트 주입 여부 확인 |
-| `page:probe` | SW → CS | 뷰포트·스크롤·`scrollHeight`·DPR·내부 스크롤 여부 |
-| `page:prepare {hideScrollbar}` / `page:hideFixed` / `page:restore` | SW → CS | 캡처 전후 페이지 조정과 원상 복구 (8.1절) |
-| `page:scrollTo {y, lazyWaitMs}` | SW → CS | 스크롤 후 렌더·지연 이미지 대기, 실제 scrollY 응답 |
+| `page:probe` | SW → CS | 뷰포트·스크롤·`scrollHeight`·DPR·내부 스크롤 여부, 전체 페이지에서 문서 대신 스크롤할 안쪽 영역(`area`) |
+| `page:prepare {hideScrollbar, area?}` / `page:hideFixed {keepDescendants}` / `page:restore` | SW → CS | 캡처 전후 페이지 조정과 원상 복구 (8.1절). `area`면 스크롤 영역을 준비하고 영역 상태·대상을 응답 |
+| `page:scrollTo {y, lazyWaitMs}` | SW → CS | 문서(준비한 스크롤 영역이 있으면 그 영역) 스크롤 후 렌더·지연 이미지 대기, 실제 위치 응답 |
 | `select:start {jobId, kind, forRecording}` / `select:cancel` | SW → CS | 선택 UI 열기(즉시 응답) / 팝업 취소 시 닫기 |
 | `select:done {jobId, target, page, selector?}` | CS → SW | 사용자가 확정. 오버레이를 지우고 2프레임 뒤 측정한 페이지 상태와 대상(x는 뷰포트, y는 문서 기준)을 보냄. SW가 이어서 캡처 |
 | `select:cancelled {jobId}` | CS → SW | 선택 UI에서 Esc·취소 |
@@ -223,7 +223,7 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 
 전체 페이지 캡처는 스크롤 스티칭만 지원한다(`chrome.debugger` 방식은 채택하지 않음). 영역·요소 캡처에서 대상이 뷰포트를 넘을 때도 같은 코드를 쓴다.
 
-1. `page:probe`로 뷰포트, 스크롤 위치, `scrollHeight`, dpr, 내부 스크롤 여부를 얻고 대상 문서 Rect를 정한다(전체 페이지는 `0, 0, 뷰포트 너비, scrollHeight`).
+1. `page:probe`로 뷰포트, 스크롤 위치, `scrollHeight`, dpr, 내부 스크롤 여부를 얻고 대상 문서 Rect를 정한다(전체 페이지는 `0, 0, 뷰포트 너비, scrollHeight`). 문서 대신 안쪽 영역이 스크롤되면 아래 "스크롤 영역"을 따른다.
 2. 계획(`planStitch`): 대상이 지금 화면 안에 다 들어오면 스크롤 없이 한 조각. 아니면 대상 위쪽부터 뷰포트 높이씩 나누되 스크롤은 최대 스크롤 위치에서 멈추고, 그 화면에 보이는 남은 부분만 붙인다. 조각 높이 합 = 대상 높이, 겹침 없음.
 3. 캔버스 한계(Chrome: 한 변 32767px, 면적 16384²)를 넘으면 계획 단계에서 축소 배율을 정하고 결과 메타 `scaled`에 기록한다.
 4. `page:prepare`: 스크롤 위치·`scroll-behavior`를 기억하고 조각이 여러 개면 스크롤바를 숨긴다. 두 번째 조각부터 `page:hideFixed`로 `position: fixed|sticky` 요소를 `visibility: hidden`(레이아웃 유지)으로 숨겨 고정 헤더가 한 번만 나오게 한다.
@@ -232,7 +232,19 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 7. 끝나거나 실패·취소되면 `page:restore`로 숨긴 요소·스크롤바·스크롤 위치·인라인 스타일을 원래대로 되돌린다(원래 없던 `style`·`class` 속성은 지운다).
 8. 진행률은 `job.progress`(배지 `3/12`, 팝업 진행 바). 페이지에서 Esc를 누르거나 팝업에서 취소하면 다음 조각 전에 멈춘다. 캡처 중에는 페이지에 토스트를 띄우지 않는다(결과에 찍히므로).
 
-내부 스크롤 컨테이너를 쓰는 페이지(문서는 안 움직이고 `overflow: auto` 요소가 스크롤)는 probe가 감지해 결과 메타 `warnings: ['internal-scroll']`로 남기고 보이는 만큼 찍는다. 내부 스크롤러 스티칭은 후속 이슈.
+#### 스크롤 영역 (`content/scroll-area.ts`)
+
+앱형 페이지(메일·문서 편집기·대시보드)는 문서 대신 안쪽 상자(`overflow: auto|scroll`, body 포함)가 스크롤된다. 이때는 창 대신 그 상자 하나를 스크롤하며 같은 계획·자르기로 잇는다.
+
+- **전체 페이지**: 앱 화면이면 화면 높이의 절반 이상이고 문서보다 많이 스크롤되는 상자를 찾는다(열린 Shadow DOM 안 포함). 앱 화면은 문서가 스크롤되지 않거나(넘치는 높이 24px 이하, 기본 여백 등), 페이지가 문서 스크롤을 막아 두고(뷰포트 overflow가 `hidden|clip`) 넘친 높이가 뷰포트의 1/4 미만인 페이지다. 머리글·큰 스크롤 목록·바닥글이 있는 짧은 일반 문서는 앱 화면이 아니므로 지금처럼 문서를 잇는다(머리글·바닥글을 잃지 않게). 그중 가장 넓은 상자를 고른다. 그 상자를 이어 붙일 수 없거나(아래 "쓰지 않는 경우") 모달·덮개에 가려 있으면(안쪽 상자에 고르게 퍼진 25개 지점 중 절반 미만에서만 맨 위 요소가 그 상자 안) 더 작은 상자(메뉴 등)로 바꾸지 않고 문서를 잇는다. 작은 부유 패널·토스트는 가림으로 보지 않는다. 왼쪽 메뉴와 오른쪽 본문이 따로 스크롤되면 넓은 본문이다. 결과는 그 영역의 내용 전체(가로는 안쪽 상자 너비)이고 영역 밖 머리글·메뉴는 담지 않으며, 결과 메타 `warnings: ['scroll-area']`로 알린다.
+- **요소**: 스크롤되는 요소 자신, 아니면 요소를 세로로 가린 가장 가까운 overflow 조상이 스크롤 상자이면 그 영역을 쓴다(선택 확정 때 `setCaptureTarget(요소, 영역)`, `probe(영역)`). 대상은 요소 전체(영역 자신이면 내용 전체)이고 가로는 보이는 만큼이다.
+- **쓰지 않는 경우**: `overflow: hidden|clip`처럼 스크롤로 펼칠 수 없게 가림, 영역이 화면보다 큼, 영역이 다른 영역에 가림(2겹 스크롤), 영역이나 조상이 `transform`으로 확대·축소돼 그려짐(화면 좌표와 스크롤 크기의 배율이 다름), 녹화. 이때는 지금처럼 보이는 부분만 담는다.
+- **준비**(`page:prepare {area: 'main'|'target'}`): 창 스크롤 위치를 먼저 기억하고, 영역이 화면 밖으로 나가 있으면 창을 스크롤해 안쪽 상자 전체가 보이게 한다. `scroll-snap-type`을 끄고(스냅이 요청 위치를 끌어당기지 않게), 자리를 차지하지 않는 오버레이 스크롤바만 숨긴다(자리를 차지하는 스크롤바는 안쪽 상자 밖이고 숨기면 내용 너비가 바뀜). 응답은 안쪽 상자의 뷰포트 위치, `scrollTop`, `scrollHeight`, 영역 내용 기준 대상(y는 영역 내용 기준). 그래도 화면에 다 보일 수 없으면 `null`이고 문서 스티칭으로 찍는다(전체 페이지는 `internal-scroll` 경고, 요소는 `clipped`).
+- **계획·자르기**: `planStitch`에 뷰포트 대신 안쪽 상자 크기, 문서 대신 영역의 `scrollHeight`·`scrollTop`을 넣는다. `pieceRects`의 `originY`(안쪽 상자의 뷰포트 y)만큼 내려 자르므로 영역 밖(머리글 등)은 결과에 들어가지 않는다. 영역은 준비하며 창을 옮겼을 수 있어 조각이 하나여도 `page:scrollTo`로 렌더를 기다린다.
+- **조상 판정**: 잘림·스크롤 조상과 고정 요소를 따질 때는 화면 배치(평탄 트리) 기준으로 올라간다(`layoutParent`: slot에 배치된 요소는 slot, Shadow root 최상위는 host). 요소 경로(`domTree.parent`)와 다르다.
+- **고정 요소**: 대상(전체 페이지는 영역, 요소는 요소)을 감싼 fixed·sticky 요소는 slot·Shadow 경계를 넘어서도 숨기지 않는다(고정된 앱 틀). 두 번째 조각부터는 대상 안의 fixed·sticky도 숨겨(`keepDescendants: false`) 영역 안 sticky 머리가 한 번만 나온다. 숨길 요소는 열린 Shadow DOM 안에서도 찾는다.
+- **복원**: `page:restore`가 영역의 스크롤 위치·`scroll-snap-type`·스크롤바 표시와 창 스크롤 위치를 되돌린다.
+- **범위 밖**: 가로 스크롤, iframe 안의 스크롤, 2겹 스크롤 펼치기, 영역 캡처의 가장자리 자동 스크롤을 스크롤 영역에 적용. 문서 전체가 스크롤되는 페이지의 고정 메뉴·머리글은 지금처럼 두 번째 조각부터 숨긴다(첫 화면에만 나옴).
 
 ### 8.2 요소 선택 (`content/element-picker.ts`, `content/dom-tree.ts`, `core/element-path.ts`)
 
@@ -257,9 +269,9 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 
 - 오버레이는 캡처 요청 전에 DOM에서 제거한다. 선택 UI의 테두리·라벨·패널은 결과에 들어갈 수 없다.
 - 보이는 화면·전체 페이지는 팝업 컨텍스트가 사라질 때까지(최대 1초) 기다린 뒤 80ms 후 찍는다.
-- **요소 캡처**는 첫 조각부터 `position: fixed|sticky` 요소를 숨겨 고정 헤더가 요소 위를 덮지 않게 한다. 선택한 요소 자신과 그 조상·자손인 고정 요소는 숨기지 않는다(`setCaptureTarget`). 영역 캡처는 사용자가 본 그대로를 담도록 두 번째 조각부터 숨긴다.
+- **요소 캡처**는 첫 조각부터 `position: fixed|sticky` 요소를 숨겨 고정 헤더가 요소 위를 덮지 않게 한다. 선택한 요소 자신과 그 조상(화면 배치 기준, slot·Shadow 경계 너머 포함)·자손인 고정 요소는 숨기지 않는다(`setCaptureTarget`). 스크롤 영역을 스크롤해 담을 때는 두 번째 조각부터 자손도 숨긴다(8.1절 스크롤 영역). 영역 캡처는 사용자가 본 그대로를 담도록 두 번째 조각부터 숨긴다.
 - 스타일을 바꾸거나 스크롤했으면 `page:scrollTo`로 2프레임 + 이미지 디코드를 기다린 뒤 찍는다(조각이 하나여도 동일).
-- overflow 조상에 잘린 요소는 보이는 부분(`visibleRectOf`)만 대상으로 삼고, 패널에 "일부 잘림"을 표시하며 결과 메타 `warnings: ['clipped']`를 남긴다.
+- overflow 조상에 세로로 잘린 요소는 그 조상이 스크롤 영역이면 영역을 스크롤해 전체를 담는다(8.1절 스크롤 영역). 스크롤로 펼칠 수 없게 가렸거나 가로로 잘린 부분은 보이는 부분(`visibleRectOf`)만 대상으로 삼고, 패널에 "일부 잘림"을 표시하며 결과 메타 `warnings: ['clipped']`를 남긴다. 녹화는 보이는 화면만 담으므로 가려 있으면 항상 "일부 잘림"이다.
 - 화면 밖 요소는 스티칭 계획이 해당 위치로 스크롤해 찍고, `page:restore`가 선택 당시 스크롤 위치로 되돌린다.
 
 ## 9. 녹화 파이프라인
