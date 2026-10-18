@@ -129,7 +129,7 @@ jobs:
           name: release-package
           path: .output/release/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
 
   ci-gate:
     name: 태그 커밋의 CI 성공 확인
