@@ -124,12 +124,15 @@ jobs:
       - name: 릴리스 파일 준비(버전·태그·릴리스 노트 확인)
         id: assets
         run: node scripts/release-assets.mjs
-      - uses: actions/upload-artifact@v4
+      # 아티팩트는 계정 저장 공간을 쓴다. 게시하는 실행(태그 푸시·자동 릴리스)만 publish 잡에 넘기고,
+      # 게시 뒤에는 Release가 파일을 보관하므로 하루만 둔다. PR·수동 실행은 패키징 검사만 한다
+      - if: github.event_name == 'workflow_run' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+        uses: actions/upload-artifact@v4
         with:
           name: release-package
           path: .output/release/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
   ci-gate:
     name: 태그 커밋의 CI 성공 확인
