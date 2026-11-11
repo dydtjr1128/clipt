@@ -37,6 +37,7 @@ const ERROR_MESSAGE: Partial<Record<ErrorCode | string, MessageKey>> = {
   LAYOUT_CHANGED: 'errorLayoutChanged',
 };
 
+const APP_VERSION = browser.runtime.getManifest().version;
 const NO_SHORTCUT = '–';
 const HINT_KEY = 'popupHintShown';
 const HINT_LIMIT = 3;
@@ -115,8 +116,9 @@ function Header({ onSettings }: { onSettings: () => void }) {
   return (
     <header class="popup-header">
       <h1 class="popup-title">
-        <BrandMark />
+        <BrandMark size={16} />
         {t('appShortName')}
+        <span class="popup-version">{`v${APP_VERSION}`}</span>
       </h1>
       <div class="popup-actions">
         <button
