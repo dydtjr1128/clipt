@@ -18,8 +18,15 @@ export async function runFullPageCapture(job: Job): Promise<void> {
   const tab = await activeTargetTab(job);
   await ensureContentScript(job.tabId);
 
-  await transitionJob(job.id, 'capturing');
+  // 측정이 페이지의 Esc 중단을 켜므로 capturing보다 먼저 한다. capturing이 된 순간부터 Esc가 듣는다(#86).
+  // 그 사이 작업이 끝나 전환이 실패하면 켜 둔 Esc 중단을 끈다(이후는 stitchCapture가 복원한다)
   const page = await sendToTab(job.tabId, 'page:probe', null);
+  try {
+    await transitionJob(job.id, 'capturing');
+  } catch (error) {
+    await sendToTab(job.tabId, 'page:restore', null).catch(() => undefined);
+    throw error;
+  }
   const image = await stitchCapture(
     job,
     tab.windowId,
