@@ -70,6 +70,31 @@ describe('mixAudio', () => {
     vi.unstubAllGlobals();
   });
 
+  it('합성 그래프가 실제로 흐르기 시작하면(currentTime > 0) waitStarted가 true로 풀린다', async () => {
+    const fake = fakeContext();
+    const clock = fake.context as unknown as { currentTime: number; state: string };
+    clock.currentTime = 0;
+    clock.state = 'running';
+    const mix = mixAudio(stream('tab', 1), null, () => fake.context);
+    setTimeout(() => (clock.currentTime = 0.02), 50);
+    await expect(mix.waitStarted(2000)).resolves.toBe(true);
+  });
+
+  it('제한 시간 안에 흐르지 않거나 컨텍스트가 닫히면 false로 풀린다', async () => {
+    const fake = fakeContext();
+    const clock = fake.context as unknown as { currentTime: number; state: string };
+    clock.currentTime = 0;
+    clock.state = 'running';
+    const mix = mixAudio(stream('tab', 1), null, () => fake.context);
+    await expect(mix.waitStarted(60)).resolves.toBe(false);
+    clock.state = 'closed';
+    await expect(mix.waitStarted(2000)).resolves.toBe(false);
+  });
+
+  it('오디오가 없으면 기다리지 않는다', async () => {
+    await expect(mixAudio(null, null).waitStarted(2000)).resolves.toBe(true);
+  });
+
   it('오디오가 없으면 트랙도 컨텍스트도 만들지 않는다', () => {
     let created = false;
     const mix = mixAudio(stream('tab', 0), null, () => {
