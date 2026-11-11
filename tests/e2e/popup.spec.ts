@@ -21,6 +21,13 @@ const MODES = [
   'rec-element',
 ] as const;
 
+test('팝업 헤더에 이름과 함께 확장 버전이 보인다', async ({ openExtensionPage }) => {
+  const popup = await openExtensionPage('popup.html');
+  const version = await popup.evaluate(() => chrome.runtime.getManifest().version);
+  await expect(popup.locator('.popup-title')).toContainText('Clipt');
+  await expect(popup.locator('.popup-version')).toHaveText(`v${version}`);
+});
+
 test('팝업에서 7개 기능을 모두 시작할 수 있다', async ({ context, openControlWindow }) => {
   const site = await context.newPage();
   await site.goto(SITE + '/menu');

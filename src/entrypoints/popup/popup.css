@@ -13,17 +13,24 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--sp-3) var(--sp-4);
+  padding: 6px var(--sp-3) 6px var(--sp-4);
   border-bottom: 1px solid var(--c-border);
 }
 
 .popup-title {
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
+  gap: 6px;
   margin: 0;
-  font-size: var(--fs-lg);
+  font-size: var(--fs-md);
   font-weight: 700;
+}
+
+.popup-version {
+  color: var(--c-fg-2);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
 }
 
 .popup-actions {
