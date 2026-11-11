@@ -9,8 +9,18 @@ const cropped = {
   stop: vi.fn(),
 };
 vi.mock('@/offscreen/frame-cropper', () => ({ cropTrack: vi.fn(() => cropped) }));
+/** 합성 오디오가 흐르기 시작하는 시점을 테스트마다 정한다(기본: 바로 시작) */
+let audioStarted: Promise<boolean> = Promise.resolve(true);
+let waitStartedCalls = 0;
 vi.mock('@/offscreen/audio-mixer', () => ({
-  mixAudio: () => ({ track: null, close: async () => undefined }),
+  mixAudio: () => ({
+    track: null,
+    waitStarted: () => {
+      waitStartedCalls++;
+      return audioStarted;
+    },
+    close: async () => undefined,
+  }),
 }));
 vi.mock('fix-webm-duration', () => ({ default: async (blob: Blob) => blob }));
 
@@ -71,6 +81,7 @@ const videoTrack = {
 };
 
 beforeEach(() => {
+  audioStarted = Promise.resolve(true);
   appendBehavior = null;
   appendCalls = 0;
   cropped.stop.mockClear();
@@ -122,6 +133,23 @@ async function resultOf(id: string) {
   const { loadResult } = await import('@/shared/db');
   return loadResult(id);
 }
+
+describe('녹화 시작', () => {
+  it('합성 오디오가 흐르기 시작한 뒤에 MediaRecorder를 만들고 시작한다', async () => {
+    let release!: (started: boolean) => void;
+    audioStarted = new Promise((resolve) => (release = resolve));
+    FakeRecorder.last = null;
+    waitStartedCalls = 0;
+    const pending = start('audio-wait');
+    await vi.waitFor(() => expect(waitStartedCalls).toBe(1));
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    // 오디오가 아직 멈춰 있으면 인코더가 데이터를 내지 않으므로 녹화를 시작하지 않는다(#85)
+    expect(FakeRecorder.last).toBeNull();
+    release(true);
+    const { media } = await pending;
+    expect(media.state).toBe('recording');
+  });
+});
 
 describe('녹화 종료', () => {
   it('인코더가 데이터를 하나도 내지 않으면 빈 결과를 저장하지 않고 오류로 끝내며 자원을 놓는다', async () => {

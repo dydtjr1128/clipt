@@ -80,6 +80,8 @@ const TIMESLICE_MS = 1000;
  * 중지 요청 때 데이터가 없으면 첫 데이터가 나올 때까지 이만큼 기다린 뒤 멈춘다
  */
 export const FIRST_DATA_WAIT_MS = 2000;
+/** 녹화 시작 전에 합성 오디오가 흐르기 시작하길 기다리는 최대 시간. 부하가 크면 3초 넘게 걸리기도 한다(#85) */
+export const AUDIO_START_WAIT_MS = 5000;
 let session: Session | null = null;
 /** 요소 추적의 최신 요소 위치. 녹화 준비 중에 먼저 도착할 수 있어 세션과 따로 둔다 */
 let tracked: { jobId: string; rect: NormalizedRect } | null = null;
@@ -173,6 +175,9 @@ export async function startRecording(options: StartOptions): Promise<StartInfo> 
       setTimeout(() => resolve(fallbackSize), 3000),
     ),
   ]);
+  // 합성 오디오가 실제로 흐른 뒤에 녹화를 시작한다. 먼저 시작하면 그동안 인코더가 데이터를 내지 않아, 화면은
+  // 녹화 중인데 곧 중지하면 빈 결과(CAPTURE_FAILED)가 된다(#85). 끝내 흐르지 않으면 지금처럼 그대로 시작한다
+  await audio.waitStarted(AUDIO_START_WAIT_MS);
   const recorder = new MediaRecorder(output, {
     mimeType: choice.mime,
     videoBitsPerSecond: videoBitrate(width, height, options.fps, options.bitrate),
