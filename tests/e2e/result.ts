@@ -69,12 +69,15 @@ export async function samplePixels(
   }, points);
 }
 
-/** 색이 기대값과 채널별 tolerance 이내인지 */
+/** 색이 기대값과 채널별 tolerance 이내인지. actual에 알파가 있으면 비교하지 않고 실패 메시지에만 보인다 */
 export function expectColor(
   actual: number[] | undefined,
   expected: readonly number[],
   tolerance = 12,
 ) {
-  expect(actual, `color ${actual} vs ${expected}`).toBeDefined();
-  expected.forEach((v, i) => expect(Math.abs(actual![i]! - v)).toBeLessThanOrEqual(tolerance));
+  const label = `color ${actual} vs ${expected} (tolerance ${tolerance})`;
+  expect(actual, label).toBeDefined();
+  expected.forEach((v, i) =>
+    expect(Math.abs(actual![i]! - v), `${label}, channel ${i}`).toBeLessThanOrEqual(tolerance),
+  );
 }

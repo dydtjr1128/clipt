@@ -1,6 +1,6 @@
 import type { BrowserContext, Page } from '@playwright/test';
 import type { browser } from 'wxt/browser';
-import { expect, sendToBackground } from './fixtures';
+import { expect, sendToBackground, test } from './fixtures';
 
 declare const chrome: typeof browser;
 
@@ -65,7 +65,7 @@ export async function readVideo(
   await expect
     .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState), { timeout: 15_000 })
     .toBeGreaterThanOrEqual(1);
-  return video.evaluate(
+  const out = await video.evaluate(
     async (v: HTMLVideoElement, { points, at, content }) => {
       v.muted = true;
       await new Promise<void>((resolve) => {
@@ -82,15 +82,27 @@ export async function readVideo(
         duration: v.duration,
         width: v.videoWidth,
         height: v.videoHeight,
+        // RGBA로 남긴다. 실패 메시지에서 알파 0(프레임이 그려지지 않은 판독)과 실제 검은 프레임(알파 255)을 구분한다(#81)
         pixels: points.map(([x, y]) => [
-          ...ctx
-            .getImageData(Math.round(left + x * box.width), Math.round(top + y * box.height), 1, 1)
-            .data.slice(0, 3),
+          ...ctx.getImageData(
+            Math.round(left + x * box.width),
+            Math.round(top + y * box.height),
+            1,
+            1,
+          ).data,
         ]),
+        currentTime: v.currentTime,
+        readyState: v.readyState,
       };
     },
     { points, at, content },
   );
+  // 색 검사가 실패하면 어느 시점의 프레임을 읽었는지 보고서에서 확인한다(#81)
+  test.info().annotations.push({
+    type: 'video-frame',
+    description: `${at} ${out.currentTime}s / ${out.duration}s, readyState ${out.readyState}, ${out.width}×${out.height}`,
+  });
+  return out;
 }
 
 /** 결과 페이지가 보여주는 결과의 메타 */
