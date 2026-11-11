@@ -230,7 +230,7 @@ function toDevice(rect: Rect<'css'>, dpr: number): Rect<'device'>;
 5. 조각마다(조각이 하나라도 계획한 스크롤 위치가 지금과 다르면, 예: 영역을 그린 뒤 화면 밖으로 스크롤) `page:scrollTo` → 콘텐츠는 `scrollTo(behavior: instant)` 후 2프레임 대기, 뷰포트 안 미완료 이미지를 `decode`로 기다리고(최대 `lazyWaitMs`) 다시 2프레임 뒤 **실제 scrollY**를 돌려준다. 자를 위치는 요청값이 아니라 실제 위치로 계산한다.
 6. `captureShot`(초당 2회 제한용 550ms 간격 큐) → 서비스 워커의 `OffscreenCanvas`에 `drawImage`. 이웃 조각 경계는 같은 반올림으로 계산해 소수 DPR에서도 틈·겹침이 없다(`pieceRects`). 이미지를 다른 컨텍스트로 보내지 않아도 돼 오프스크린 문서를 쓰지 않는다.
 7. 끝나거나 실패·취소되면 `page:restore`로 숨긴 요소·스크롤바·스크롤 위치·인라인 스타일을 원래대로 되돌린다(원래 없던 `style`·`class` 속성은 지운다).
-8. 진행률은 `job.progress`(배지 `3/12`, 팝업 진행 바). 페이지에서 Esc를 누르거나 팝업에서 취소하면 다음 조각 전에 멈춘다. 캡처 중에는 페이지에 토스트를 띄우지 않는다(결과에 찍히므로).
+8. 진행률은 `job.progress`(배지 `3/12`, 팝업 진행 바). 페이지에서 Esc를 누르거나 팝업에서 취소하면 다음 조각 전에 멈춘다. 전체 페이지 캡처는 `page:probe`를 받은 때부터 `page:restore`까지 페이지의 Esc를 받고, 서비스 워커는 측정 뒤에 작업을 `capturing`으로 바꾼다. 그래서 `capturing`으로 보이는 순간부터 페이지를 바꾸기 전이라도 Esc가 듣는다. 측정 뒤 전환이 실패하면 `page:restore`로 Esc 처리를 끈다. 캡처 중에는 페이지에 토스트를 띄우지 않는다(결과에 찍히므로).
 
 #### 스크롤 영역 (`content/scroll-area.ts`)
 

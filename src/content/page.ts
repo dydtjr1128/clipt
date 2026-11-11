@@ -59,6 +59,8 @@ const hiddenFixed = new Map<Styled, SavedStyle>();
 let savedScrollBehavior: SavedStyle | null = null;
 let scrollbarStyle: HTMLStyleElement | null = null;
 let htmlScrollbarHidden = false;
+/** 전체 페이지 캡처: 측정(page:probe)부터 복원까지 Esc로 중단할 수 있게 한다. 페이지를 바꾸기 전 구간 포함(#86) */
+let fullPageArmed = false;
 
 function scrollingElement(): Element {
   return document.scrollingElement ?? document.documentElement;
@@ -81,14 +83,18 @@ export function probe(area: HTMLElement | null = null): PageProbe {
   };
 }
 
-/** 전체 페이지 캡처 전 측정. 문서 대신 스크롤할 안쪽 영역이 있으면 함께 알린다 */
+/**
+ * 전체 페이지 캡처 전 측정. 문서 대신 스크롤할 안쪽 영역이 있으면 함께 알린다.
+ * 서비스 워커는 이 측정 뒤에 작업을 capturing으로 바꾸므로, 여기서부터 Esc 중단을 켜 둔다(restore에서 끈다)
+ */
 export function probeFullPage(): PageProbe {
+  fullPageArmed = true;
   return probe(mainScrollArea());
 }
 
-/** 캡처를 위해 페이지를 바꿔 둔 상태인지 (Esc로 중단할 수 있는 구간) */
+/** Esc로 중단할 수 있는 구간인지: 전체 페이지 캡처 측정 뒤이거나, 캡처를 위해 페이지를 바꿔 둔 상태 */
 export function isCapturing(): boolean {
-  return savedScroll !== null;
+  return fullPageArmed || savedScroll !== null;
 }
 
 /** 문서(html 클래스)와 스크롤 영역(속성)의 스크롤바를 숨기는 규칙 */
@@ -257,6 +263,7 @@ export async function scrollToY(y: number, lazyWaitMs: number): Promise<number> 
 
 /** 캡처가 끝나거나 취소되면 바꾼 것을 모두 되돌린다 */
 export function restore(): void {
+  fullPageArmed = false;
   captureTarget = null;
   selectedArea = null;
   captureArea = null;
