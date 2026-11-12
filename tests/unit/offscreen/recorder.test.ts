@@ -154,7 +154,17 @@ describe('녹화 시작', () => {
 describe('녹화 종료', () => {
   it('인코더가 데이터를 하나도 내지 않으면 빈 결과를 저장하지 않고 오류로 끝내며 자원을 놓는다', async () => {
     const { recorder } = await start('empty');
-    await expect(recorder.stopRecording()).rejects.toMatchObject({ code: 'CAPTURE_FAILED' });
+    // 첫 데이터 대기(FIRST_DATA_WAIT_MS)를 실제로 기다리지 않도록 타이머만 가짜로 돌린다
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const stopped = expect(recorder.stopRecording()).rejects.toMatchObject({
+        code: 'CAPTURE_FAILED',
+      });
+      await vi.advanceTimersByTimeAsync(recorder.FIRST_DATA_WAIT_MS);
+      await stopped;
+    } finally {
+      vi.useRealTimers();
+    }
     expect(cropped.stop).toHaveBeenCalled();
     expect(videoTrack.stop).toHaveBeenCalled();
     const { listChunkJobIds } = await import('@/shared/db');
@@ -169,6 +179,21 @@ describe('녹화 종료', () => {
     const result = await resultOf(resultId);
     expect(await result?.blob.text()).toBe('late');
     expect(media.state).toBe('inactive');
+  });
+
+  it('부하로 인코더의 첫 데이터가 몇 초 늦어도 기다렸다가 결과를 남긴다', async () => {
+    const { recorder, media } = await start('slow-first');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      // 부하가 크면 오디오가 흐른 뒤에도 첫 데이터가 3초 넘게 늦었다(#85)
+      setTimeout(() => media.emit('slow'), 3000);
+      const stopping = recorder.stopRecording();
+      await vi.advanceTimersByTimeAsync(3000);
+      const { resultId } = await stopping;
+      expect(await (await resultOf(resultId))?.blob.text()).toBe('slow');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('레이아웃 변경 같은 자동 종료는 첫 데이터를 기다리지 않는다', async () => {
