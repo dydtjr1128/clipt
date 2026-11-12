@@ -77,9 +77,10 @@ interface Session {
 const TIMESLICE_MS = 1000;
 /**
  * 시작 직후 중지하면 인코더가 아직 첫 데이터를 내기 전이라 아무것도 남지 않는다(빈 파일).
- * 중지 요청 때 데이터가 없으면 첫 데이터가 나올 때까지 이만큼 기다린 뒤 멈춘다
+ * 중지 요청 때 데이터가 없으면 첫 데이터가 나올 때까지 이만큼 기다린 뒤 멈춘다.
+ * 평소에는 1초 안에 나오지만, 부하가 크면 오디오가 흐른 뒤에도 3초 넘게 늦어 넉넉히 둔다(#85)
  */
-export const FIRST_DATA_WAIT_MS = 2000;
+export const FIRST_DATA_WAIT_MS = 10_000;
 /** 녹화 시작 전에 합성 오디오가 흐르기 시작하길 기다리는 최대 시간. 부하가 크면 3초 넘게 걸리기도 한다(#85) */
 export const AUDIO_START_WAIT_MS = 5000;
 let session: Session | null = null;
