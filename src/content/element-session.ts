@@ -100,6 +100,8 @@ export function clipOf(
 export function startElementSession(options: ElementSessionOptions): () => void {
   let selection: Selection<Element> | null = null;
   let position: { left: number; top: number } | null = null;
+  // 패널을 열 때 한 번만 자리를 고른다. 이후 깊이·형제를 바꿔도 패널이 움직이지 않게 한다
+  let placed = false;
   let userMoved = false;
   let disposed = false;
   // 요소 따라가기: 마지막 선택을 설정에 기억한다. 읽기 전에는 기본값(켬)
@@ -155,7 +157,7 @@ export function startElementSession(options: ElementSessionOptions): () => void 
     if (!selection || disposed) return;
     const target = current(selection);
     picker.lock(target);
-    if (!userMoved || !position) {
+    if (!placed || !position) {
       position = placePanel(target.getBoundingClientRect(), panelSize(), {
         w: innerWidth,
         h: innerHeight,
@@ -166,11 +168,12 @@ export function startElementSession(options: ElementSessionOptions): () => void 
     // 첫 렌더 전에는 패널 크기를 어림값으로 잡는다. 실제 크기로 다시 맞춰 화면 밖으로 나가지 않게 한다
     const measured = panelSize();
     const fitted = clampPosition(
-      userMoved
+      placed
         ? position
         : placePanel(target.getBoundingClientRect(), measured, { w: innerWidth, h: innerHeight }),
       measured,
     );
+    placed = true;
     if (fitted.left !== position.left || fitted.top !== position.top) {
       position = fitted;
       renderPanel(target);
@@ -224,6 +227,8 @@ export function startElementSession(options: ElementSessionOptions): () => void 
 
   function closePanel(): void {
     selection = null;
+    // 다시 선택하면 새 요소 기준으로 자리를 고른다. 사용자가 옮긴 자리는 유지한다
+    if (!userMoved) placed = false;
     removeEventListener('keydown', onKey, true);
     render(null, panelRoot);
     preview.hidden = true;
