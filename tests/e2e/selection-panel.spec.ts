@@ -9,9 +9,11 @@ async function lockOn(
   context: BrowserContext,
   openControlWindow: () => Promise<Page>,
   selector: string,
+  prepare?: (site: Page) => Promise<void>,
 ) {
   const site = await context.newPage();
   await site.goto(URL);
+  await prepare?.(site);
   await site.bringToFront();
   const control = await openControlWindow();
   const tabId = await tabIdOf(control, URL);
@@ -138,6 +140,36 @@ test('패널을 끌어 옮길 수 있고 화면 밖으로 나가지 않는다', 
   }
   // 드래그해도 선택은 그대로
   expect((await panelState(site)).info).toBe('div#block');
+});
+
+test('범위를 바꿔도 패널은 처음 자리에 머문다', async ({ context, openControlWindow }) => {
+  // 오른쪽 아래 구석의 요소: 패널은 왼쪽 아래에 열린다. 상위(body)는 모든 구석과 겹친다
+  const { site } = await lockOn(context, openControlWindow, '#corner', (page) =>
+    page.evaluate(() => {
+      const corner = document.createElement('div');
+      corner.id = 'corner';
+      corner.style.cssText =
+        'position:fixed;right:0;bottom:0;width:60px;height:60px;background:#000';
+      document.body.append(corner);
+    }),
+  );
+  const panel = site.locator('clipt-overlay .panel');
+  const opened = (await panel.boundingBox())!;
+  const viewport = await site.evaluate(() => innerWidth);
+  expect(opened.x).toBeLessThan(viewport / 2);
+
+  const slider = site.locator('clipt-overlay .slider');
+  await slider.focus();
+  await slider.press('Home');
+  await expect.poll(() => panelState(site)).toMatchObject({ info: 'body' });
+  await slider.press('End');
+  await expect.poll(() => panelState(site)).toMatchObject({ info: 'div#corner' });
+  await site.keyboard.press('ArrowUp');
+  await expect.poll(() => panelState(site)).toMatchObject({ info: 'body' });
+
+  const after = (await panel.boundingBox())!;
+  expect(Math.round(after.x)).toBe(Math.round(opened.x));
+  expect(Math.round(after.y)).toBe(Math.round(opened.y));
 });
 
 test('Enter로 선택한 요소만 캡처하고 오버레이는 결과에 없다', async ({
